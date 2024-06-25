@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+//import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:url_launcher/url_launcher.dart';
+//import 'package:url_launcher/url_launcher.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:keras_mobile_chatbot/function_call.dart';
+import 'package:keras_mobile_chatbot/chat_bubble.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class ChatHome extends StatelessWidget {
   const ChatHome({Key? key}) : super(key: key);
@@ -12,7 +16,27 @@ class ChatHome extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Model: gemini-1.5-pro-latest'),
+        title: const Text('gemini-1.5-pro-latest', style: TextStyle(fontSize: 25)),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(
+              Icons.search,
+              semanticLabel: 'search',
+            ),
+            onPressed: () {
+              print('Search button');
+            },
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.settings,
+              semanticLabel: 'settings',
+            ),
+            onPressed: () {
+              print('settings button');
+            },
+          ),
+        ],
       ),
       body: ChatUI(),
     );
@@ -38,22 +62,13 @@ class _ChatUIState extends State<ChatUI> {
     super.initState();
     _model = GenerativeModel(
       model: 'gemini-1.5-pro-latest',
-      apiKey: dotenv.get("api_key")
+      apiKey: dotenv.get("api_key"),
+      tools: [
+        Tool(functionDeclarations: [normalFunctionCallTool])
+      ],
     );
     _chatSession = _model.startChat();
     _speech = stt.SpeechToText();
-    _initSpeechRecognizer();
-  }
-
-  void _initSpeechRecognizer() async {
-    bool available = await _speech.initialize(
-      onError: (error) => print('Error initializing speech recognizer: $error'),
-    );
-    if (available) {
-      print('Speech recognizer initialized successfully');
-    } else {
-      print('Error: Speech recognizer initialization failed');
-    }
   }
 
   @override
@@ -72,10 +87,16 @@ class _ChatUIState extends State<ChatUI> {
                 final content = history[index];
                 final text = 
                   content.parts.whereType<TextPart>().map<String>((e) => e.text).join('');
-                return MessageWidget(
-                  text: text, 
-                  isFromUser: content.role == 'user',
-                );
+                if (text.isEmpty) {
+                  return SizedBox.shrink();
+                } else {
+                  if (content.role == 'user') {
+                    return SentMessageScreen(message: text, iconPath: 'assets/icons/14/9.png',);
+                  }
+                  else {
+                    return ReceivedMessageScreen(message: text, iconPath: 'assets/icons/11/11.png',);
+                  }
+                }
               },
               itemCount: history.length,
             ),
@@ -161,21 +182,37 @@ class _ChatUIState extends State<ChatUI> {
     setState(() {
       _loading = true;
     });
-
     try {
-      final response = await _chatSession.sendMessage(
+      var response = await _chatSession.sendMessage(
         Content.text(message),
       );
-      final text = response.text;
-      if(text == null) {
-        _showError('No response from API.');
-        return;
-      } else {
-        setState(() {
-          _loading = false;
-          _scrollDown();
-        });
+      final functionCalls = response.functionCalls.toList();
+      if (functionCalls.isNotEmpty) {
+        final functionCall = functionCalls.first;
+        final result = switch (functionCall.name) {
+          // Forward arguments to the hypothetical API.
+          'getCurrentTime' => await getCurrentTime(),
+          // Throw an exception if the model attempted to call a function that was
+          // not declared.
+          _ => throw UnimplementedError(
+              'Function not implemented: ${functionCall.name}')
+        };
+        // Send the response to the model so that it can use the result to generate
+        // text for the user.
+        response = await _chatSession.sendMessage(Content.functionResponse(functionCall.name, result));
       }
+      // When the model responds with non-null text content, print it.
+       if (response.text case final text?) {
+         if(text.isEmpty) {
+           _showError('No response from API.');
+           return;
+         } else {
+           setState(() {
+             _loading = false;
+             _scrollDown();
+           });
+         }
+       }
     } catch (e) {
       _showError(e.toString());
       setState(() {
@@ -221,49 +258,6 @@ class _ChatUIState extends State<ChatUI> {
           ],
         );
       },
-    );
-  }
-}
-
-class MessageWidget extends StatelessWidget {
-  const MessageWidget({
-    super.key,
-    required this.text,
-    required this.isFromUser,
-  });
-  final String text;
-  final bool isFromUser;
-
-  @override
-  Widget build(BuildContext context) {
-    Brightness platformBrightness = MediaQuery.of(context).platformBrightness;
-    bool isDarkMode = platformBrightness == Brightness.dark;
-
-    return Row(
-      children: [
-        Flexible(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 520),
-            decoration: BoxDecoration(
-              color: isFromUser
-                ? isDarkMode ?Colors.blue : Colors.yellow
-                : isDarkMode ? Colors.deepPurple : Colors.lightGreenAccent,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              children: [
-                MarkdownBody(
-                  data: text,
-                  onTapLink: (text, href, title) => launchUrl(Uri.parse(href!)),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

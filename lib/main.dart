@@ -21,8 +21,8 @@ class KerasMobileChatbotMainUI extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
+      //darkTheme: ThemeData.dark(),
+      //themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }

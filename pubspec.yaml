@@ -40,6 +40,10 @@ dependencies:
   url_launcher: ^6.0.20
   speech_to_text: ^6.6.2
   flutter_dotenv: ^5.1.0
+  intl: ^0.19.0
+  animations: ^2.0.11
+  google_search_api: ^0.0.3
+  google_maps_flutter: ^2.2.8
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +73,22 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - .env
+    - config/config.json
+    - assets/log-imgs/
+    - assets/icons/1/
+    - assets/icons/2/
+    - assets/icons/3/
+    - assets/icons/4/
+    - assets/icons/5/
+    - assets/icons/6/
+    - assets/icons/7/
+    - assets/icons/8/
+    - assets/icons/9/
+    - assets/icons/10/
+    - assets/icons/11/
+    - assets/icons/12/
+    - assets/icons/13/
+    - assets/icons/14/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

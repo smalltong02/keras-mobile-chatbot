@@ -1,3 +1,4 @@
+import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:tuple/tuple.dart';
 import 'package:location/location.dart' as locationpkg;
@@ -5,15 +6,16 @@ import 'package:geocode/geocode.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:neom_maps_services/directions.dart';
-import 'package:neom_maps_services/distance.dart';
+//import 'package:neom_maps_services/distance.dart';
 import 'package:neom_maps_services/geocoding.dart';
-import 'package:neom_maps_services/geolocation.dart';
+//import 'package:neom_maps_services/geolocation.dart';
 import 'package:neom_maps_services/places.dart';
-import 'package:neom_maps_services/staticmap.dart';
-import 'package:neom_maps_services/timezone.dart';
+//import 'package:neom_maps_services/staticmap.dart';
+//import 'package:neom_maps_services/timezone.dart';
 
 Future<Tuple2<double, double>> getGeocode(String address) async {
-  GeoCode geoCode = GeoCode(apiKey: '189055371455335193107x86644');
+  String geoKey = dotenv.get("geocode_key");
+  GeoCode geoCode = GeoCode(apiKey: geoKey);
 
   try {
     Coordinates coordinates = await geoCode.forwardGeocoding(

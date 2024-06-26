@@ -49,6 +49,7 @@ dependencies:
   tuple: ^2.0.2
   flutter_polyline_points: ^2.0.1
   neom_maps_services: ^1.0.3
+  youtube_player_flutter: ^9.0.1
 
 dev_dependencies:
   flutter_test:

@@ -56,6 +56,7 @@ class _ChatUIState extends State<ChatUI> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _loading = false;
+  Map<int, dynamic> _extendMessageList = {};
 
   @override
   void initState() {
@@ -64,7 +65,7 @@ class _ChatUIState extends State<ChatUI> {
       model: 'gemini-1.5-pro-latest',
       apiKey: dotenv.get("api_key"),
       tools: [
-        Tool(functionDeclarations: [normalFunctionCallTool])
+        Tool(functionDeclarations: normalFunctionCallTool)
       ],
     );
     _chatSession = _model.startChat();
@@ -94,7 +95,11 @@ class _ChatUIState extends State<ChatUI> {
                     return SentMessageScreen(message: text, iconPath: 'assets/icons/14/9.png',);
                   }
                   else {
-                    return ReceivedMessageScreen(message: text, iconPath: 'assets/icons/11/11.png',);
+                    Map<String, dynamic> curExtendMessage = {};
+                    if (_extendMessageList.containsKey(index)) {
+                     curExtendMessage = _extendMessageList[index];
+                    }              
+                    return ReceivedMessageScreen(message: text, extendMessage: curExtendMessage, iconPath: 'assets/icons/11/11.png',);
                   }
                 }
               },
@@ -186,33 +191,49 @@ class _ChatUIState extends State<ChatUI> {
       var response = await _chatSession.sendMessage(
         Content.text(message),
       );
+      Map<String, dynamic> curExtendMessage = {};
       final functionCalls = response.functionCalls.toList();
       if (functionCalls.isNotEmpty) {
         final functionCall = functionCalls.first;
         final result = switch (functionCall.name) {
           // Forward arguments to the hypothetical API.
           'getCurrentTime' => await getCurrentTime(),
+          'getCurrentLocation' => await getCurrentLocation(),
+          'getDirections' => await getDirections(functionCall.args),
+          'getPlaces' => await getPlaces(functionCall.args),
           // Throw an exception if the model attempted to call a function that was
           // not declared.
           _ => throw UnimplementedError(
               'Function not implemented: ${functionCall.name}')
         };
+        if(result.isNotEmpty) {
+          String resultValue = result['result'];
+          if(result.containsKey('show_map')) {
+            curExtendMessage = {'show_map': result['show_map']};
+          }
+          Map<String, dynamic> responseFunction = {'result': resultValue};
+          // Send the result of the function call to the model.
+          response = await _chatSession.sendMessage(Content.functionResponse(functionCall.name, responseFunction));
+        }
         // Send the response to the model so that it can use the result to generate
         // text for the user.
-        response = await _chatSession.sendMessage(Content.functionResponse(functionCall.name, result));
       }
       // When the model responds with non-null text content, print it.
-       if (response.text case final text?) {
-         if(text.isEmpty) {
-           _showError('No response from API.');
-           return;
-         } else {
-           setState(() {
-             _loading = false;
-             _scrollDown();
-           });
-         }
-       }
+      if (response.text case final text?) {
+        if (curExtendMessage.isNotEmpty && _chatSession.history.isNotEmpty) {
+          int index = _chatSession.history.length - 1;
+          _extendMessageList[index] = curExtendMessage;
+        }
+        if(text.isEmpty) {
+          _showError('No response from API.');
+          return;
+        } else {
+          setState(() {
+            _loading = false;
+            _scrollDown();
+          });
+        }
+      }
     } catch (e) {
       _showError(e.toString());
       setState(() {

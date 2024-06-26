@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:neom_maps_services/timezone.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class CustomShape extends CustomPainter {
   final Color bgColor;
@@ -92,6 +95,7 @@ class SentMessageScreen extends StatelessWidget {
 
 class ReceivedMessageScreen extends StatelessWidget {
   final String message;
+  final Map<String, dynamic> extendMessage;
   final String iconPath;
 
   static const double _paddingHorizontal = 18.0;
@@ -105,6 +109,7 @@ class ReceivedMessageScreen extends StatelessWidget {
   const ReceivedMessageScreen({
     Key? key,
     required this.message,
+    required this.extendMessage,
     required this.iconPath,
   }) : super(key: key);
 
@@ -148,15 +153,212 @@ class ReceivedMessageScreen extends StatelessWidget {
           ],
         ));
 
+    Widget? extendMessageGroup;
+
+    if (extendMessage.containsKey('show_map')) {
+      Map<String, dynamic> showMap = extendMessage['show_map'];
+      if (showMap['object'] == 'position') {
+        double lat = showMap['position']['lat'];
+        double lng = showMap['position']['lng'];
+        Set<Marker> _markers = {};
+        final marker = Marker(
+          markerId: MarkerId('Your location'),
+          position: LatLng(lat, lng),
+          infoWindow: InfoWindow(
+            title: 'Your location',
+          ),
+        );
+        _markers..add(marker);
+        extendMessageGroup = Flexible(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.asset(
+              iconPath,
+              width: _iconSize,
+              height: _iconSize,
+            ),
+            SizedBox(width: 4),
+            Flexible(
+              child: Container(
+                width: double.infinity,
+                height: 300,
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(lat, lng),
+                    zoom: 12,
+                  ),
+                  markers: _markers,
+                ),
+              ),
+            ),
+          ],
+        ));
+      }
+      else if (showMap['object'] == 'polyline') {
+        String startAddress = showMap['start_address'];
+        Location startLocation = showMap['start_location'];
+        String endAddress = showMap['end_address'];
+        Location endLocation = showMap['end_location'];
+        String distance = showMap['distance'];
+        String duration = showMap['duration'];
+        String overviewPolyline = showMap['overview_polyline'];
+        print("start: $startAddress");
+        print("end: $endAddress");
+        print("distance: $distance");
+        print("duration: $duration");
+        print("polyline: $overviewPolyline");
+        // Decode the polyline string to a list of LatLng coordinates
+        PolylinePoints polylinePoints = PolylinePoints();
+        List<PointLatLng> pointList = polylinePoints.decodePolyline(overviewPolyline);
+        List<LatLng?> polylineCoordinates = [];
+        pointList.forEach((point) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        });
+        List<LatLng> nonNullPolylineCoordinates = polylineCoordinates.where((element) => element != null).cast<LatLng>().toList();
+        var polylines = generatePolyLineFromPoints(nonNullPolylineCoordinates);
+        Set<Marker> _markers = {};
+        final markerStart = Marker(
+          markerId: MarkerId('Start'),
+          position: LatLng(startLocation.lat, startLocation.lng),
+          infoWindow: InfoWindow(
+            title: startAddress,
+          ),
+        );
+        _markers.add(markerStart);
+
+        final markerEnd = Marker(
+          markerId: MarkerId('End'),
+          position: LatLng(endLocation.lat, endLocation.lng),
+          infoWindow: InfoWindow(
+            title: endAddress,
+          ),
+        );
+        _markers.add(markerEnd);
+        extendMessageGroup = Flexible(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.asset(
+              iconPath,
+              width: _iconSize,
+              height: _iconSize,
+            ),
+            SizedBox(width: 4),
+            Flexible(
+              child: Container(
+                width: double.infinity,
+                height: 300,
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: polylineCoordinates[0] ?? LatLng(0.0, 0.0),
+                    zoom: 12,
+                  ),
+                  markers: _markers,
+                  polylines: Set<Polyline>.of(polylines.values),
+                ),
+              ),
+            ),
+          ],
+        ));
+      }
+      else if (showMap['object'] == 'places') {
+        Set<Marker> _markers = {};
+        Location position = showMap['position'];
+        // final marker_pos = Marker(
+        //   markerId: MarkerId("Start"),
+        //   position: LatLng(position.lat, position.lng),
+        //   infoWindow: InfoWindow(
+        //     title: 'Start',
+        //   ),
+        // );
+        // _markers.add(marker_pos);
+        List<Map<String, dynamic>> placesList = showMap['places'];
+        for(Map<String, dynamic> place in placesList) {
+          String name = place['name'];
+          String level = place['level'];
+          String address = place['address'];
+          String placeId = place['place_id'];
+          String icon = place['icon'];
+          Location location = place['location'];
+          final marker = Marker(
+            markerId: MarkerId(name),
+            position: LatLng(location.lat, location.lng),
+            infoWindow: InfoWindow(
+              title: address,
+            ),
+          );
+          _markers.add(marker);
+        }
+        extendMessageGroup = Flexible(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.asset(
+              iconPath,
+              width: _iconSize,
+              height: _iconSize,
+            ),
+            SizedBox(width: 4),
+            Flexible(
+              child: Container(
+                width: double.infinity,
+                height: 300,
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(position.lat, position.lng),
+                    zoom: 12,
+                  ),
+                  markers: _markers,
+                ),
+              ),
+            ),
+          ],
+        ));
+      }
+    }
+
     return Padding(
       padding: EdgeInsets.only(right: 50.0, left: _paddingHorizontal, top: _paddingVertical, bottom: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
-          SizedBox(height: 30),
-          messageTextGroup,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              SizedBox(height: 30),
+              messageTextGroup,
+            ],
+          ),
+          if(extendMessageGroup != null) ...{
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                SizedBox(height: 30),
+                extendMessageGroup,
+              ],
+            ),
+          }
         ],
       ),
     );
+  }
+
+  Map<PolylineId, Polyline> generatePolyLineFromPoints(List<LatLng> polylineCoordinates) {
+    PolylineId id = PolylineId('poly');
+    Polyline polyline = Polyline(
+      polylineId: id,
+      consumeTapEvents: true,
+      color: Colors.blue,
+      points: polylineCoordinates,
+      width: 8,
+    );
+    Map<PolylineId, Polyline> polylines = {};
+    polylines[id] = polyline;
+    return polylines;
   }
 }

@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               obscureText: true,
             ),
-            const SizedBox(height: 40.0),
+            const SizedBox(height: 10.0),
             OverflowBar(
               alignment: MainAxisAlignment.end,
               // TODO: Add a beveled rectangular border to CANCEL (103)
@@ -68,10 +68,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 ElevatedButton(
                   child: const Text('NEXT'),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ChatHome()),
-                    );
+                    String username = _usernameController.text;
+                    String password = _passwordController.text;
+                    if (username == 'admin' && password == 'admin') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ChatHome()),
+                      );
+                    } else {
+                      // Show an alert dialog with the message "Invalid username or password"
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Error'),
+                            content: const Text('Invalid username or password'),
+                            actions: [
+                              TextButton(
+                                child: const Text('OK'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    }
                   },
                 ),
               ],

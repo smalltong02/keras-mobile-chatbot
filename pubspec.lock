@@ -118,6 +118,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.20"
+  flutter_polyline_points:
+    dependency: "direct main"
+    description:
+      name: flutter_polyline_points
+      sha256: "05e1ac0ecf2879bed5baa3ed34d44f9262355a24c55d677663e6c932521f6acb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -128,6 +136,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  geocode:
+    dependency: "direct main"
+    description:
+      name: geocode
+      sha256: cf9727c369bb3703b97d6e440225962dc27b7f3c686662fe3cdcc91cbfb7074d
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.3"
   google_generative_ai:
     dependency: "direct main"
     description:
@@ -204,10 +220,10 @@ packages:
     dependency: transitive
     description:
       name: js
-      sha256: c1b2e9b5ea78c45e1a0788d29606ba27dc5f71f019f32ca5140f61ef071838cf
+      sha256: f2c445dce49627136094980615a031419f7f3eb393237e4ecd97ac15dea343f3
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.1"
+    version: "0.6.7"
   json_annotation:
     dependency: transitive
     description:
@@ -248,6 +264,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  location:
+    dependency: "direct main"
+    description:
+      name: location
+      sha256: "37ffdadcd4b1498b769824f45ebb4de8ed46663a4a67ac27b33a590ee486579f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.2"
+  location_platform_interface:
+    dependency: transitive
+    description:
+      name: location_platform_interface
+      sha256: "2ecde6bb0f88032b0bbbde37e18975b4468711dd92619c2235cc0c0ee93b4b8e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
+  location_web:
+    dependency: transitive
+    description:
+      name: location_web
+      sha256: "15ad7b4c8a9f55abee513373755e093a40c04d7e24fc1b4f89676fe99523d034"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.1"
+  logger:
+    dependency: transitive
+    description:
+      name: logger
+      sha256: af05cc8714f356fd1f3888fb6741cbe9fbe25cdb6eedbab80e1a6db21047d4a4
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.0"
   markdown:
     dependency: transitive
     description:
@@ -280,6 +328,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.0"
+  neom_maps_services:
+    dependency: "direct main"
+    description:
+      name: neom_maps_services
+      sha256: "30e0b653c2444a7c33e21e64c70cdc7f913e404ccc712d73d84705231e7ee165"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.3"
   path:
     dependency: transitive
     description:
@@ -321,10 +377,10 @@ packages:
     dependency: "direct main"
     description:
       name: speech_to_text
-      sha256: "97425fd8cc60424061a0584b6c418c0eedab5201cc5e96ef15a946d7fab7b9b7"
+      sha256: "57fef1d41bdebe298e84842c89bb4ac91f31cdbec7830c8cb1fc6b91d03abd42"
       url: "https://pub.dev"
     source: hosted
-    version: "6.6.2"
+    version: "6.6.0"
   speech_to_text_macos:
     dependency: transitive
     description:
@@ -389,6 +445,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.0"
+  tuple:
+    dependency: "direct main"
+    description:
+      name: tuple
+      sha256: a97ce2013f240b2f3807bcbaf218765b6f301c3eff91092bcfa23a039e7dd151
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.2"
   typed_data:
     dependency: transitive
     description:

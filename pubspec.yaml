@@ -51,6 +51,7 @@ dependencies:
   flutter_polyline_points: ^2.0.1
   neom_maps_services: ^1.0.3
   youtube_player_flutter: ^9.0.1
+  googleapis: ^13.2.0
 
 dev_dependencies:
   flutter_test:

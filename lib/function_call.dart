@@ -239,14 +239,14 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
 final getCurrentTimeFunc = FunctionDeclaration(
     'getCurrentTime',
     'Get the current local time.',
-    Schema(SchemaType.object, properties: {
-    }));
+    null
+    );
     
 final getCurrentLocationFunc = FunctionDeclaration(
     'getCurrentLocation',
     'Get the current location information.',
-    Schema(SchemaType.object, properties: {
-    }));
+    null
+    );
 
 final getDirectionsFunc = FunctionDeclaration(
     'getDirections',

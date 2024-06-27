@@ -61,12 +61,14 @@ class _ChatUIState extends State<ChatUI> {
   @override
   void initState() {
     super.initState();
+    ToolConfig toolConfig = ToolConfig(functionCallingConfig: FunctionCallingConfig(mode: FunctionCallingMode.auto));
     _model = GenerativeModel(
       model: 'gemini-1.5-pro-latest',
       apiKey: dotenv.get("api_key"),
       tools: [
         Tool(functionDeclarations: normalFunctionCallTool)
       ],
+      toolConfig: toolConfig
     );
     _chatSession = _model.startChat();
     _speech = stt.SpeechToText();

@@ -203,6 +203,7 @@ class _ChatUIState extends State<ChatUI> {
           'getCurrentLocation' => await getCurrentLocation(),
           'getDirections' => await getDirections(functionCall.args),
           'getPlaces' => await getPlaces(functionCall.args),
+          'searchVideos' => await searchVideos(functionCall.args),
           // Throw an exception if the model attempted to call a function that was
           // not declared.
           _ => throw UnimplementedError(
@@ -212,6 +213,9 @@ class _ChatUIState extends State<ChatUI> {
           String resultValue = result['result'];
           if(result.containsKey('show_map')) {
             curExtendMessage = {'show_map': result['show_map']};
+          }
+          else if (result.containsKey('show_video')) {
+            curExtendMessage = {'show_video': result['show_video']};
           }
           Map<String, dynamic> responseFunction = {'result': resultValue};
           // Send the result of the function call to the model.

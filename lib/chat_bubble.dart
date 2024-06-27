@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:neom_maps_services/timezone.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class CustomShape extends CustomPainter {
   final Color bgColor;
@@ -153,7 +154,7 @@ class ReceivedMessageScreen extends StatelessWidget {
           ],
         ));
 
-    Widget? extendMessageGroup;
+    List<Widget> extendMessageGroupList = [];
 
     if (extendMessage.containsKey('show_map')) {
       Map<String, dynamic> showMap = extendMessage['show_map'];
@@ -169,32 +170,33 @@ class ReceivedMessageScreen extends StatelessWidget {
           ),
         );
         _markers..add(marker);
-        extendMessageGroup = Flexible(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.asset(
-              iconPath,
-              width: _iconSize,
-              height: _iconSize,
-            ),
-            SizedBox(width: 4),
-            Flexible(
-              child: Container(
-                width: double.infinity,
-                height: 300,
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(lat, lng),
-                    zoom: 12,
+        extendMessageGroupList.add(Flexible(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.asset(
+                iconPath,
+                width: _iconSize,
+                height: _iconSize,
+              ),
+              SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  width: double.infinity,
+                  height: 300,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(lat, lng),
+                      zoom: 12,
+                    ),
+                    markers: _markers,
                   ),
-                  markers: _markers,
                 ),
               ),
-            ),
-          ],
-        ));
+            ],
+          ))
+        );
       }
       else if (showMap['object'] == 'polyline') {
         String startAddress = showMap['start_address'];
@@ -204,11 +206,6 @@ class ReceivedMessageScreen extends StatelessWidget {
         String distance = showMap['distance'];
         String duration = showMap['duration'];
         String overviewPolyline = showMap['overview_polyline'];
-        print("start: $startAddress");
-        print("end: $endAddress");
-        print("distance: $distance");
-        print("duration: $duration");
-        print("polyline: $overviewPolyline");
         // Decode the polyline string to a list of LatLng coordinates
         PolylinePoints polylinePoints = PolylinePoints();
         List<PointLatLng> pointList = polylinePoints.decodePolyline(overviewPolyline);
@@ -236,33 +233,34 @@ class ReceivedMessageScreen extends StatelessWidget {
           ),
         );
         _markers.add(markerEnd);
-        extendMessageGroup = Flexible(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.asset(
-              iconPath,
-              width: _iconSize,
-              height: _iconSize,
-            ),
-            SizedBox(width: 4),
-            Flexible(
-              child: Container(
-                width: double.infinity,
-                height: 300,
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: polylineCoordinates[0] ?? LatLng(0.0, 0.0),
-                    zoom: 12,
+        extendMessageGroupList.add(Flexible(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.asset(
+                iconPath,
+                width: _iconSize,
+                height: _iconSize,
+              ),
+              SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  width: double.infinity,
+                  height: 300,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: polylineCoordinates[0] ?? LatLng(0.0, 0.0),
+                      zoom: 12,
+                    ),
+                    markers: _markers,
+                    polylines: Set<Polyline>.of(polylines.values),
                   ),
-                  markers: _markers,
-                  polylines: Set<Polyline>.of(polylines.values),
                 ),
               ),
-            ),
-          ],
-        ));
+            ],
+          ))
+        );
       }
       else if (showMap['object'] == 'places') {
         Set<Marker> _markers = {};
@@ -292,32 +290,88 @@ class ReceivedMessageScreen extends StatelessWidget {
           );
           _markers.add(marker);
         }
-        extendMessageGroup = Flexible(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.asset(
-              iconPath,
-              width: _iconSize,
-              height: _iconSize,
-            ),
-            SizedBox(width: 4),
-            Flexible(
-              child: Container(
-                width: double.infinity,
-                height: 300,
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(position.lat, position.lng),
-                    zoom: 12,
+        extendMessageGroupList.add(Flexible(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.asset(
+                iconPath,
+                width: _iconSize,
+                height: _iconSize,
+              ),
+              SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  width: double.infinity,
+                  height: 300,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(position.lat, position.lng),
+                      zoom: 12,
+                    ),
+                    markers: _markers,
                   ),
-                  markers: _markers,
                 ),
               ),
-            ),
-          ],
-        ));
+            ],
+          ))
+        );
+      } 
+    }
+    else if (extendMessage.containsKey('show_video')) {
+      Map<String, dynamic> showVideo = extendMessage['show_video'];
+      if (showVideo['object'] == 'videos') {
+        List<Map<String, dynamic>> videosList = showVideo['videos'];
+        if (videosList.isNotEmpty) {
+          for(Map<String, dynamic> video in videosList) {
+            String videoTitle = video['title'];
+            String videoId = video['video_id'];
+            String videoDescription = video['description'];
+            String videoUrl = video['url'];
+            YoutubePlayerController controllerYoutube = YoutubePlayerController(
+              initialVideoId: videoId,
+              flags: YoutubePlayerFlags(
+                  autoPlay: false,
+                  mute: true,
+              ),
+            );
+
+            YoutubePlayer player = YoutubePlayer(
+              controller: controllerYoutube,
+              showVideoProgressIndicator: true,
+              progressIndicatorColor: Colors.amber,
+              progressColors: const ProgressBarColors(
+                playedColor: Colors.amber,
+                handleColor: Colors.amberAccent,
+              ),
+              onReady: () {
+                //_controller.addListener(listener);
+              },
+            );
+            extendMessageGroupList.add(Flexible(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Image.asset(
+                    iconPath,
+                    width: _iconSize,
+                    height: _iconSize,
+                  ),
+                  SizedBox(width: 4),
+                  Flexible(
+                    child: Container(
+                      width: double.infinity,
+                      height: 300,
+                      child: player,
+                    ),
+                  ),
+                ],
+              ))
+            );
+          }
+        }
       }
     }
 
@@ -333,15 +387,17 @@ class ReceivedMessageScreen extends StatelessWidget {
               messageTextGroup,
             ],
           ),
-          if(extendMessageGroup != null) ...{
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: <Widget>[
-                SizedBox(height: 30),
-                extendMessageGroup,
-              ],
-            ),
+          if(extendMessageGroupList.isNotEmpty) ...{
+            for(Widget extendMessageGroup in extendMessageGroupList) ...{
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  SizedBox(height: 30),
+                  extendMessageGroup,
+                ],
+              ),
+            }
           }
         ],
       ),

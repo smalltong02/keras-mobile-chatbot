@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:tuple/tuple.dart';
 import 'package:location/location.dart' as locationpkg;
 import 'package:geocode/geocode.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
+import 'package:keras_mobile_chatbot/youtube_data.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:neom_maps_services/directions.dart';
@@ -89,8 +91,9 @@ Future<Map<String, dynamic>> getCurrentLocation() async {
         'result': "Unknown Address!",
     };
   }
+  String address = parseGeocode(result);
   return {
-    'result': result,
+    'result': address,
     'show_map': {
       'object': "position",
       'position': {
@@ -236,6 +239,34 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
   }; 
 }
 
+Future<Map<String, dynamic>> searchVideos(Map<String, Object?> arguments, ) async {
+  String title = arguments['title'] as String? ?? "";
+  int maxResults = arguments['max_results'] as int? ?? 4;
+  String apiKey = dotenv.get("search_key");
+
+  List<Video> videos = await APIService.instance.searchVideos(title: title, maxResults: maxResults, apiKey: apiKey);
+  List<Map<String, dynamic>> videoList = [];
+  String resultStr = "";
+  for(Video video in videos) {
+    videoList.add(
+      {
+        'video_id': video.id,
+        'title': video.title,
+        'description': video.description,
+        'url': video.url,
+      }
+    );
+    resultStr += "video_id: ${video.id} \ntitle: ${video.title} \ndescription: ${video.description} \nurl: ${video.url}\n\n";
+  }
+  return {
+    'result': resultStr,
+    'show_video': {
+      'object': "videos",
+      'videos': videoList,
+    }
+  };
+}
+
 final getCurrentTimeFunc = FunctionDeclaration(
     'getCurrentTime',
     'Get the current local time.',
@@ -266,5 +297,13 @@ final getPlacesFunc = FunctionDeclaration(
       "radius": Schema(SchemaType.number, description: "Distance in meters within which to bias results."),
     }));
 
+final searchVideosFunc = FunctionDeclaration(
+    'searchVideos',
+    'Get URL about Youtube video from Youtube.',
+    Schema(SchemaType.object, properties: {
+      "title": Schema(SchemaType.string, description: "Use the advanced search syntax like the Youtube API, Here's an example: 'Language Translation'"),
+      //"max_results": Schema(SchemaType.number, description: "The number of returned videos."),
+    }));
 
-final normalFunctionCallTool = [getCurrentTimeFunc, getCurrentLocationFunc, getDirectionsFunc, getPlacesFunc];
+
+final normalFunctionCallTool = [getCurrentTimeFunc, getCurrentLocationFunc, getDirectionsFunc, getPlacesFunc, searchVideosFunc];

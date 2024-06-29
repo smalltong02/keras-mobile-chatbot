@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-//import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-//import 'package:url_launcher/url_launcher.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:keras_mobile_chatbot/function_call.dart';
 import 'package:keras_mobile_chatbot/chat_bubble.dart';
-import 'package:json_annotation/json_annotation.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class ChatHome extends StatelessWidget {
   const ChatHome({Key? key}) : super(key: key);
@@ -204,6 +200,13 @@ class _ChatUIState extends State<ChatUI> {
           'getDirections' => await getDirections(functionCall.args),
           'getPlaces' => await getPlaces(functionCall.args),
           'searchVideos' => await searchVideos(functionCall.args),
+          'searchEmails' => await searchEmails(functionCall.args),
+          'sendEmails' => await sendEmails(functionCall.args),
+          'searchDrives' => await searchDrives(functionCall.args),
+          'downloadFromDrives' => await downloadFromDrives(functionCall.args),
+          'getEventCalendar' => await getEventCalendar(functionCall.args),
+          'createEventCalendar' => await createEventCalendar(functionCall.args),
+          'searchPhotos' => await searchPhotos(functionCall.args),
           // Throw an exception if the model attempted to call a function that was
           // not declared.
           _ => throw UnimplementedError(
@@ -216,6 +219,9 @@ class _ChatUIState extends State<ChatUI> {
           }
           else if (result.containsKey('show_video')) {
             curExtendMessage = {'show_video': result['show_video']};
+          }
+          else if (result.containsKey('show_image')) {
+            curExtendMessage = {'show_image': result['show_image']};
           }
           Map<String, dynamic> responseFunction = {'result': resultValue};
           // Send the result of the function call to the model.

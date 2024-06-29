@@ -1,5 +1,8 @@
+import 'dart:io' as io;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:neom_maps_services/timezone.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -191,6 +194,10 @@ class ReceivedMessageScreen extends StatelessWidget {
                       zoom: 12,
                     ),
                     markers: _markers,
+                    // Ensure that gestures work properly
+                    gestureRecognizers: Set()
+                    ..add(Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer())),
                   ),
                 ),
               ),
@@ -255,6 +262,10 @@ class ReceivedMessageScreen extends StatelessWidget {
                     ),
                     markers: _markers,
                     polylines: Set<Polyline>.of(polylines.values),
+                    // Ensure that gestures work properly
+                    gestureRecognizers: Set()
+                    ..add(Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer())),
                   ),
                 ),
               ),
@@ -265,14 +276,17 @@ class ReceivedMessageScreen extends StatelessWidget {
       else if (showMap['object'] == 'places') {
         Set<Marker> _markers = {};
         Location position = showMap['position'];
-        // final marker_pos = Marker(
-        //   markerId: MarkerId("Start"),
-        //   position: LatLng(position.lat, position.lng),
-        //   infoWindow: InfoWindow(
-        //     title: 'Start',
-        //   ),
-        // );
-        // _markers.add(marker_pos);
+        final marker_pos = Marker(
+          markerId: MarkerId("Start"),
+          position: LatLng(position.lat, position.lng),
+          infoWindow: InfoWindow(
+            title: 'Start',
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueRed
+          ),
+        );
+        _markers.add(marker_pos);
         List<Map<String, dynamic>> placesList = showMap['places'];
         for(Map<String, dynamic> place in placesList) {
           String name = place['name'];
@@ -285,7 +299,10 @@ class ReceivedMessageScreen extends StatelessWidget {
             markerId: MarkerId(name),
             position: LatLng(location.lat, location.lng),
             infoWindow: InfoWindow(
-              title: address,
+              title: name,
+            ),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueYellow
             ),
           );
           _markers.add(marker);
@@ -311,6 +328,10 @@ class ReceivedMessageScreen extends StatelessWidget {
                       zoom: 12,
                     ),
                     markers: _markers,
+                    // Ensure that gestures work properly
+                    gestureRecognizers: Set()
+                    ..add(Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer())),
                   ),
                 ),
               ),
@@ -365,6 +386,41 @@ class ReceivedMessageScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 300,
                       child: player,
+                    ),
+                  ),
+                ],
+              ))
+            );
+          }
+        }
+      }
+    }
+    else if (extendMessage.containsKey('show_image')) {
+      Map<String, dynamic> showVideo = extendMessage['show_image'];
+      if (showVideo['object'] == 'images') {
+        List<Map<String, dynamic>> imagesList = showVideo['images'];
+        if (imagesList.isNotEmpty) {
+          for(Map<String, dynamic> image in imagesList) {
+            String imageName = image['name'];
+            String imageDescription = image['description'];
+            String imageCreationTime = image['creation_time'];
+            String imgPath = image['imgpath'];
+            extendMessageGroupList.add(Flexible(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Image.asset(
+                    iconPath,
+                    width: _iconSize,
+                    height: _iconSize,
+                  ),
+                  SizedBox(width: 4),
+                  Flexible(
+                    child: Container(
+                      width: double.infinity,
+                      height: 300,
+                      child: Image.file(io.File(imgPath)),
                     ),
                   ),
                 ],

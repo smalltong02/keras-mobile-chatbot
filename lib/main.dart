@@ -4,11 +4,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/home_page.dart';
-
+import 'package:provider/provider.dart';
 main() {
   dotenv.load(fileName: ".env");
-  runApp(const KerasMobileChatbotMainUI());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => SettingProvider(),
+      child: const KerasMobileChatbotMainUI(),
+    ),
+  );
 }
 
 class KerasMobileChatbotMainUI extends StatelessWidget {

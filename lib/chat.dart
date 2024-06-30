@@ -1,9 +1,15 @@
+import 'dart:io' as io;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:keras_mobile_chatbot/function_call.dart';
 import 'package:keras_mobile_chatbot/chat_bubble.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
+import 'package:keras_mobile_chatbot/setting_page.dart';
+import 'package:file_picker/file_picker.dart';
 
 class ChatHome extends StatelessWidget {
   const ChatHome({Key? key}) : super(key: key);
@@ -29,7 +35,10 @@ class ChatHome extends StatelessWidget {
               semanticLabel: 'settings',
             ),
             onPressed: () {
-              print('settings button');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingScreen()),
+              );
             },
           ),
         ],
@@ -52,19 +61,24 @@ class _ChatUIState extends State<ChatUI> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _loading = false;
+  List<String> fileUploadList = [];
   Map<int, dynamic> _extendMessageList = {};
 
   @override
   void initState() {
     super.initState();
     ToolConfig toolConfig = ToolConfig(functionCallingConfig: FunctionCallingConfig(mode: FunctionCallingMode.auto));
+    String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
+    String newSystemInstruction = systemInstruction + role;
+    print(newSystemInstruction);
     _model = GenerativeModel(
       model: 'gemini-1.5-pro-latest',
       apiKey: dotenv.get("api_key"),
       tools: [
         Tool(functionDeclarations: normalFunctionCallTool)
       ],
-      toolConfig: toolConfig
+      toolConfig: toolConfig,
+      systemInstruction: Content.system(newSystemInstruction),
     );
     _chatSession = _model.startChat();
     _speech = stt.SpeechToText();
@@ -104,6 +118,38 @@ class _ChatUIState extends State<ChatUI> {
               itemCount: history.length,
             ),
           ),
+          if (fileUploadList.isNotEmpty) ...{
+            Container(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: fileUploadList.map((filePath) {
+                  return Stack(
+                    children: [
+                      Image.file(
+                        io.File(filePath),
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            size: 16,
+                          ),
+                          onPressed: () => removeFile(filePath),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          },
           Padding(
             padding: EdgeInsets.symmetric(
               vertical: 25,
@@ -142,6 +188,34 @@ class _ChatUIState extends State<ChatUI> {
     );
   }
 
+  Future<void> pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      allowMultiple: false,
+    );
+
+    if (result != null) {
+      List<PlatformFile> files = result.files;
+
+      setState(() {
+        for(PlatformFile file in files) {
+          String path = file.path ?? "";
+          if(path.isNotEmpty) {
+            fileUploadList.add(path);
+          }
+        }
+      });
+    } else {
+      
+    }
+  }
+
+  void removeFile(String filePath) {
+    setState(() {
+      fileUploadList.remove(filePath);
+    });
+  }
+
   void startListening() {
     _speech.listen(
       onResult: (result) {
@@ -172,6 +246,10 @@ class _ChatUIState extends State<ChatUI> {
           color: Theme.of(context).colorScheme.secondary,
         ),
       ),
+      prefixIcon: IconButton(
+        icon: Icon(Icons.attach_file),
+        onPressed: pickFile,
+      ),
       suffixIcon: IconButton(
         icon: Icon(Icons.mic),
         onPressed: () {
@@ -186,8 +264,19 @@ class _ChatUIState extends State<ChatUI> {
       _loading = true;
     });
     try {
+      Uint8List bytesUint8;
+      List<DataPart> imageParts = [];
+      for (String filePath in fileUploadList) {
+        io.File file = io.File(filePath);
+        if (await file.exists()) {
+          bytesUint8 = await file.readAsBytes().then((value) => value);
+          imageParts.add(DataPart('image/jpeg', bytesUint8));
+        }
+      }
+      final textPrompt = TextPart(message);
+      
       var response = await _chatSession.sendMessage(
-        Content.text(message),
+        Content.multi([textPrompt, ...imageParts]),
       );
       Map<String, dynamic> curExtendMessage = {};
       final functionCalls = response.functionCalls.toList();
@@ -200,6 +289,7 @@ class _ChatUIState extends State<ChatUI> {
           'getDirections' => await getDirections(functionCall.args),
           'getPlaces' => await getPlaces(functionCall.args),
           'searchVideos' => await searchVideos(functionCall.args),
+          'searchInternet' => await searchInternet(functionCall.args),
           'searchEmails' => await searchEmails(functionCall.args),
           'sendEmails' => await sendEmails(functionCall.args),
           'searchDrives' => await searchDrives(functionCall.args),

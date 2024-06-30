@@ -3,7 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+
+const String systemInstruction = "You are now my secretary, and you need to help me solve problems in my personal life or at work. Your name is ";
 
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
@@ -26,6 +29,19 @@ final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.unknown": ""},
   {"application/vnd.google-apps.video": "video/mp4"},
 ];
+
+class SettingProvider with ChangeNotifier {
+  String _currentRole = 'Jessica';
+
+  String get currentRole => _currentRole;
+
+  void updateRole(String? newRole) {
+    if(newRole != null) {
+      _currentRole = newRole;
+      notifyListeners();
+    }
+  }
+}
 
 String _extractValue(String geocode, String key) {
   final regex = RegExp('$key=([^,]+)');

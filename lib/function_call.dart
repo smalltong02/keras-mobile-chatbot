@@ -19,11 +19,13 @@ import 'package:neom_maps_services/geocoding.dart';
 import 'package:neom_maps_services/places.dart';
 //import 'package:neom_maps_services/staticmap.dart';
 //import 'package:neom_maps_services/timezone.dart';
+import 'package:googleapis/customsearch/v1.dart' as gsearch;
 import 'package:googleapis/gmail/v1.dart' as gmail;
 import 'package:googleapis/calendar/v3.dart' as gcalendar;
 import 'package:googleapis/drive/v3.dart' as gdrive;
 import 'package:googleapis/photoslibrary/v1.dart' as gphotos;
 import 'package:keras_mobile_chatbot/google_sign.dart';
+import "package:googleapis_auth/auth_io.dart" as auth;
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 
 Future<Tuple2<double, double>> getGeocode(String address) async {
@@ -295,6 +297,51 @@ Future<Map<String, dynamic>> searchVideos(Map<String, Object?> arguments, ) asyn
     };
   } catch (e) {
     resultStr = "Failed to search videos. Error: $e";
+  }
+  return {
+    'result': resultStr,
+  };
+}
+
+Future<Map<String, dynamic>> searchInternet(Map<String, Object?> arguments, ) async {
+  String resultStr = "";
+  try {
+    String query = arguments['query'] as String? ?? "";
+    int maxResults = arguments['max_results'] as int? ?? 4;
+    String apiKey = dotenv.get("search_key");
+
+    var httpClient = auth.clientViaApiKey(apiKey);
+    gsearch.CustomSearchApi customSearch = gsearch.CustomSearchApi(httpClient);
+    
+    List<gsearch.Result> searchResults = 
+    await customSearch.cse.list(
+      q: query,
+      cx: dotenv.get("cse_id"),
+      num: maxResults,
+    ).then((value) => value.items ?? []);
+
+    int titleCount = 1;
+    List<Map<String, dynamic>> resultList = [];
+    for(gsearch.Result searchResult in searchResults) {
+      String title = searchResult.title ?? "";
+      String url = searchResult.link ?? "";
+      String snippet = searchResult.snippet ?? "";
+      resultList.add(
+        {
+          'title': title,
+          'url': url,
+          'snippet': snippet,
+        }
+      );
+      resultStr += "title #$titleCount: $title \nurl: $url \nsnippet: $snippet\n\n";
+      titleCount += 1;
+    }
+  } catch (e) {
+    resultStr = "Failed to search from internet. Error: $e";
+    print(resultStr);
+  }
+  if(resultStr.isEmpty) {
+    resultStr = "No search results found.";
   }
   return {
     'result': resultStr,
@@ -785,6 +832,14 @@ final searchVideosFunc = FunctionDeclaration(
       //"max_results": Schema(SchemaType.number, description: "The number of returned videos."),
     }));
 
+final searchInternetFunc = FunctionDeclaration(
+    'searchInternet',
+    "search any information from network when a question exceeds your knowledge scope or when it's beyond the timeframe of your training data.",
+    Schema(SchemaType.object, properties: {
+      "query": Schema(SchemaType.string, description: "The questions to look up on the internet."),
+      "max_results": Schema(SchemaType.number, description: "The maximum number of search results returned. The default is 4."),
+    }));
+
 final searchEmailsFunc = FunctionDeclaration(
     'searchEmails',
     "Find email in Gmail inbox. The parameter 'search_criteria' conforms to gmail's advanced search syntax format.",
@@ -847,4 +902,4 @@ final searchPhotosFunc = FunctionDeclaration(
     }));
  
 
-final normalFunctionCallTool = [getCurrentTimeFunc, getCurrentLocationFunc, getDirectionsFunc, getPlacesFunc, searchVideosFunc, searchEmailsFunc, sendEmailsFunc, searchDrivesFunc, downloadFromDrivesFunc, getEventCalendarFunc, createEventCalendarFunc, searchPhotosFunc];
+final normalFunctionCallTool = [getCurrentTimeFunc, getCurrentLocationFunc, getDirectionsFunc, getPlacesFunc, searchVideosFunc, searchInternetFunc, searchEmailsFunc, sendEmailsFunc, searchDrivesFunc, downloadFromDrivesFunc, getEventCalendarFunc, createEventCalendarFunc, searchPhotosFunc];

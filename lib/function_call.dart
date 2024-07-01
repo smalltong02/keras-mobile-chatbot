@@ -209,6 +209,7 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
     final geocoding = GoogleMapsGeocoding(apiKey: apiKey);
     Location position = Location(lat: 0, lng: 0);
     if (location.isEmpty) {
+      location = "Current Location";
       Tuple2<double, double> pos = await getLocation(null);
       position = Location(lat: pos.item1, lng: pos.item2);
     } else {
@@ -252,6 +253,7 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
         'result': resultStr,
         'show_map': {
           'object': "places",
+          'location': location,
           'position': position,
           'places': placesList,
         }

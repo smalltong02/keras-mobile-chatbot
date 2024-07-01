@@ -275,12 +275,13 @@ class ReceivedMessageScreen extends StatelessWidget {
       }
       else if (showMap['object'] == 'places') {
         Set<Marker> _markers = {};
+        String location = showMap['location'];
         Location position = showMap['position'];
         final marker_pos = Marker(
           markerId: MarkerId("Start"),
           position: LatLng(position.lat, position.lng),
           infoWindow: InfoWindow(
-            title: 'Start',
+            title: location,
           ),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueRed

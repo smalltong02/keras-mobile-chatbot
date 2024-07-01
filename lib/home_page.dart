@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Image.asset('assets/log-imgs/logo-phone.png'),
                 const SizedBox(height: 16.0),
                 const Text(
-                  'Keras Mobile ChatBot',
+                  'AI Home Smart Assistant',
                   style: TextStyle(fontSize: 24),
                   textAlign: TextAlign.center,),
               ],

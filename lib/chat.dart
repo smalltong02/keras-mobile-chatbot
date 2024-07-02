@@ -63,14 +63,17 @@ class _ChatUIState extends State<ChatUI> {
   bool _loading = false;
   List<String> fileUploadList = [];
   Map<int, dynamic> _extendMessageList = {};
+  String roleIconPath = '';
+  String playerIconPath = '';
 
   @override
   void initState() {
     super.initState();
     ToolConfig toolConfig = ToolConfig(functionCallingConfig: FunctionCallingConfig(mode: FunctionCallingMode.auto));
+    roleIconPath = Provider.of<SettingProvider>(context, listen: false).roleIconPath;
+    playerIconPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
     String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
     String newSystemInstruction = systemInstruction + role;
-    print(newSystemInstruction);
     _model = GenerativeModel(
       model: 'gemini-1.5-pro-latest',
       apiKey: dotenv.get("api_key"),
@@ -104,14 +107,14 @@ class _ChatUIState extends State<ChatUI> {
                   return SizedBox.shrink();
                 } else {
                   if (content.role == 'user') {
-                    return SentMessageScreen(message: text, iconPath: 'assets/icons/14/9.png',);
+                    return SentMessageScreen(message: text, iconPath: playerIconPath,);
                   }
                   else {
                     Map<String, dynamic> curExtendMessage = {};
                     if (_extendMessageList.containsKey(index)) {
                      curExtendMessage = _extendMessageList[index];
                     }              
-                    return ReceivedMessageScreen(message: text, extendMessage: curExtendMessage, iconPath: 'assets/icons/11/11.png',);
+                    return ReceivedMessageScreen(message: text, extendMessage: curExtendMessage, iconPath: roleIconPath,);
                   }
                 }
               },

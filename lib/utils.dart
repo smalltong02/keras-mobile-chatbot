@@ -32,12 +32,28 @@ final List<Map<String, String>> googleDocsTypes = [
 
 class SettingProvider with ChangeNotifier {
   String _currentRole = 'Jessica';
+  String _roleIconPath = 'assets/icons/11/11.png';
+  String _playerIconPath = 'assets/icons/14/9.png';
 
   String get currentRole => _currentRole;
+  String get roleIconPath => _roleIconPath;
+  String get playerIconPath => _playerIconPath;
 
   void updateRole(String? newRole) {
     if(newRole != null) {
       _currentRole = newRole;
+      notifyListeners();
+    }
+  }
+  void updateRoleIcon(String? newPath) {
+    if(newPath != null) {
+      _roleIconPath = newPath;
+      notifyListeners();
+    }
+  }
+  void updatePlayerIcon(String? newPath) {
+    if(newPath != null) {
+      _playerIconPath = newPath;
       notifyListeners();
     }
   }

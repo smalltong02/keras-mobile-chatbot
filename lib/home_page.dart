@@ -55,63 +55,73 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          children: <Widget>[
-            const SizedBox(height: 80.0),
-            Column(
-              children: <Widget>[
-                Image.asset('assets/log-imgs/logo-phone.png'),
-                const SizedBox(height: 16.0),
-                const Text(
-                  'AI Home Smart Assistant',
-                  style: TextStyle(fontSize: 24),
-                  textAlign: TextAlign.center,),
-              ],
-            ),
-            // spacer
-            const SizedBox(height: 120.0),
-            // [Name]
-            const SizedBox(height: 10.0),
-            OverflowBar(
-              alignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      textStyle: TextStyle(
-                        fontSize: 18,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 10,
-                      shadowColor: Colors.black.withOpacity(0.5),
-                    ),
-                    child: const Text('Start Chat'),
-                    onPressed: () async {
-                      bool bsign = await handleSignIn();
-                      if (bsign) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => ChatHome()),
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (googleLoginUser != null) ...{
-              const SizedBox(height: 100.0),
-              TextButton(
-                onPressed: handleSignOut,
-                child: const Text('Sign Out Google Account'),
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            children: <Widget>[
+              const SizedBox(height: 80.0),
+              Column(
+                children: <Widget>[
+                  Image.asset('assets/log-imgs/logo-phone.png'),
+                  const SizedBox(height: 16.0),
+                  const Text(
+                    'AI Home Assistant',
+                    style: TextStyle(fontSize: 36),
+                    textAlign: TextAlign.center,),
+                ],
               ),
-            }
-          ],
+              // spacer
+              const SizedBox(height: 120.0),
+              // [Name]
+              const SizedBox(height: 10.0),
+              OverflowBar(
+                alignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        textStyle: TextStyle(
+                          fontSize: 18,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 10,
+                        shadowColor: Colors.black.withOpacity(0.5),
+                      ),
+                      child: const Text('Start Chat'),
+                      onPressed: () async {
+                        bool bsign = await handleSignIn();
+                        if (bsign) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ChatHome()),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              if (googleLoginUser != null) ...{
+                const SizedBox(height: 100.0),
+                TextButton(
+                  onPressed: handleSignOut,
+                  child: const Text('Sign Out Google Account'),
+                ),
+              }
+            ],
+          ),
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/backgrounds/21.jpg'),
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
       ),
     );

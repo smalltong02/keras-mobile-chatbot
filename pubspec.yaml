@@ -64,6 +64,7 @@ dependencies:
   provider: ^6.1.2
   shimmer: ^3.0.0
   getwidget: ^4.0.0
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:

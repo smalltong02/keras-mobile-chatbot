@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'package:googleapis/speech/v1.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const String systemInstruction = "You are now my secretary, and you need to help me solve problems in my personal life or at work. Your name is ";
 
@@ -31,31 +33,82 @@ final List<Map<String, String>> googleDocsTypes = [
 ];
 
 class SettingProvider with ChangeNotifier {
+  String _modelName = 'gemini-1.5-pro';
   String _currentRole = 'Jessica';
   String _roleIconPath = 'assets/icons/11/11.png';
   String _playerIconPath = 'assets/icons/14/9.png';
+  String _homepageWallpaperPath = 'assets/backgrounds/49.jpg';
+  String _chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
 
+  String get modelName => _modelName;
   String get currentRole => _currentRole;
   String get roleIconPath => _roleIconPath;
   String get playerIconPath => _playerIconPath;
+  String get homepageWallpaperPath => _homepageWallpaperPath;
+  String get chatpageWallpaperPath => _chatpageWallpaperPath;
+
+  SettingProvider() {
+    _init();
+  }
+
+  Future<void> _init() async {
+    await loadSetting();
+  }
+
+  void updateModel(String name) {
+    if(name.isNotEmpty) {
+      _modelName = name;
+      notifyListeners();
+      saveSetting();
+    }
+  }
 
   void updateRole(String? newRole) {
     if(newRole != null) {
       _currentRole = newRole;
       notifyListeners();
+      saveSetting();
     }
   }
   void updateRoleIcon(String? newPath) {
     if(newPath != null) {
       _roleIconPath = newPath;
       notifyListeners();
+      saveSetting();
     }
   }
   void updatePlayerIcon(String? newPath) {
     if(newPath != null) {
       _playerIconPath = newPath;
       notifyListeners();
+      saveSetting();
     }
+  }
+  void updateWallpaper(String homepageWallpaper, String chatpageWallpaper) {
+    _homepageWallpaperPath = homepageWallpaper;
+    _chatpageWallpaperPath = chatpageWallpaper;
+    notifyListeners();
+    saveSetting();
+  }
+
+  Future<void> loadSetting() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+     _modelName = prefs.getString('modelName') ?? 'gemini-1.5-pro';
+    _currentRole = prefs.getString('currentRole') ?? 'Jessica';
+    _roleIconPath = prefs.getString('roleIconPath') ?? 'assets/icons/11/11.png';
+    _playerIconPath = prefs.getString('playerIconPath') ?? 'assets/icons/14/9.png';
+    _homepageWallpaperPath = prefs.getString('homepageWallpaperPath') ?? 'assets/backgrounds/49.jpg';
+    _chatpageWallpaperPath = prefs.getString('chatpageWallpaperPath') ?? 'assets/backgrounds/64.jpg';
+  }
+
+  Future<void> saveSetting() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('modelName', _modelName);
+    prefs.setString('currentRole', _currentRole);
+    prefs.setString('roleIconPath', _roleIconPath);
+    prefs.setString('playerIconPath', _playerIconPath);
+    prefs.setString('homepageWallpaperPath', _homepageWallpaperPath);
+    prefs.setString('chatpageWallpaperPath', _chatpageWallpaperPath);
   }
 }
 

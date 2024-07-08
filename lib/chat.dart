@@ -12,14 +12,14 @@ import 'package:keras_mobile_chatbot/setting_page.dart';
 import 'package:file_picker/file_picker.dart';
 
 class ChatHome extends StatelessWidget {
-  const ChatHome({Key? key}) : super(key: key);
+  const ChatHome({super.key});
 
   @override
   Widget build(BuildContext context) {
     String name = Provider.of<SettingProvider>(context, listen: false).modelName;
     return Scaffold(
       appBar: AppBar(
-        title: Text(name, style: TextStyle(fontSize: 25)),
+        title: Text(name, style: const TextStyle(fontSize: 25)),
         actions: <Widget>[
           IconButton(
             icon: const Icon(
@@ -64,7 +64,7 @@ class _ChatUIState extends State<ChatUI> {
   bool _loading = false;
   String wallpaperPath = "";
   List<String> fileUploadList = [];
-  Map<int, dynamic> _extendMessageList = {};
+  Map<int, dynamic> extendMessageList = {};
   String roleIconPath = '';
   String playerIconPath = '';
 
@@ -118,15 +118,15 @@ class _ChatUIState extends State<ChatUI> {
                   final text = 
                     content.parts.whereType<TextPart>().map<String>((e) => e.text).join('');
                   if (text.isEmpty) {
-                    return SizedBox.shrink();
+                    return const SizedBox.shrink();
                   } else {
                     if (content.role == 'user') {
                       return SentMessageScreen(message: text, iconPath: playerIconPath,);
                     }
                     else {
                       Map<String, dynamic> curExtendMessage = {};
-                      if (_extendMessageList.containsKey(index)) {
-                      curExtendMessage = _extendMessageList[index];
+                      if (extendMessageList.containsKey(index)) {
+                      curExtendMessage = extendMessageList[index];
                       }              
                       return ReceivedMessageScreen(message: text, extendMessage: curExtendMessage, iconPath: roleIconPath,);
                     }
@@ -154,7 +154,7 @@ class _ChatUIState extends State<ChatUI> {
                           right: 0,
                           top: 0,
                           child: IconButton(
-                            icon: Icon(
+                            icon: const Icon(
                               Icons.close,
                               size: 16,
                             ),
@@ -168,7 +168,7 @@ class _ChatUIState extends State<ChatUI> {
               ),
             },
             Padding(
-              padding: EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 vertical: 25,
                 horizontal: 15,
               ),
@@ -265,11 +265,11 @@ class _ChatUIState extends State<ChatUI> {
         ),
       ),
       prefixIcon: IconButton(
-        icon: Icon(Icons.attach_file),
+        icon: const Icon(Icons.attach_file),
         onPressed: pickFile,
       ),
       suffixIcon: IconButton(
-        icon: Icon(Icons.mic),
+        icon: const Icon(Icons.mic),
         onPressed: () {
           startListening();
         },
@@ -343,7 +343,7 @@ class _ChatUIState extends State<ChatUI> {
         if (response.text case final text?) {
           if (curExtendMessage.isNotEmpty && _chatSession.history.isNotEmpty) {
             int index = _chatSession.history.length - 1;
-            _extendMessageList[index] = curExtendMessage;
+            extendMessageList[index] = curExtendMessage;
           }
           if(text.isEmpty) {
             _showError('No response from API.');

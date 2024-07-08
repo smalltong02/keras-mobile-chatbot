@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:getwidget/getwidget.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
 
 typedef WallpaperCallback = void Function(String homepageWallpaperPath, String chatpageWallpaperPath);
 
@@ -7,93 +7,14 @@ class WallpaperPage extends StatefulWidget {
   final String homepageWallpaperPath;
   final String chatpageWallpaperPath;
   final WallpaperCallback wallpaperCallback;
-  WallpaperPage({Key? key, required this.homepageWallpaperPath, required this.chatpageWallpaperPath, required this.wallpaperCallback,}) : super(key: key);
+  const WallpaperPage({super.key, required this.homepageWallpaperPath, required this.chatpageWallpaperPath, required this.wallpaperCallback,});
 
   @override
   _WallpaperPageState createState() => _WallpaperPageState();
 }
 
 class _WallpaperPageState extends State<WallpaperPage> {
-  final List<String> wallpaperPaths = [
-    'assets/backgrounds/1.jpg',
-    'assets/backgrounds/2.jpg',
-    'assets/backgrounds/3.jpg',
-    'assets/backgrounds/4.jpg',
-    'assets/backgrounds/5.jpg',
-    'assets/backgrounds/6.jpg',
-    'assets/backgrounds/7.jpg',
-    'assets/backgrounds/8.jpg',
-    'assets/backgrounds/9.jpg',
-    'assets/backgrounds/10.jpg',
-    'assets/backgrounds/11.jpg',
-    'assets/backgrounds/12.jpg',
-    'assets/backgrounds/13.jpg',
-    'assets/backgrounds/14.jpg',
-    'assets/backgrounds/15.jpg',
-    'assets/backgrounds/16.jpg',
-    'assets/backgrounds/17.jpg',
-    'assets/backgrounds/18.jpg',
-    'assets/backgrounds/19.jpg',
-    'assets/backgrounds/20.jpg',
-    'assets/backgrounds/21.jpg',
-    'assets/backgrounds/22.jpg',
-    'assets/backgrounds/23.jpg',
-    'assets/backgrounds/24.jpg',
-    'assets/backgrounds/25.jpg',
-    'assets/backgrounds/26.jpg',
-    'assets/backgrounds/27.jpg',
-    'assets/backgrounds/28.jpg',
-    'assets/backgrounds/29.jpg',
-    'assets/backgrounds/30.jpg',
-    'assets/backgrounds/31.jpg',
-    'assets/backgrounds/32.jpg',
-    'assets/backgrounds/33.jpg',
-    'assets/backgrounds/34.jpg',
-    'assets/backgrounds/35.jpg',
-    'assets/backgrounds/36.jpg',
-    'assets/backgrounds/37.jpg',
-    'assets/backgrounds/38.jpg',
-    'assets/backgrounds/39.jpg',
-    'assets/backgrounds/40.jpg',
-    'assets/backgrounds/41.jpg',
-    'assets/backgrounds/42.jpg',
-    'assets/backgrounds/43.jpg',
-    'assets/backgrounds/44.jpg',
-    'assets/backgrounds/45.jpg',
-    'assets/backgrounds/46.jpg',
-    'assets/backgrounds/47.jpg',
-    'assets/backgrounds/48.jpg',
-    'assets/backgrounds/49.jpg',
-    'assets/backgrounds/50.jpg',
-    'assets/backgrounds/51.jpg',
-    'assets/backgrounds/52.jpg',
-    'assets/backgrounds/53.jpg',
-    'assets/backgrounds/54.jpg',
-    'assets/backgrounds/55.jpg',
-    'assets/backgrounds/56.jpg',
-    'assets/backgrounds/57.jpg',
-    'assets/backgrounds/58.jpg',
-    'assets/backgrounds/59.jpg',
-    'assets/backgrounds/60.jpg',
-    'assets/backgrounds/61.jpg',
-    'assets/backgrounds/62.jpg',
-    'assets/backgrounds/63.jpg',
-    'assets/backgrounds/64.jpg',
-    'assets/backgrounds/65.jpg',
-    'assets/backgrounds/66.jpg',
-    'assets/backgrounds/67.jpg',
-    'assets/backgrounds/68.jpg',
-    'assets/backgrounds/69.jpg',
-    'assets/backgrounds/70.jpg',
-    'assets/backgrounds/71.jpg',
-    'assets/backgrounds/72.jpg',
-    'assets/backgrounds/73.jpg',
-    'assets/backgrounds/74.jpg',
-    'assets/backgrounds/75.jpg',
-    'assets/backgrounds/76.jpg',
-    'assets/backgrounds/77.jpg',
-    'assets/backgrounds/78.jpg',
-  ];
+  final List<String> wallpaperPaths = wallpaperSettingPaths;
   String curHomepageWallpaperPath = "";
   String curChatpageWallpaperPath = "";
   bool isHomeWallpaper = true;
@@ -211,12 +132,12 @@ class SelectableImage extends StatelessWidget {
   final VoidCallback onTap;
 
   const SelectableImage({
-    Key? key,
+    super.key,
     required this.imagePath,
     required this.isSelected,
     required this.selectedColor,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

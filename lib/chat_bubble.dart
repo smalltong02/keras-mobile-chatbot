@@ -45,10 +45,10 @@ class SentMessageScreen extends StatelessWidget {
   static const Color _messageTextColor = Colors.white;
 
   const SentMessageScreen({
-    Key? key,
+    super.key,
     required this.message,
     required this.iconPath,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,8 +59,8 @@ class SentMessageScreen extends StatelessWidget {
           children: [
             Flexible(
               child: Container(
-                padding: EdgeInsets.all(_messagePaddingAll),
-                decoration: BoxDecoration(
+                padding: const EdgeInsets.all(_messagePaddingAll),
+                decoration: const BoxDecoration(
                   color: Colors.cyan,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(18),
@@ -70,12 +70,12 @@ class SentMessageScreen extends StatelessWidget {
                 ),
                 child: Text(
                   message,
-                  style: TextStyle(color: _messageTextColor, fontSize: _messageFontSize),
+                  style: const TextStyle(color: _messageTextColor, fontSize: _messageFontSize),
                 ),
               ),
             ),
             CustomPaint(painter: CustomShape(_messageBackgroundColor)),
-            SizedBox(width: 4),
+            const SizedBox(width: 4),
             Image.asset(
               iconPath,
               width: _iconSize,
@@ -85,11 +85,11 @@ class SentMessageScreen extends StatelessWidget {
         ));
 
     return Padding(
-      padding: EdgeInsets.only(right: _paddingHorizontal, left: 50, top: _paddingVertical, bottom: 5),
+      padding: const EdgeInsets.only(right: _paddingHorizontal, left: 50, top: _paddingVertical, bottom: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: <Widget>[
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           messageTextGroup,
         ],
       ),
@@ -111,11 +111,11 @@ class ReceivedMessageScreen extends StatelessWidget {
   static const Color _messageTextColor = Colors.black;
 
   const ReceivedMessageScreen({
-    Key? key,
+    super.key,
     required this.message,
     required this.extendMessage,
     required this.iconPath,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +129,7 @@ class ReceivedMessageScreen extends StatelessWidget {
               width: _iconSize,
               height: _iconSize,
             ),
-            SizedBox(width: 4),
+            const SizedBox(width: 4),
             Transform(
               alignment: Alignment.center,
               transform: Matrix4.rotationY(math.pi),
@@ -139,8 +139,8 @@ class ReceivedMessageScreen extends StatelessWidget {
             ),
             Flexible(
               child: Container(
-                padding: EdgeInsets.all(_messagePaddingAll),
-                decoration: BoxDecoration(
+                padding: const EdgeInsets.all(_messagePaddingAll),
+                decoration: const BoxDecoration(
                   color: Colors.grey,
                   borderRadius: BorderRadius.only(
                     topRight: Radius.circular(18),
@@ -150,7 +150,7 @@ class ReceivedMessageScreen extends StatelessWidget {
                 ),
                 child: Text(
                   message,
-                  style: TextStyle(color: _messageTextColor, fontSize: _messageFontSize),
+                  style: const TextStyle(color: _messageTextColor, fontSize: _messageFontSize),
                 ),
               ),
             ),
@@ -164,15 +164,15 @@ class ReceivedMessageScreen extends StatelessWidget {
       if (showMap['object'] == 'position') {
         double lat = showMap['position']['lat'];
         double lng = showMap['position']['lng'];
-        Set<Marker> _markers = {};
+        Set<Marker> markers = {};
         final marker = Marker(
-          markerId: MarkerId('Your location'),
+          markerId: const MarkerId('Your location'),
           position: LatLng(lat, lng),
-          infoWindow: InfoWindow(
+          infoWindow: const InfoWindow(
             title: 'Your location',
           ),
         );
-        _markers..add(marker);
+        markers.add(marker);
         extendMessageGroupList.add(Flexible(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -183,7 +183,7 @@ class ReceivedMessageScreen extends StatelessWidget {
                 width: _iconSize,
                 height: _iconSize,
               ),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Flexible(
                 child: Container(
                   width: double.infinity,
@@ -193,7 +193,7 @@ class ReceivedMessageScreen extends StatelessWidget {
                       target: LatLng(lat, lng),
                       zoom: 12,
                     ),
-                    markers: _markers,
+                    markers: markers,
                     // Ensure that gestures work properly
                     gestureRecognizers: Set()
                     ..add(Factory<OneSequenceGestureRecognizer>(
@@ -210,8 +210,8 @@ class ReceivedMessageScreen extends StatelessWidget {
         Location startLocation = showMap['start_location'];
         String endAddress = showMap['end_address'];
         Location endLocation = showMap['end_location'];
-        String distance = showMap['distance'];
-        String duration = showMap['duration'];
+        //String distance = showMap['distance'];
+        //String duration = showMap['duration'];
         String overviewPolyline = showMap['overview_polyline'];
         // Decode the polyline string to a list of LatLng coordinates
         PolylinePoints polylinePoints = PolylinePoints();
@@ -222,24 +222,24 @@ class ReceivedMessageScreen extends StatelessWidget {
         });
         List<LatLng> nonNullPolylineCoordinates = polylineCoordinates.where((element) => element != null).cast<LatLng>().toList();
         var polylines = generatePolyLineFromPoints(nonNullPolylineCoordinates);
-        Set<Marker> _markers = {};
+        Set<Marker> markers = {};
         final markerStart = Marker(
-          markerId: MarkerId('Start'),
+          markerId: const MarkerId('Start'),
           position: LatLng(startLocation.lat, startLocation.lng),
           infoWindow: InfoWindow(
             title: startAddress,
           ),
         );
-        _markers.add(markerStart);
+        markers.add(markerStart);
 
         final markerEnd = Marker(
-          markerId: MarkerId('End'),
+          markerId: const MarkerId('End'),
           position: LatLng(endLocation.lat, endLocation.lng),
           infoWindow: InfoWindow(
             title: endAddress,
           ),
         );
-        _markers.add(markerEnd);
+        markers.add(markerEnd);
         extendMessageGroupList.add(Flexible(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -250,17 +250,17 @@ class ReceivedMessageScreen extends StatelessWidget {
                 width: _iconSize,
                 height: _iconSize,
               ),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Flexible(
                 child: Container(
                   width: double.infinity,
                   height: 300,
                   child: GoogleMap(
                     initialCameraPosition: CameraPosition(
-                      target: polylineCoordinates[0] ?? LatLng(0.0, 0.0),
+                      target: polylineCoordinates[0] ?? const LatLng(0.0, 0.0),
                       zoom: 12,
                     ),
-                    markers: _markers,
+                    markers: markers,
                     polylines: Set<Polyline>.of(polylines.values),
                     // Ensure that gestures work properly
                     gestureRecognizers: Set()
@@ -274,11 +274,11 @@ class ReceivedMessageScreen extends StatelessWidget {
         );
       }
       else if (showMap['object'] == 'places') {
-        Set<Marker> _markers = {};
+        Set<Marker> markers = {};
         String location = showMap['location'];
         Location position = showMap['position'];
-        final marker_pos = Marker(
-          markerId: MarkerId("Start"),
+        final markerPos = Marker(
+          markerId: const MarkerId("Start"),
           position: LatLng(position.lat, position.lng),
           infoWindow: InfoWindow(
             title: location,
@@ -287,7 +287,7 @@ class ReceivedMessageScreen extends StatelessWidget {
             BitmapDescriptor.hueRed
           ),
         );
-        _markers.add(marker_pos);
+        markers.add(markerPos);
         List<Map<String, dynamic>> placesList = showMap['places'];
         for(Map<String, dynamic> place in placesList) {
           String name = place['name'];
@@ -306,7 +306,7 @@ class ReceivedMessageScreen extends StatelessWidget {
               BitmapDescriptor.hueYellow
             ),
           );
-          _markers.add(marker);
+          markers.add(marker);
         }
         extendMessageGroupList.add(Flexible(
           child: Row(
@@ -318,7 +318,7 @@ class ReceivedMessageScreen extends StatelessWidget {
                 width: _iconSize,
                 height: _iconSize,
               ),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Flexible(
                 child: Container(
                   width: double.infinity,
@@ -328,7 +328,7 @@ class ReceivedMessageScreen extends StatelessWidget {
                       target: LatLng(position.lat, position.lng),
                       zoom: 12,
                     ),
-                    markers: _markers,
+                    markers: markers,
                     // Ensure that gestures work properly
                     gestureRecognizers: Set()
                     ..add(Factory<OneSequenceGestureRecognizer>(
@@ -353,7 +353,7 @@ class ReceivedMessageScreen extends StatelessWidget {
             String videoUrl = video['url'];
             YoutubePlayerController controllerYoutube = YoutubePlayerController(
               initialVideoId: videoId,
-              flags: YoutubePlayerFlags(
+              flags: const YoutubePlayerFlags(
                   autoPlay: false,
                   mute: true,
               ),
@@ -381,9 +381,9 @@ class ReceivedMessageScreen extends StatelessWidget {
                     width: _iconSize,
                     height: _iconSize,
                   ),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Flexible(
-                    child: Container(
+                    child: SizedBox(
                       width: double.infinity,
                       height: 300,
                       child: player,
@@ -416,9 +416,9 @@ class ReceivedMessageScreen extends StatelessWidget {
                     width: _iconSize,
                     height: _iconSize,
                   ),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Flexible(
-                    child: Container(
+                    child: SizedBox(
                       width: double.infinity,
                       height: 300,
                       child: Image.file(io.File(imgPath)),
@@ -433,24 +433,24 @@ class ReceivedMessageScreen extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.only(right: 50.0, left: _paddingHorizontal, top: _paddingVertical, bottom: 5),
+      padding: const EdgeInsets.only(right: 50.0, left: _paddingHorizontal, top: _paddingVertical, bottom: 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: <Widget>[
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               messageTextGroup,
             ],
           ),
           if(extendMessageGroupList.isNotEmpty) ...{
             for(Widget extendMessageGroup in extendMessageGroupList) ...{
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: <Widget>[
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   extendMessageGroup,
                 ],
               ),
@@ -462,7 +462,7 @@ class ReceivedMessageScreen extends StatelessWidget {
   }
 
   Map<PolylineId, Polyline> generatePolyLineFromPoints(List<LatLng> polylineCoordinates) {
-    PolylineId id = PolylineId('poly');
+    PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
       consumeTapEvents: true,

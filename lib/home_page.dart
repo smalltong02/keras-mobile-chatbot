@@ -6,7 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:keras_mobile_chatbot/chat.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/google_sign.dart';
-//import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -17,6 +17,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   GoogleSignInAccount? googleLoginUser;
   String wallpaperPath = "";
+  final firebaseAuth = FirebaseAuth.instance;
+  
 
   @override
   void initState() {
@@ -117,6 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () async {
                         bool bsign = await handleSignIn();
                         if (bsign) {
+                          // if(googleLoginUser != null) {
+                          //   final GoogleSignInAuthentication googleAuth = await googleLoginUser!.authentication;
+                          //   final OAuthCredential googleCredential = GoogleAuthProvider.credential(
+                          //     accessToken: googleAuth.accessToken,
+                          //     idToken: googleAuth.idToken,
+                          //   );
+                          //   final UserCredential googleUserCredential =
+                          //     await firebaseAuth.signInWithCredential(googleCredential);
+                          // }
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const ChatHome()),

@@ -57,39 +57,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    wallpaperPath = Provider.of<SettingProvider>(context, listen: false).homepageWallpaperPath;
-    return Scaffold(
-      body: SafeArea(
-        child: Container(
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height,
-          decoration: wallpaperPath.isNotEmpty
-          ? BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage(wallpaperPath),
-              fit: BoxFit.cover,
-            ),
-          ) : null,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            children: <Widget>[
-              const SizedBox(height: 80.0),
-              Column(
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    return Consumer<SettingProvider>(
+      builder: (context, settingProvider, _) {
+        String wallpaperPath = settingProvider.homepageWallpaperPath;
+        return Scaffold(
+          body: SafeArea(
+            child: Container(
+              width: screenWidth,
+              height: screenHeight,
+              decoration: wallpaperPath.isNotEmpty
+                  ? BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage(wallpaperPath),
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : null,
+              child: Column(
                 children: <Widget>[
-                  Image.asset('assets/log-imgs/logo-phone.png'),
-                  const SizedBox(height: 16.0),
-                  const Text(
-                    'AI Home Assistant',
-                    style: TextStyle(fontSize: 36),
-                    textAlign: TextAlign.center,),
-                ],
-              ),
-              // spacer
-              const SizedBox(height: 120.0),
-              // [Name]
-              OverflowBar(
-                alignment: MainAxisAlignment.center,
-                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Image.asset(
+                          'assets/log-imgs/logo-phone.png',
+                          width: screenWidth * 0.5,
+                        ),
+                        const SizedBox(height: 16.0),
+                        const Text(
+                          'AI Home Assistant',
+                          style: TextStyle(fontSize: 36),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: ElevatedButton(
@@ -118,37 +125,43 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
                   ),
-                ],
-              ),
-              if (googleLoginUser != null) ...{
-                const SizedBox(height: 180.0),
-                OverflowBar(
-                  alignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Image.asset(
-                      'assets/log-imgs/google-plus.png',
-                        width: 24,
-                        height: 24,
-                      ),
+                  const Spacer(),
+                  if (googleLoginUser != null) ...{
                     Padding(
-                      padding: const EdgeInsets.all(0.0),
-                      child: GFButton(
-                        onPressed: handleSignOut,
-                        text: 'Sign Out Google Account',
-                        type: GFButtonType.outline2x,
-                        fullWidthButton: false,
-                        size: GFSize.LARGE,
-                        color: GFColors.TRANSPARENT,
-                        shape: GFButtonShape.pills,
+                      padding: const EdgeInsets.only(bottom: 20.0),
+                      child: OverflowBar(
+                        alignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Image.asset(
+                            'assets/log-imgs/google-plus.png',
+                            width: 24,
+                            height: 24,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(0.0),
+                            child: GFButton(
+                              onPressed: handleSignOut,
+                              text: 'Sign Out Google Account',
+                              type: GFButtonType.transparent,
+                              fullWidthButton: false,
+                              size: GFSize.LARGE,
+                              color: GFColors.TRANSPARENT,
+                              textStyle: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              shape: GFButtonShape.pills,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              }
-            ],
+                  },
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

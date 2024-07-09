@@ -91,118 +91,134 @@ class _ChatUIState extends State<ChatUI> {
   @override
   Widget build(BuildContext context) {
     final history = _chatSession.history.toList();
-    roleIconPath = Provider.of<SettingProvider>(context, listen: false).roleIconPath;
-    playerIconPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
-    wallpaperPath = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperPath;
-    return Container(
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height,
-      decoration: wallpaperPath.isNotEmpty
-      ? BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(wallpaperPath),
-          fit: BoxFit.cover,
-        ),
-      ) : null,
-      child:Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                itemBuilder: (context, index) {
-                  final content = history[index];
-                  final text = 
-                    content.parts.whereType<TextPart>().map<String>((e) => e.text).join('');
-                  if (text.isEmpty) {
-                    return const SizedBox.shrink();
-                  } else {
-                    if (content.role == 'user') {
-                      return SentMessageScreen(message: text, iconPath: playerIconPath,);
-                    }
-                    else {
-                      Map<String, dynamic> curExtendMessage = {};
-                      if (extendMessageList.containsKey(index)) {
-                      curExtendMessage = extendMessageList[index];
-                      }              
-                      return ReceivedMessageScreen(message: text, extendMessage: curExtendMessage, iconPath: roleIconPath,);
-                    }
-                  }
-                },
-                itemCount: history.length,
-              ),
-            ),
-            if (fileUploadList.isNotEmpty) ...{
-              Container(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
-                  children: fileUploadList.map((filePath) {
-                    return Stack(
-                      children: [
-                        Image.file(
-                          io.File(filePath),
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 16,
-                            ),
-                            onPressed: () => removeFile(filePath),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            },
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 25,
-                horizontal: 15,
-              ),
-              child: Row(
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    return Consumer<SettingProvider>(
+      builder: (context, settingProvider, _) {
+        String roleIconPath = settingProvider.roleIconPath;
+        String playerIconPath = settingProvider.playerIconPath;
+        String wallpaperPath = settingProvider.chatpageWallpaperPath;
+
+        return Scaffold(
+          body: Container(
+            width: screenWidth,
+            height: screenHeight,
+            decoration: wallpaperPath.isNotEmpty
+                ? BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(wallpaperPath),
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
                 children: [
                   Expanded(
-                    child: TextField(
-                      autofocus: true,
-                      focusNode: _textFieldFocus,
-                      decoration: textFieldDecoration(),
-                      keyboardType: TextInputType.text,
-                      textInputAction: TextInputAction.done,
-                      controller: _textController,
-                      onSubmitted: _sendChatMessage,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemBuilder: (context, index) {
+                        final content = history[index];
+                        final text = content.parts
+                            .whereType<TextPart>()
+                            .map<String>((e) => e.text)
+                            .join('');
+                        if (text.isEmpty) {
+                          return const SizedBox.shrink();
+                        } else {
+                          if (content.role == 'user') {
+                            return SentMessageScreen(
+                              message: text,
+                              iconPath: playerIconPath,
+                            );
+                          } else {
+                            Map<String, dynamic> curExtendMessage = {};
+                            if (extendMessageList.containsKey(index)) {
+                              curExtendMessage = extendMessageList[index];
+                            }
+                            return ReceivedMessageScreen(
+                              message: text,
+                              extendMessage: curExtendMessage,
+                              iconPath: roleIconPath,
+                            );
+                          }
+                        }
+                      },
+                      itemCount: history.length,
                     ),
                   ),
-                  if (!_loading)
-                    IconButton(
-                      onPressed: () async {
-                        _sendChatMessage(_textController.text);
-                      },
-                      icon: Icon(
-                        Icons.send,
-                        color: Theme.of(context).colorScheme.primary,
+                  if (fileUploadList.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Wrap(
+                        spacing: 8.0,
+                        runSpacing: 8.0,
+                        children: fileUploadList.map((filePath) {
+                          return Stack(
+                            children: [
+                              Image.file(
+                                io.File(filePath),
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                              ),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    size: 16,
+                                  ),
+                                  onPressed: () => removeFile(filePath),
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ),
-                    )
-                  else
-                    const CircularProgressIndicator(),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 25,
+                      horizontal: 15,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            autofocus: false,
+                            focusNode: _textFieldFocus,
+                            decoration: textFieldDecoration(),
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.done,
+                            controller: _textController,
+                            onSubmitted: _sendChatMessage,
+                          ),
+                        ),
+                        if (!_loading)
+                          IconButton(
+                            onPressed: () async {
+                              _sendChatMessage(_textController.text);
+                            },
+                            icon: Icon(
+                              Icons.send,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        else
+                          const CircularProgressIndicator(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

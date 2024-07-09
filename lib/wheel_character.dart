@@ -241,91 +241,96 @@ class ListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String curRolePath = Provider.of<SettingProvider>(context, listen: false).roleIconPath;
-    String curPlayerPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
-    double height = MediaQuery.of(context).size.height * 0.4;
-    double width = MediaQuery.of(context).size.width * 0.85;
-    bool bSelected = false;
-    if(character.avatar! == curRolePath || character.avatar! == curPlayerPath) {
-      bSelected = true;
-    }
-    return InkWell(
-      onTap: onTap,
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: width * resizeFactor,
-          height: height * resizeFactor,
-          child: Stack(
-            children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                top: height / 4,
-                bottom: 0,
-                child: Hero(
-                  tag: "background_${character.title}",
-                  child: Card(
-                    clipBehavior: Clip.antiAliasWithSaveLayer,
-                    elevation: 10,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                          Color(character.color!),
-                          Colors.white,
-                        ],
-                        stops: const [0.4,1.0,]
-                        )
-                      ),
-                      child: Container(
-                        alignment: Alignment.bottomLeft,
-                        margin: const EdgeInsets.only(
-                          left: 20,
-                          bottom: 10,
+    return Consumer<SettingProvider>(
+      builder: (context, settingProvider, _) {
+        String curRolePath = settingProvider.roleIconPath;
+        String curPlayerPath = settingProvider.playerIconPath;
+        double height = MediaQuery.of(context).size.height * 0.4;
+        double width = MediaQuery.of(context).size.width * 0.85;
+        bool bSelected = false;
+        if (character.avatar! == curRolePath || character.avatar! == curPlayerPath) {
+          bSelected = true;
+        }
+
+        return InkWell(
+          onTap: onTap,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: width * resizeFactor,
+              height: height * resizeFactor,
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: height / 4,
+                    bottom: 0,
+                    child: Hero(
+                      tag: "background_${character.title}",
+                      child: Card(
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                        elevation: 10,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                        child: Text(
-                          character.title!,
-                          style: TextStyle(
-                            fontSize: 24 * resizeFactor,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color(character.color!),
+                                Colors.white,
+                              ],
+                              stops: const [0.4, 1.0],
+                            ),
+                          ),
+                          child: Container(
+                            alignment: Alignment.bottomLeft,
+                            margin: const EdgeInsets.only(
+                              left: 20,
+                              bottom: 10,
+                            ),
+                            child: Text(
+                              character.title!,
+                              style: TextStyle(
+                                fontSize: 24 * resizeFactor,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              if(bSelected) ...{
-                Positioned(
-                  top: 115,
-                  left: 15,
-                  child: Icon(
-                    Icons.person_pin_circle_sharp,
-                    size: width / 15,
+                  if (bSelected)
+                    Positioned(
+                      top: 115,
+                      left: 15,
+                      child: Icon(
+                        Icons.person_pin_circle_sharp,
+                        size: width / 15,
+                      ),
+                    ),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Hero(
+                      tag: "image_${character.title}",
+                      child: Image.asset(
+                        character.avatar!,
+                        width: width / 2,
+                        height: height,
+                      ),
+                    ),
                   ),
-                ),
-              },
-              Align(
-                alignment: Alignment.topRight,
-                child: Hero(
-                  tag: "image_${character.title}",
-                  child: Image.asset(
-                    character.avatar!,
-                    width: width / 2,
-                    height: height,
-                  ),
-                ),
+                ],
               ),
-            ],
-          )
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

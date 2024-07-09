@@ -39,6 +39,9 @@ class _WallpaperPageState extends State<WallpaperPage> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wallpaper'),
@@ -63,7 +66,7 @@ class _WallpaperPageState extends State<WallpaperPage> {
                         borderRadius: BorderRadius.circular(24),
                       ),
                       elevation: 10,
-                      backgroundColor: isHomeWallpaper ? Colors.blueAccent.withOpacity(0.6) : Colors.white.withOpacity(0.6), // Change the color based on focus
+                      backgroundColor: isHomeWallpaper ? Colors.blueAccent.withOpacity(0.6) : Colors.white.withOpacity(0.6),
                     ),
                     child: const Text('Home Wallpaper'),
                   ),
@@ -82,7 +85,7 @@ class _WallpaperPageState extends State<WallpaperPage> {
                         borderRadius: BorderRadius.circular(24),
                       ),
                       elevation: 10,
-                      backgroundColor: !isHomeWallpaper ? Colors.purpleAccent.withOpacity(0.6) : Colors.white.withOpacity(0.6), // Change the color based on focus
+                      backgroundColor: !isHomeWallpaper ? Colors.purpleAccent.withOpacity(0.6) : Colors.white.withOpacity(0.6),
                     ),
                     child: const Text('Chat Wallpaper'),
                   ),
@@ -113,7 +116,7 @@ class _WallpaperPageState extends State<WallpaperPage> {
                         imagePath = "";
                       }
                       _onImageTap(imagePath);
-                    }
+                    },
                   );
                 },
               ),

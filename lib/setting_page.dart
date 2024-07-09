@@ -75,14 +75,18 @@ class _SettingScreenState extends State<SettingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
     modelName = Provider.of<SettingProvider>(context, listen: false).modelName;
     assistantIconPath = Provider.of<SettingProvider>(context, listen: false).roleIconPath;
     yourIconPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
     homepageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).homepageWallpaperPath;
     chatpageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperPath;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings', 
+        title: const Text(
+          'Settings',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -95,7 +99,8 @@ class _SettingScreenState extends State<SettingScreen> {
           child: SettingsList(
             sections: [
               SettingsSection(
-                title: const Text('Chat Settings',
+                title: const Text(
+                  'Chat Settings',
                   style: TextStyle(
                     color: Colors.blueGrey,
                     fontSize: 17,
@@ -111,8 +116,7 @@ class _SettingScreenState extends State<SettingScreen> {
                       onChanged: (String? newValue) {
                         modelName = newValue!;
                         Provider.of<SettingProvider>(context, listen: false).updateModel(modelName);
-                        setState(() {
-                        });
+                        setState(() {});
                       },
                       items: llmModel.map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
@@ -128,7 +132,7 @@ class _SettingScreenState extends State<SettingScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if(assistantIconPath.isNotEmpty) ...{
+                        if (assistantIconPath.isNotEmpty) ...{
                           Image.asset(
                             assistantIconPath,
                             width: 40,
@@ -141,11 +145,13 @@ class _SettingScreenState extends State<SettingScreen> {
                     onPressed: (context) {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => CharactersListPage(
-                          charactersList: assistantCharacters,
-                          characterIconPath: assistantIconPath,
-                          characterCallback: roleCallback,
-                        )),
+                        MaterialPageRoute(
+                          builder: (context) => CharactersListPage(
+                            charactersList: assistantCharacters,
+                            characterIconPath: assistantIconPath,
+                            characterCallback: roleCallback,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -155,7 +161,7 @@ class _SettingScreenState extends State<SettingScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if(yourIconPath.isNotEmpty) ...{
+                        if (yourIconPath.isNotEmpty) ...{
                           Image.asset(
                             yourIconPath,
                             width: 40,
@@ -168,18 +174,21 @@ class _SettingScreenState extends State<SettingScreen> {
                     onPressed: (context) {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => CharactersListPage(
-                          charactersList: playerCharacters,
-                          characterIconPath: yourIconPath,
-                          characterCallback: playerCallback,
-                        )),
+                        MaterialPageRoute(
+                          builder: (context) => CharactersListPage(
+                            charactersList: playerCharacters,
+                            characterIconPath: yourIconPath,
+                            characterCallback: playerCallback,
+                          ),
+                        ),
                       );
                     },
                   ),
                 ],
               ),
               SettingsSection(
-                title: const Text('General',
+                title: const Text(
+                  'General',
                   style: TextStyle(
                     color: Colors.blueGrey,
                     fontSize: 17,
@@ -194,8 +203,7 @@ class _SettingScreenState extends State<SettingScreen> {
                     activeSwitchColor: Theme.of(context).colorScheme.primary,
                     onToggle: (value) {
                       toggleDarkMode = value;
-                      setState(() {
-                      });
+                      setState(() {});
                     },
                   ),
                   SettingsTile.navigation(
@@ -204,7 +212,7 @@ class _SettingScreenState extends State<SettingScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if(homepageWallpaperPath.isNotEmpty) ...{
+                        if (homepageWallpaperPath.isNotEmpty) ...{
                           Image.asset(
                             homepageWallpaperPath,
                             width: 40,
@@ -212,7 +220,7 @@ class _SettingScreenState extends State<SettingScreen> {
                           )
                         },
                         const SizedBox(width: 8),
-                        if(chatpageWallpaperPath.isNotEmpty) ...{
+                        if (chatpageWallpaperPath.isNotEmpty) ...{
                           Image.asset(
                             chatpageWallpaperPath,
                             width: 40,
@@ -225,13 +233,15 @@ class _SettingScreenState extends State<SettingScreen> {
                     onPressed: (context) {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => WallpaperPage(
-                          homepageWallpaperPath: homepageWallpaperPath,
-                          chatpageWallpaperPath: chatpageWallpaperPath,
-                          wallpaperCallback: (String homepagePath, String chatpagePath) {
-                            wallpaperCallback(homepagePath, chatpagePath);
-                          },
-                        )),
+                        MaterialPageRoute(
+                          builder: (context) => WallpaperPage(
+                            homepageWallpaperPath: homepageWallpaperPath,
+                            chatpageWallpaperPath: chatpageWallpaperPath,
+                            wallpaperCallback: (String homepagePath, String chatpagePath) {
+                              wallpaperCallback(homepagePath, chatpagePath);
+                            },
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -254,7 +264,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ],
               ),
             ],
-          ),     
+          ),
         ),
       ),
     );

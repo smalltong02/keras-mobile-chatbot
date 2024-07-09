@@ -6,7 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:keras_mobile_chatbot/chat.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/google_sign.dart';
-
+//import 'package:firebase_auth/firebase_auth.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               if (googleLoginUser != null) ...{
-                const SizedBox(height: 300.0),
+                const SizedBox(height: 180.0),
                 OverflowBar(
                   alignment: MainAxisAlignment.center,
                   children: <Widget>[

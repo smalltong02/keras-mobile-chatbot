@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>GIDClientID</key>
+	<string>529755599537-shuighrp42nuc7f5i999qp017m8iuhm2.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.529755599537-shuighrp42nuc7f5i999qp017m8iuhm2</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -46,8 +59,10 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationAlwaysUsageDescription</key>
-    <string>Your location is required for xyz benefits for you</string>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Your location is required for xyz benefits for you</string>
+	<string>Your location is required for xyz benefits for you</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is required for xyz benefits for you</string>
+	<key>MinimumOSVersion</key>
+	<string>14.0</string>
 </dict>
 </plist>

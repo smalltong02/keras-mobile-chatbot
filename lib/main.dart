@@ -7,8 +7,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/home_page.dart';
 import 'package:provider/provider.dart';
-main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+main() async {
   dotenv.load(fileName: ".env");
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => SettingProvider(),

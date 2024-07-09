@@ -51,7 +51,7 @@ class _WallpaperPageState extends State<WallpaperPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  width: 200.0,
+                  width: 170.0,
                   child: ElevatedButton(
                     onPressed: () {
                       setState(() {
@@ -70,7 +70,7 @@ class _WallpaperPageState extends State<WallpaperPage> {
                 ),
                 const SizedBox(width: 16.0),
                 SizedBox(
-                  width: 200.0,
+                  width: 170.0,
                   child: ElevatedButton(
                     onPressed: () {
                       setState(() {

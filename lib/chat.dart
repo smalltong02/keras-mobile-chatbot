@@ -74,7 +74,7 @@ class _ChatUIState extends State<ChatUI> {
     ToolConfig toolConfig = ToolConfig(functionCallingConfig: FunctionCallingConfig(mode: FunctionCallingMode.auto));
     String name = Provider.of<SettingProvider>(context, listen: false).modelName;
     String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
-    String newSystemInstruction = systemInstruction + role;
+    String newSystemInstruction = getSystemInstruction(role);
     _model = GenerativeModel(
       model: name,
       apiKey: dotenv.get("api_key"),
@@ -382,7 +382,7 @@ class _ChatUIState extends State<ChatUI> {
       setState(() {
         _loading = false;
       });
-      _textFieldFocus.requestFocus();
+      //_textFieldFocus.requestFocus();
     }
   }
 

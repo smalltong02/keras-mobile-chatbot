@@ -69,6 +69,7 @@ dependencies:
   google_maps_flutter_ios: ^2.8.1
   firebase_auth: ^5.1.1
   cloud_firestore: ^5.0.2
+  flutter_signin_button: ^2.0.0
 
 dev_dependencies:
   flutter_test:

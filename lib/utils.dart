@@ -8,8 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String systemInstruction = "You are now my secretary, and you need to help me solve problems in my personal life or at work. Your name is ";
-
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
   {"application/vnd.google-apps.document": "application/pdf"},
@@ -413,8 +411,36 @@ final playerCharacters = <Character>[
   ),
 ];
 
+Character findCharacterByTitle(String title) {
+  Character character = Character();
+
+  for (var char in assistantCharacters) {
+    if (char.title == title) {
+      character = char;
+      break;
+    }
+  }
+  
+  return character;
+}
+
+Character findCharacterByAvatar(String avatar) {
+  Character character = Character();
+
+  for (var char in assistantCharacters) {
+    if (char.avatar == avatar) {
+      character = char;
+      break;
+    }
+  }
+  
+  return character;
+}
+
 class SettingProvider with ChangeNotifier {
   String _modelName = 'gemini-1.5-pro';
+  String _userName = '';
+  String _password = '';
   String _currentRole = 'Keras Robot';
   String _roleIconPath = 'assets/icons/11/11.png';
   String _playerIconPath = 'assets/icons/14/9.png';
@@ -422,6 +448,8 @@ class SettingProvider with ChangeNotifier {
   String _chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
 
   String get modelName => _modelName;
+  String get userName => _userName;
+  String get password => _password;
   String get currentRole => _currentRole;
   String get roleIconPath => _roleIconPath;
   String get playerIconPath => _playerIconPath;
@@ -442,6 +470,18 @@ class SettingProvider with ChangeNotifier {
       notifyListeners();
       saveSetting();
     }
+  }
+
+  void updateUserName(String userName) {
+    _userName = userName;
+    notifyListeners();
+    saveSetting();
+  }
+
+  void updatePassword(String password) {
+    _password = password;
+    notifyListeners();
+    saveSetting();
   }
 
   void updateRole(String? newRole) {
@@ -475,22 +515,35 @@ class SettingProvider with ChangeNotifier {
   Future<void> loadSetting() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
      _modelName = prefs.getString('modelName') ?? 'gemini-1.5-pro';
-    _currentRole = prefs.getString('currentRole') ?? 'Jessica';
+     _userName = prefs.getString('userName') ?? '';
+     _password = prefs.getString('password') ?? '';
+    _currentRole = prefs.getString('currentRole') ?? 'Keras Robot';
     _roleIconPath = prefs.getString('roleIconPath') ?? 'assets/icons/11/11.png';
     _playerIconPath = prefs.getString('playerIconPath') ?? 'assets/icons/14/9.png';
     _homepageWallpaperPath = prefs.getString('homepageWallpaperPath') ?? 'assets/backgrounds/49.jpg';
     _chatpageWallpaperPath = prefs.getString('chatpageWallpaperPath') ?? 'assets/backgrounds/64.jpg';
+    notifyListeners();
   }
 
   Future<void> saveSetting() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('modelName', _modelName);
+    prefs.setString('userName', _userName);
+    prefs.setString('password', _password);
     prefs.setString('currentRole', _currentRole);
     prefs.setString('roleIconPath', _roleIconPath);
     prefs.setString('playerIconPath', _playerIconPath);
     prefs.setString('homepageWallpaperPath', _homepageWallpaperPath);
     prefs.setString('chatpageWallpaperPath', _chatpageWallpaperPath);
   }
+}
+
+String getSystemInstruction(String role) {
+
+  Character character = findCharacterByTitle(role);
+  String description = character.description ?? "";
+  
+  return "You are a member of our family, a virtual assistant named $role. Here is your personal introduction: $description";
 }
 
 String _extractValue(String geocode, String key) {

@@ -63,6 +63,9 @@ class _SettingScreenState extends State<SettingScreen> {
     setState(() {
       assistantIconPath = path;
       Provider.of<SettingProvider>(context, listen: false).updateRoleIcon(assistantIconPath);
+      Character character = findCharacterByAvatar(path);
+      String roleName = character.title ?? "Keras Robot";
+      Provider.of<SettingProvider>(context, listen: false).updateRole(roleName);
     });
   }
 

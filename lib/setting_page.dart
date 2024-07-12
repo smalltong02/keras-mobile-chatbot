@@ -210,18 +210,6 @@ class _SettingScreenState extends State<SettingScreen> {
                       );
                     },
                   ),
-                ],
-              ),
-              SettingsSection(
-                title: const Text(
-                  'General',
-                  style: TextStyle(
-                    color: Colors.blueGrey,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                tiles: <SettingsTile>[
                   SettingsTile.switchTile(
                     initialValue: speechEnable,
                     title: const Text('Speech'),
@@ -234,6 +222,18 @@ class _SettingScreenState extends State<SettingScreen> {
                       });
                     },
                   ),
+                ],
+              ),
+              SettingsSection(
+                title: const Text(
+                  'General',
+                  style: TextStyle(
+                    color: Colors.blueGrey,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                tiles: <SettingsTile>[
                   SettingsTile.navigation(
                     leading: const Icon(Icons.image),
                     title: const Text('Wallpaper'),

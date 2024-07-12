@@ -12,7 +12,8 @@ import 'firebase_options.dart';
 
 main() async {
   dotenv.load(fileName: ".env");
-
+  WidgetsFlutterBinding.ensureInitialized();
+  initCameras();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

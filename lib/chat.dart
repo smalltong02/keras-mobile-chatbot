@@ -1,5 +1,6 @@
 import 'dart:io' as io;
 import 'dart:typed_data';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -9,7 +10,10 @@ import 'package:keras_mobile_chatbot/function_call.dart';
 import 'package:keras_mobile_chatbot/chat_bubble.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/setting_page.dart';
+import 'package:keras_mobile_chatbot/takepicture_screen.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:cloud_text_to_speech/cloud_text_to_speech.dart';
 
 class ChatHome extends StatelessWidget {
   const ChatHome({super.key});
@@ -64,9 +68,12 @@ class _ChatUIState extends State<ChatUI> {
   bool _loading = false;
   String wallpaperPath = "";
   List<String> fileUploadList = [];
+  Map<int, dynamic> internalMessageList = {};
   Map<int, dynamic> extendMessageList = {};
+  Map<int, dynamic> speechMessageList = {};
   String roleIconPath = '';
   String playerIconPath = '';
+  bool speechEnable = false;
 
   @override
   void initState() {
@@ -99,6 +106,7 @@ class _ChatUIState extends State<ChatUI> {
         String roleIconPath = settingProvider.roleIconPath;
         String playerIconPath = settingProvider.playerIconPath;
         String wallpaperPath = settingProvider.chatpageWallpaperPath;
+        speechEnable = settingProvider.speechEnable;
 
         return Scaffold(
           body: Container(
@@ -128,12 +136,22 @@ class _ChatUIState extends State<ChatUI> {
                         if (text.isEmpty) {
                           return const SizedBox.shrink();
                         } else {
+                          final isLastElement = index == history.length - 1;
                           if (content.role == 'user') {
+                            Map<String, dynamic> curExtendMessage = {};
+                            if (internalMessageList.containsKey(index)) {
+                              curExtendMessage = internalMessageList[index];
+                            }
                             return SentMessageScreen(
                               message: text,
+                              extendMessage: curExtendMessage,
                               iconPath: playerIconPath,
                             );
                           } else {
+                            String audioPath = '';
+                            if (speechMessageList.containsKey(index)) {
+                              audioPath = speechMessageList[index];
+                            }
                             Map<String, dynamic> curExtendMessage = {};
                             if (extendMessageList.containsKey(index)) {
                               curExtendMessage = extendMessageList[index];
@@ -141,6 +159,8 @@ class _ChatUIState extends State<ChatUI> {
                             return ReceivedMessageScreen(
                               message: text,
                               extendMessage: curExtendMessage,
+                              audioPath: audioPath,
+                              autoPlay: isLastElement,
                               iconPath: roleIconPath,
                             );
                           }
@@ -177,9 +197,10 @@ class _ChatUIState extends State<ChatUI> {
                               ),
                             ],
                           );
-                        }).toList(),
-                      ),
+                        }
+                      ).toList(),
                     ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       vertical: 25,
@@ -285,15 +306,34 @@ class _ChatUIState extends State<ChatUI> {
         onPressed: pickFile,
       ),
       suffixIcon: IconButton(
-        icon: const Icon(Icons.mic),
-        onPressed: () {
-          startListening();
+        icon: const Icon(Icons.camera_alt),
+        onPressed: () async {
+          //startListening();
+          if(cameras.isNotEmpty) {
+            final CameraDescription firstCamera = cameras.first;
+            try {
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => TakePictureScreen(
+                    camera: firstCamera,
+                  ),
+                ),
+              );
+              if (result != null && result.isNotEmpty) {
+                setState(() {
+                  fileUploadList.addAll(result);
+                });
+              }
+            } catch (e) {
+              print(e);
+            }
+          }
         },
       ),
     );
   }
 
-  Future<void> _sendChatMessage(String message) async {
+  Future<void> _sendChatMessage(String message,) async {
     setState(() {
       _loading = true;
     });
@@ -357,9 +397,27 @@ class _ChatUIState extends State<ChatUI> {
         }
         // When the model responds with non-null text content, print it.
         if (response.text case final text?) {
+          if (fileUploadList.isNotEmpty && _chatSession.history.isNotEmpty) {
+            List<Map<String, String>> photosList = fileUploadList.map((path) => {"imgpath": path}).toList();
+            Map<String, dynamic> curInternalMessage = {
+              'show_image': {
+                'object': "images",
+                'images': photosList,
+              }
+            };
+            int index = _chatSession.history.length - 2;
+            internalMessageList[index] = curInternalMessage;
+          }
           if (curExtendMessage.isNotEmpty && _chatSession.history.isNotEmpty) {
             int index = _chatSession.history.length - 1;
             extendMessageList[index] = curExtendMessage;
+          }
+          if(speechEnable && _chatSession.history.isNotEmpty) {
+            String? audioPath = await generateAudioFile(response.text!);
+            if(audioPath != null) {
+              int index = _chatSession.history.length - 1;
+              speechMessageList[index] = audioPath;
+            }
           }
           if(text.isEmpty) {
             _showError('No response from API.');
@@ -384,6 +442,38 @@ class _ChatUIState extends State<ChatUI> {
       });
       //_textFieldFocus.requestFocus();
     }
+  }
+
+  Future<String?> generateAudioFile(String message) async {
+    if (roleVoice != null) {
+      TtsParamsUniversal params = TtsParamsUniversal(
+        voice: roleVoice!,
+        audioFormatGoogle: AudioOutputFormatGoogle.mp3,
+        audioFormatMicrosoft: AudioOutputFormatMicrosoft.audio48Khz192kBitrateMonoMp3,
+        text: message,
+        rate: 'default', // optional
+        pitch: 'default' // optional
+      );
+
+      final ttsResponse = await TtsUniversal.convertTts(params);
+
+      // Get the audio bytes.
+      final audioBytes = ttsResponse.audio.buffer.asByteData().buffer.asUint8List();
+
+      // Get the temporary directory of the app.
+      final directory = await getTemporaryDirectory();
+      
+      // Create a unique file name.
+      final filePath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
+
+      // Write the audio bytes to the file.
+      final file = io.File(filePath);
+      await file.writeAsBytes(audioBytes);
+
+      // Return the file path.
+      return filePath;
+    }
+    return null;
   }
 
   void _scrollDown() {

@@ -1,7 +1,9 @@
+import 'dart:io' as io;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:keras_mobile_chatbot/wheel_character.dart';
 import 'package:keras_mobile_chatbot/wallpaper_page.dart';
 
@@ -18,7 +20,7 @@ class _SettingScreenState extends State<SettingScreen> {
   String yourIconPath = 'assets/icons/14/9.png';
   String homepageWallpaperPath = 'assets/backgrounds/49.jpg';
   String chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
-  bool toggleDarkMode = false;
+  bool speechEnable = false;
   final List<String> llmModel = [
     "gemini-1.5-pro",
     "gemini-1.5-flash",
@@ -76,6 +78,26 @@ class _SettingScreenState extends State<SettingScreen> {
     });
   }
 
+  Future<void> clearCache() async {
+    io.Directory cacheDir = await getTemporaryDirectory();
+    print(cacheDir);
+    if (cacheDir.existsSync()) {
+      cacheDir.deleteSync(recursive: true);
+      setState(() {
+      });
+    }
+  }
+
+  String formatBytes(int bytes) {
+    const suffix = ['B', 'KB', 'MB', 'GB', 'TB'];
+    int index = 0;
+    while (bytes > 1024) {
+      bytes = (bytes ~/ 1024);
+      index++;
+    }
+    return '$bytes ${suffix[index]}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -85,6 +107,7 @@ class _SettingScreenState extends State<SettingScreen> {
     yourIconPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
     homepageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).homepageWallpaperPath;
     chatpageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperPath;
+    speechEnable = Provider.of<SettingProvider>(context, listen: false).speechEnable;
 
     return Scaffold(
       appBar: AppBar(
@@ -200,13 +223,15 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
                 tiles: <SettingsTile>[
                   SettingsTile.switchTile(
-                    initialValue: toggleDarkMode,
-                    title: const Text('Dark Mode'),
-                    leading: const Icon(Icons.cloud),
+                    initialValue: speechEnable,
+                    title: const Text('Speech'),
+                    leading: const Icon(Icons.volume_up_sharp),
                     activeSwitchColor: Theme.of(context).colorScheme.primary,
                     onToggle: (value) {
-                      toggleDarkMode = value;
-                      setState(() {});
+                      setState(() {
+                        speechEnable = value;
+                        Provider.of<SettingProvider>(context, listen: false).updateSpeechEnable(speechEnable);
+                      });
                     },
                   ),
                   SettingsTile.navigation(
@@ -263,6 +288,64 @@ class _SettingScreenState extends State<SettingScreen> {
                         );
                       }).toList(),
                     ),
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: const Text(
+                  'Cache',
+                  style: TextStyle(
+                    color: Colors.blueGrey,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                tiles: <SettingsTile>[
+                  SettingsTile(
+                    leading: const Icon(Icons.cached_sharp),
+                    title: const Text('Cache Size'),
+                    trailing: FutureBuilder<io.Directory>(
+                      future: getTemporaryDirectory(),
+                      builder: (BuildContext context, AsyncSnapshot<io.Directory> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Text('Calculating...');
+                        } else if (snapshot.hasError) {
+                          return Text('Error');
+                        } else if (snapshot.hasData) {
+                          int size = snapshot.data!.listSync(recursive: true, followLinks: false)
+                              .fold<int>(0, (prev, element) => prev + io.File(element.path).statSync().size);
+                          return Text(formatBytes(size));
+                        } else {
+                          return Text('Unknown');
+                        }
+                      },
+                    ),
+                    onPressed: (context) {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Clear Cache'),
+                            content: Text('Are you sure you want to clear the cache?'),
+                            actions: <Widget>[
+                              TextButton(
+                                child: Text('Cancel'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                              TextButton(
+                                child: Text('Clear'),
+                                onPressed: () async {
+                                  Navigator.of(context).pop();
+                                  await clearCache();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
                   ),
                 ],
               ),

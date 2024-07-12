@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'dart:io' as io;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:audioplayers/audioplayers.dart' as audio;
+import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:neom_maps_services/timezone.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -32,8 +37,105 @@ class CustomShape extends CustomPainter {
   }
 }
 
+class EditableTextWithLinks extends StatefulWidget {
+  final String message;
+  final double fontSize;
+  final Color backgroundColor;
+  final Color textColor;
+
+  const EditableTextWithLinks({
+    Key? key,
+    required this.message,
+    required this.fontSize,
+    required this.backgroundColor,
+    required this.textColor,
+  }) : super(key: key);
+
+  @override
+  _EditableTextWithLinksState createState() => _EditableTextWithLinksState();
+}
+
+class _EditableTextWithLinksState extends State<EditableTextWithLinks> {
+  final TextEditingController textController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    textController.text = widget.message;
+  }
+
+  void launchURL(String url) async {
+    Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onLongPress: () {
+        Clipboard.setData(ClipboardData(text: textController.text));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Text copied to clipboard')),
+        );
+      },
+      child: Column(
+        children: [
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: widget.textColor,
+                fontSize: widget.fontSize,
+                backgroundColor: widget.backgroundColor,
+              ),
+              children: _buildTextSpans(textController.text),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<TextSpan> _buildTextSpans(String text) {
+    final RegExp urlRegex = RegExp(
+      r'((https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?)',
+      caseSensitive: false,
+    );
+
+    final List<TextSpan> spans = [];
+    final matches = urlRegex.allMatches(text);
+
+    int start = 0;
+
+    for (final match in matches) {
+      if (match.start > start) {
+        spans.add(TextSpan(text: text.substring(start, match.start)));
+      }
+      final url = text.substring(match.start, match.end);
+      spans.add(
+        TextSpan(
+          text: url,
+          style: const TextStyle(color: Colors.blue),
+          recognizer: TapGestureRecognizer()..onTap = () => launchURL(url),
+        ),
+      );
+      start = match.end;
+    }
+
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start)));
+    }
+
+    return spans;
+  }
+}
+
 class SentMessageScreen extends StatelessWidget {
   final String message;
+  final Map<String, dynamic> extendMessage;
   final String iconPath;
 
   static const double _paddingHorizontal = 18.0;
@@ -47,61 +149,126 @@ class SentMessageScreen extends StatelessWidget {
   const SentMessageScreen({
     super.key,
     required this.message,
+    required this.extendMessage,
     required this.iconPath,
   });
 
   @override
   Widget build(BuildContext context) {
     final messageTextGroup = Flexible(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.all(_messagePaddingAll),
-                decoration: const BoxDecoration(
-                  color: Colors.cyan,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(18),
-                    bottomLeft: Radius.circular(18),
-                    bottomRight: Radius.circular(18),
-                  ),
-                ),
-                child: Text(
-                  message,
-                  style: const TextStyle(color: _messageTextColor, fontSize: _messageFontSize),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(_messagePaddingAll),
+              decoration: const BoxDecoration(
+                color: Colors.cyan,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
                 ),
               ),
+              child: EditableTextWithLinks(message: message, fontSize: _messageFontSize, textColor: _messageTextColor, backgroundColor: _messageBackgroundColor,),
             ),
-            CustomPaint(painter: CustomShape(_messageBackgroundColor)),
-            const SizedBox(width: 4),
-            Image.asset(
-              iconPath,
-              width: _iconSize,
-              height: _iconSize,
-            ),
-          ],
-        ));
+          ),
+          const SizedBox(width: 4),
+          Image.asset(
+            iconPath,
+            width: _iconSize,
+            height: _iconSize,
+          ),
+        ],
+      ));
+
+    List<Widget> extendMessageGroupList = [];
+
+    if (extendMessage.containsKey('show_image')) {
+      Map<String, dynamic> showImage = extendMessage['show_image'];
+      if (showImage['object'] == 'images') {
+        List<Map<String, dynamic>> imagesList = showImage['images'];
+        if (imagesList.isNotEmpty) {
+          for(Map<String, dynamic> image in imagesList) {
+            String imgPath = image['imgpath'];
+            extendMessageGroupList.add(Flexible(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 300,
+                      child: Image.file(io.File(imgPath)),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Image.asset(
+                    iconPath,
+                    width: _iconSize,
+                    height: _iconSize,
+                  ),
+                ],
+              ))
+            );
+          }
+        }
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.only(right: _paddingHorizontal, left: 50, top: _paddingVertical, bottom: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
-          const SizedBox(height: 30),
-          messageTextGroup,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              const SizedBox(height: 30),
+              messageTextGroup,
+            ],
+          ),
+          if(extendMessageGroupList.isNotEmpty) ...{
+            for(Widget extendMessageGroup in extendMessageGroupList) ...{
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  const SizedBox(height: 30),
+                  extendMessageGroup,
+                ],
+              ),
+            }
+          }
         ],
-      ),
+      )
     );
   }
 }
 
-class ReceivedMessageScreen extends StatelessWidget {
+class ReceivedMessageScreen extends StatefulWidget {
   final String message;
   final Map<String, dynamic> extendMessage;
+  final String audioPath;
+  final bool autoPlay;
   final String iconPath;
 
+  const ReceivedMessageScreen({
+    super.key,
+    required this.message,
+    required this.extendMessage,
+    required this.audioPath,
+    required this.autoPlay,
+    required this.iconPath,
+  });
+
+  @override
+  _ReceivedMessageScreenState createState() => _ReceivedMessageScreenState();
+}
+
+class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
   static const double _paddingHorizontal = 18.0;
   static const double _paddingVertical = 10.0;
   static const double _messagePaddingAll = 14.0;
@@ -110,57 +277,91 @@ class ReceivedMessageScreen extends StatelessWidget {
   static const Color _messageBackgroundColor = Colors.grey;
   static const Color _messageTextColor = Colors.black;
 
-  const ReceivedMessageScreen({
-    super.key,
-    required this.message,
-    required this.extendMessage,
-    required this.iconPath,
-  });
+  audio.AudioPlayer? audioPlayer;
+  bool hasPlayed = false;
+  bool isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    hasPlayed = !widget.autoPlay;
+    audioPlayer = audio.AudioPlayer();
+    audioPlayer!.onPlayerStateChanged.listen((state) {
+    if (state == audio.PlayerState.stopped || state == audio.PlayerState.completed) {
+      setState(() {
+        isPlaying = false;
+      });
+      }
+    });
+  }
+
+  Future<void> playAudioFile(String audioPath) async {
+    if(audioPath.isEmpty) {
+      return;
+    }
+    if (audioPlayer != null && !isPlaying && !hasPlayed) {
+      isPlaying = true;
+      audioPlayer!.setReleaseMode(audio.ReleaseMode.stop);
+      await audioPlayer!.setSourceDeviceFile(audioPath);
+      await audioPlayer!.resume();
+      setState(() {
+        hasPlayed = true;
+      });
+    }
+  }
+
+  void stopAudio() async {
+    if(audioPlayer != null && isPlaying == true) {
+      await audioPlayer!.stop();
+      setState(() {
+        hasPlayed = true;
+        isPlaying = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final messageTextGroup = Flexible(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.asset(
-              iconPath,
-              width: _iconSize,
-              height: _iconSize,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.asset(
+            widget.iconPath,
+            width: _iconSize,
+            height: _iconSize,
+          ),
+          const SizedBox(width: 4),
+          Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.rotationY(math.pi),
+            child: CustomPaint(
+              painter: CustomShape(_messageBackgroundColor),
             ),
-            const SizedBox(width: 4),
-            Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.rotationY(math.pi),
-              child: CustomPaint(
-                painter: CustomShape(_messageBackgroundColor),
-              ),
-            ),
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.all(_messagePaddingAll),
-                decoration: const BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(18),
-                    bottomLeft: Radius.circular(18),
-                    bottomRight: Radius.circular(18),
-                  ),
-                ),
-                child: Text(
-                  message,
-                  style: const TextStyle(color: _messageTextColor, fontSize: _messageFontSize),
+          ),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(_messagePaddingAll),
+              decoration: const BoxDecoration(
+                color: Colors.grey,
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
                 ),
               ),
+              child: EditableTextWithLinks(message: widget.message, fontSize: _messageFontSize, textColor: _messageTextColor, backgroundColor: _messageBackgroundColor,),
             ),
-          ],
-        ));
+          ),
+        ],
+      )
+    );
 
     List<Widget> extendMessageGroupList = [];
 
-    if (extendMessage.containsKey('show_map')) {
-      Map<String, dynamic> showMap = extendMessage['show_map'];
+    if (widget.extendMessage.containsKey('show_map')) {
+      Map<String, dynamic> showMap = widget.extendMessage['show_map'];
       if (showMap['object'] == 'position') {
         double lat = showMap['position']['lat'];
         double lng = showMap['position']['lng'];
@@ -179,7 +380,7 @@ class ReceivedMessageScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
-                iconPath,
+                widget.iconPath,
                 width: _iconSize,
                 height: _iconSize,
               ),
@@ -246,7 +447,7 @@ class ReceivedMessageScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
-                iconPath,
+                widget.iconPath,
                 width: _iconSize,
                 height: _iconSize,
               ),
@@ -314,7 +515,7 @@ class ReceivedMessageScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
-                iconPath,
+                widget.iconPath,
                 width: _iconSize,
                 height: _iconSize,
               ),
@@ -341,8 +542,8 @@ class ReceivedMessageScreen extends StatelessWidget {
         );
       } 
     }
-    else if (extendMessage.containsKey('show_video')) {
-      Map<String, dynamic> showVideo = extendMessage['show_video'];
+    else if (widget.extendMessage.containsKey('show_video')) {
+      Map<String, dynamic> showVideo = widget.extendMessage['show_video'];
       if (showVideo['object'] == 'videos') {
         List<Map<String, dynamic>> videosList = showVideo['videos'];
         if (videosList.isNotEmpty) {
@@ -377,7 +578,7 @@ class ReceivedMessageScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Image.asset(
-                    iconPath,
+                    widget.iconPath,
                     width: _iconSize,
                     height: _iconSize,
                   ),
@@ -396,8 +597,8 @@ class ReceivedMessageScreen extends StatelessWidget {
         }
       }
     }
-    else if (extendMessage.containsKey('show_image')) {
-      Map<String, dynamic> showVideo = extendMessage['show_image'];
+    else if (widget.extendMessage.containsKey('show_image')) {
+      Map<String, dynamic> showVideo = widget.extendMessage['show_image'];
       if (showVideo['object'] == 'images') {
         List<Map<String, dynamic>> imagesList = showVideo['images'];
         if (imagesList.isNotEmpty) {
@@ -412,7 +613,7 @@ class ReceivedMessageScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Image.asset(
-                    iconPath,
+                    widget.iconPath,
                     width: _iconSize,
                     height: _iconSize,
                   ),
@@ -431,7 +632,7 @@ class ReceivedMessageScreen extends StatelessWidget {
         }
       }
     }
-
+    playAudioFile(widget.audioPath);
     return Padding(
       padding: const EdgeInsets.only(right: 50.0, left: _paddingHorizontal, top: _paddingVertical, bottom: 5),
       child: Column(
@@ -442,6 +643,22 @@ class ReceivedMessageScreen extends StatelessWidget {
             children: <Widget>[
               const SizedBox(height: 30),
               messageTextGroup,
+              if(widget.audioPath.isNotEmpty) ...{
+                IconButton(
+                  icon: Icon(
+                    isPlaying ? Icons.stop : Icons.volume_up,
+                    color: Colors.blueAccent,
+                  ),
+                  onPressed: () {
+                    if (isPlaying) {
+                      stopAudio();
+                    } else {
+                      hasPlayed = false;
+                      playAudioFile(widget.audioPath);
+                    }
+                  },
+                ),
+              }
             ],
           ),
           if(extendMessageGroupList.isNotEmpty) ...{

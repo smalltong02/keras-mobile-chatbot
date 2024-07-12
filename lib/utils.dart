@@ -1,12 +1,15 @@
 import 'dart:io';
 //import 'package:googleapis/speech/v1.dart';
 import 'package:intl/intl.dart';
+import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_text_to_speech/cloud_text_to_speech.dart';
 
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
@@ -110,6 +113,32 @@ final List<String> wallpaperSettingPaths = [
     'assets/backgrounds/77.jpg',
     'assets/backgrounds/78.jpg',
   ];
+
+List<CameraDescription> cameras = [];
+VoiceUniversal? roleVoice;
+
+void initCameras() async {
+  cameras = await availableCameras();
+  TtsUniversal.init(
+    provider: 'microsoft',
+    google: InitParamsGoogle(apiKey: dotenv.get("api_key")),
+    microsoft: InitParamsMicrosoft(subscriptionKey: dotenv.get("azure_speech_key"), region: dotenv.get("azure_speech_region")),
+    withLogs: true
+  );
+
+  final voicesResponse = await TtsUniversal.getVoices();
+  final voices = voicesResponse.voices; 
+  if(voices.isNotEmpty) {
+    VoiceUniversal? foundVoice;
+    for (int i = 0; i < voices.length; i++) {
+      if (voices[i].code == "en-US-AnaNeural") {
+        foundVoice = voices[i];
+        break;
+      }
+    }
+    roleVoice = foundVoice;
+  }
+}
 
 class Character {
   final String? avatar;
@@ -446,6 +475,7 @@ class SettingProvider with ChangeNotifier {
   String _playerIconPath = 'assets/icons/14/9.png';
   String _homepageWallpaperPath = 'assets/backgrounds/49.jpg';
   String _chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
+  bool _speechEnable = true;
 
   String get modelName => _modelName;
   String get userName => _userName;
@@ -455,6 +485,7 @@ class SettingProvider with ChangeNotifier {
   String get playerIconPath => _playerIconPath;
   String get homepageWallpaperPath => _homepageWallpaperPath;
   String get chatpageWallpaperPath => _chatpageWallpaperPath;
+  bool get speechEnable => _speechEnable;
 
   SettingProvider() {
     _init();
@@ -512,6 +543,12 @@ class SettingProvider with ChangeNotifier {
     saveSetting();
   }
 
+  void updateSpeechEnable(bool enable) {
+    _speechEnable = enable;
+    notifyListeners();
+    saveSetting();
+  }
+
   Future<void> loadSetting() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
      _modelName = prefs.getString('modelName') ?? 'gemini-1.5-pro';
@@ -522,6 +559,7 @@ class SettingProvider with ChangeNotifier {
     _playerIconPath = prefs.getString('playerIconPath') ?? 'assets/icons/14/9.png';
     _homepageWallpaperPath = prefs.getString('homepageWallpaperPath') ?? 'assets/backgrounds/49.jpg';
     _chatpageWallpaperPath = prefs.getString('chatpageWallpaperPath') ?? 'assets/backgrounds/64.jpg';
+    _speechEnable = prefs.getBool('speechEnable') ?? true;
     notifyListeners();
   }
 
@@ -535,6 +573,7 @@ class SettingProvider with ChangeNotifier {
     prefs.setString('playerIconPath', _playerIconPath);
     prefs.setString('homepageWallpaperPath', _homepageWallpaperPath);
     prefs.setString('chatpageWallpaperPath', _chatpageWallpaperPath);
+    prefs.setBool('speechEnable', _speechEnable);
   }
 }
 

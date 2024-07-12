@@ -99,95 +99,111 @@ class TakePictureScreenState extends State<TakePictureScreen> {
     });
   }
 
+  Future<bool> onWillPop() {
+    Navigator.of(context).pop(imagePathList);
+    return Future.value(true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Take a picture'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop(imagePathList);
-          },
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (pop) {
+        if(pop) {
+          return;
+        }
+        else {
+          onWillPop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Take a picture'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.of(context).pop(imagePathList);
+            },
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          GestureDetector(
-            onScaleUpdate: handleScaleUpdate,
-            child: Stack(
-              children: <Widget>[
-                CameraPreview(_controller),
-                Center(
-                  child: Text(
-                    'Zoom: ${_currentZoomLevel.toStringAsFixed(1)}x',
-                    style: TextStyle(color: Colors.white, fontSize: 20.0),
-                  ),
-                ),
-                if (imagePathList.isNotEmpty) ...{
-                  Positioned(
-                    bottom: 8.0,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: imagePathList.map((filePath) {
-                          return Stack(
-                            children: [
-                              Image.file(
-                                io.File(filePath),
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                              ),
-                              Positioned(
-                                right: 0,
-                                top: 0,
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.close,
-                                    size: 16,
-                                  ),
-                                  onPressed: () => removeImage(filePath),
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
+        body: Column(
+          children: [
+            GestureDetector(
+              onScaleUpdate: handleScaleUpdate,
+              child: Stack(
+                children: <Widget>[
+                  CameraPreview(_controller),
+                  Center(
+                    child: Text(
+                      'Zoom: ${_currentZoomLevel.toStringAsFixed(1)}x',
+                      style: TextStyle(color: Colors.white, fontSize: 20.0),
                     ),
                   ),
-                },
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          try {
-            final image = await _controller.takePicture();
-
-            if (!context.mounted) return;
-
-            final result = await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => DisplayPictureScreen(
-                  imagePath: image.path,
-                ),
+                  if (imagePathList.isNotEmpty) ...{
+                    Positioned(
+                      bottom: 8.0,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children: imagePathList.map((filePath) {
+                            return Stack(
+                              children: [
+                                Image.file(
+                                  io.File(filePath),
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                    ),
+                                    onPressed: () => removeImage(filePath),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  },
+                ],
               ),
-            );
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            try {
+              final image = await _controller.takePicture();
 
-            if (result == true) {
-              addImage(image.path);
+              if (!context.mounted) return;
+
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => DisplayPictureScreen(
+                    imagePath: image.path,
+                  ),
+                ),
+              );
+
+              if (result == true) {
+                addImage(image.path);
+              }
+            } catch (e) {
+              print(e);
             }
-          } catch (e) {
-            print(e);
-          }
-        },
-        child: const Icon(Icons.camera_alt),
+          },
+          child: const Icon(Icons.camera_alt),
+        ),
       ),
     );
   }

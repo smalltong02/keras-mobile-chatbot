@@ -1,3 +1,4 @@
+import 'l10n/localization_intl.dart';
 import 'package:flutter/material.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 
@@ -39,12 +40,9 @@ class _WallpaperPageState extends State<WallpaperPage> {
 
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wallpaper'),
+        title: Text(DemoLocalizations.of(context).titleWallpaperPage),
       ),
       body: Column(
         children: [
@@ -68,7 +66,7 @@ class _WallpaperPageState extends State<WallpaperPage> {
                       elevation: 10,
                       backgroundColor: isHomeWallpaper ? Colors.blueAccent.withOpacity(0.6) : Colors.white.withOpacity(0.6),
                     ),
-                    child: const Text('Home Wallpaper'),
+                    child: Text(DemoLocalizations.of(context).titleHomeWallpaper),
                   ),
                 ),
                 const SizedBox(width: 16.0),
@@ -87,7 +85,7 @@ class _WallpaperPageState extends State<WallpaperPage> {
                       elevation: 10,
                       backgroundColor: !isHomeWallpaper ? Colors.purpleAccent.withOpacity(0.6) : Colors.white.withOpacity(0.6),
                     ),
-                    child: const Text('Chat Wallpaper'),
+                    child: Text(DemoLocalizations.of(context).titleChatWallpaper),
                   ),
                 ),
               ],

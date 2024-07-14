@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io' as io;
 import 'dart:math' as math;
+import 'l10n/localization_intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:audioplayers/audioplayers.dart' as audio;
-import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:neom_maps_services/timezone.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -79,7 +79,7 @@ class _EditableTextWithLinksState extends State<EditableTextWithLinks> {
       onLongPress: () {
         Clipboard.setData(ClipboardData(text: textController.text));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Text copied to clipboard')),
+          SnackBar(content: Text(DemoLocalizations.of(context).textCopyClipboard)),
         );
       },
       child: Column(

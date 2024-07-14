@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'l10n/localization_intl.dart';
 import 'package:provider/provider.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 
@@ -187,7 +188,7 @@ class _CharactersListState extends State<CharactersListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Character Cards"),
+        title: Text(DemoLocalizations.of(context).titleCharacterCards),
         backgroundColor: Colors.black54,
       ),
       body: Container(

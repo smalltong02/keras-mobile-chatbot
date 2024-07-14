@@ -9,6 +9,7 @@ import 'package:keras_mobile_chatbot/register_screen.dart';
 import 'package:keras_mobile_chatbot/google_sign.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'l10n/localization_intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -147,9 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: screenWidth * 0.5,
                           ),
                           const SizedBox(height: 16.0),
-                          const Text(
-                            'AI Home Assistant',
-                            style: TextStyle(fontSize: 36),
+                          Text(
+                            DemoLocalizations.of(context).homeTitle,
+                            style: const TextStyle(fontSize: 36),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -171,8 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   maxLength: 60,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
-                                      hintText: 'Please input email address',
-                                      labelText: "Account",
+                                      hintText: DemoLocalizations.of(context).hintTextAccount,
+                                      labelText: DemoLocalizations.of(context).labelTextAccount,
                                       contentPadding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
                                       prefixIcon: const Icon(Icons.perm_identity),
                                       border: OutlineInputBorder(
@@ -193,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ):null
                                   ),
                                   validator: (v) {
-                                      return !emailRegex.hasMatch(v!)?'Invalid email address':null;
+                                      return !emailRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextAccount:null;
                                   },
                                 ),
                               ),
@@ -207,8 +208,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   maxLength: 12,
                                   textInputAction: TextInputAction.done,
                                   decoration: InputDecoration(
-                                    hintText: 'Please input password',
-                                    labelText: 'Password',
+                                    hintText: DemoLocalizations.of(context).hintTextPassword,
+                                    labelText: DemoLocalizations.of(context).labelTextPassword,
                                     contentPadding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
                                     prefixIcon:const Icon(Icons.lock),
                                     border: OutlineInputBorder(
@@ -228,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     )
                                   ),
                                   validator:(v){
-                                      return !pwdRegex.hasMatch(v!)?'The Password must contain uppercase letter and digit.':null;
+                                      return !pwdRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextPassword:null;
                                   },
                                 ),
                               ),
@@ -251,12 +252,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             elevation: 10,
                             shadowColor: Colors.black.withOpacity(0.5),
                           ),
-                          child: const Text('Sign In'),
+                          child: Text(DemoLocalizations.of(context).textSignBtn),
                           onPressed: () async {
                             FocusScope.of(context).requestFocus(FocusNode());
                             if(_formKey.currentState!.validate() == false) {
                               GFToast.showToast(
-                                'Username or password is incorrect.',
+                                DemoLocalizations.of(context).errSignBtn,
                                 context,
                                 toastPosition: GFToastPosition.BOTTOM,
                                 textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
@@ -274,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   password: passwordController.text.trim(),
                                 );
                                 GFToast.showToast(
-                                  'Login successful!',
+                                  DemoLocalizations.of(context).sucSignBtn,
                                   context,
                                   toastPosition: GFToastPosition.BOTTOM,
                                   textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
@@ -292,12 +293,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               } on FirebaseAuthException catch (e) {
                                 String message = "";
                                 if (e.code == 'INVALID_LOGIN_CREDENTIALS') {
-                                  message = 'Invalid login credentials.';
+                                  message = DemoLocalizations.of(context).credErrSignBtn;
                                 } else {
                                   message = e.code;
                                 }
                                 GFToast.showToast(
-                                  'Login failed: $message',
+                                  DemoLocalizations.of(context).credToastSignBtn + message,
                                   context,
                                   toastPosition: GFToastPosition.BOTTOM,
                                   textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
@@ -332,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
                           }
                         },
-                        child: const Text('No account? Register'),
+                        child: Text(DemoLocalizations.of(context).registerQuery),
                       ),
                       const SizedBox(height: 5.0),
                       SignInButton(
@@ -381,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   elevation: 10,
                                   shadowColor: Colors.black.withOpacity(0.5),
                                 ),
-                                child: const Text('Start Chat'),
+                                child: Text(DemoLocalizations.of(context).textChatBtn),
                                 onPressed: () async {
                                   if (isLoggedin) {
                                     Navigator.push(
@@ -410,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.all(0.0),
                                 child: GFButton(
                                   onPressed: googleHandleSignOut,
-                                  text: 'Sign Out Google Account',
+                                  text: DemoLocalizations.of(context).textSignOutGoogle,
                                   type: GFButtonType.transparent,
                                   fullWidthButton: false,
                                   size: GFSize.LARGE,
@@ -435,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.all(0.0),
                                 child: GFButton(
                                   onPressed: emailHandleSignOut,
-                                  text: 'Sign Out Email Account',
+                                  text: DemoLocalizations.of(context).textSignOutEmail,
                                   type: GFButtonType.transparent,
                                   fullWidthButton: false,
                                   size: GFSize.LARGE,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'l10n/localization_intl.dart';
 import 'package:provider/provider.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
@@ -34,7 +35,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         String wallpaperPath = settingProvider.homepageWallpaperPath;
         return Scaffold(
           appBar: AppBar(
-            title: const Text('New register'),
+            title: Text(DemoLocalizations.of(context).titleRegisterPage),
           ),
           body: SingleChildScrollView(
             child: SafeArea(
@@ -61,9 +62,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             width: screenWidth * 0.5,
                           ),
                           const SizedBox(height: 16.0),
-                          const Text(
-                            'AI Home Assistant',
-                            style: TextStyle(fontSize: 36),
+                          Text(
+                            DemoLocalizations.of(context).homeTitle,
+                            style: const TextStyle(fontSize: 36),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -84,8 +85,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 maxLength: 60,
                                 textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
-                                    hintText: 'Please input email address',
-                                    labelText: "Account",
+                                    hintText: DemoLocalizations.of(context).hintTextAccount,
+                                    labelText: DemoLocalizations.of(context).labelTextAccount,
                                     contentPadding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
                                     prefixIcon: const Icon(Icons.perm_identity),
                                     border: OutlineInputBorder(
@@ -106,7 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ):null
                                 ),
                                 validator: (v) {
-                                    return !emailRegex.hasMatch(v!)?'Invalid email address':null;
+                                    return !emailRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextAccount:null;
                                 },
                               ),
                             ),
@@ -120,8 +121,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 maxLength: 12,
                                 textInputAction: TextInputAction.done,
                                 decoration: InputDecoration(
-                                  hintText: 'Please input password',
-                                  labelText: 'Password',
+                                  hintText: DemoLocalizations.of(context).hintTextPassword,
+                                  labelText: DemoLocalizations.of(context).labelTextPassword,
                                   contentPadding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
                                   prefixIcon:const Icon(Icons.lock),
                                   border: OutlineInputBorder(
@@ -141,7 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   )
                                 ),
                                 validator:(v){
-                                    return !pwdRegex.hasMatch(v!)?'The Password must contain uppercase letter and digit.':null;
+                                    return !pwdRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextPassword:null;
                                 },
                               ),
                             ),
@@ -164,12 +165,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             elevation: 10,
                             shadowColor: Colors.black.withOpacity(0.5),
                           ),
-                          child: const Text('Create Account'),
+                          child: Text(DemoLocalizations.of(context).textCreateAccount),
                           onPressed: () async {
                             FocusScope.of(context).requestFocus(FocusNode());
                             if(_formKey.currentState!.validate() == false) {
                               GFToast.showToast(
-                                'Username or password is incorrect.',
+                                DemoLocalizations.of(context).errSignBtn,
                                 context,
                                 toastPosition: GFToastPosition.BOTTOM,
                                 textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
@@ -187,7 +188,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   password: passwordController.text.trim(),
                                 );
                                 GFToast.showToast(
-                                  'Create successful!',
+                                  DemoLocalizations.of(context).sucCreateAccount,
                                   context,
                                   toastPosition: GFToastPosition.BOTTOM,
                                   textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
@@ -207,12 +208,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               } on FirebaseAuthException catch (e) {
                                 String message = "";
                                 if (e.code == 'weak-password') {
-                                  message = 'The password provided is too weak.';
+                                  message = DemoLocalizations.of(context).errWeakCreateAccount;
                                 } else if (e.code == 'email-already-in-use') {
-                                  message = 'An account already exists with that email.';
+                                  message = DemoLocalizations.of(context).errExtCreateAccount;
                                 }
                                 GFToast.showToast(
-                                  'Create failed: $message',
+                                  DemoLocalizations.of(context).errToastCreateAccount + message,
                                   context,
                                   toastPosition: GFToastPosition.BOTTOM,
                                   textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
@@ -224,7 +225,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 );
                               } catch (e) {
                                 GFToast.showToast(
-                                  'Create failed: $e',
+                                  DemoLocalizations.of(context).errToastCreateAccount + e.toString(),
                                   context,
                                   toastPosition: GFToastPosition.BOTTOM,
                                   textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),

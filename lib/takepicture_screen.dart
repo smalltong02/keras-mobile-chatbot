@@ -1,6 +1,7 @@
 import 'dart:io' as io;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'l10n/localization_intl.dart';
 
 class TakePictureScreen extends StatefulWidget {
   const TakePictureScreen({
@@ -68,7 +69,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           _currentZoomLevel = _currentZoomLevel;
         });
 
-        await Future.delayed(Duration(milliseconds: 50)); // Increase delay duration for very slow zooming
+        await Future.delayed(const Duration(milliseconds: 10)); // Increase delay duration for very slow zooming
       }
 
       // Ensure final zoom level is set correctly
@@ -118,9 +119,9 @@ class TakePictureScreenState extends State<TakePictureScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Take a picture'),
+          title: Text(DemoLocalizations.of(context).titleTakePicture),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back),
             onPressed: () {
               Navigator.of(context).pop(imagePathList);
             },
@@ -136,7 +137,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                   Center(
                     child: Text(
                       'Zoom: ${_currentZoomLevel.toStringAsFixed(1)}x',
-                      style: TextStyle(color: Colors.white, fontSize: 20.0),
+                      style: const TextStyle(color: Colors.white, fontSize: 20.0),
                     ),
                   ),
                   if (imagePathList.isNotEmpty) ...{
@@ -218,7 +219,7 @@ class DisplayPictureScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Display the Picture'),
+        title: Text(DemoLocalizations.of(context).titleDisplayPicture),
         automaticallyImplyLeading: false,
       ),
       body: Column(
@@ -241,7 +242,7 @@ class DisplayPictureScreen extends StatelessWidget {
                       elevation: 10,
                       backgroundColor: Colors.pinkAccent.withOpacity(0.6),
                     ),
-                    child: const Text('Add'),
+                    child: Text(DemoLocalizations.of(context).addBtn),
                   ),
                 ),
               ),
@@ -260,7 +261,7 @@ class DisplayPictureScreen extends StatelessWidget {
                       elevation: 10,
                       backgroundColor: Colors.amberAccent.withOpacity(0.6),
                     ),
-                    child: const Text('Delete'),
+                    child: Text(DemoLocalizations.of(context).delBtn),
                   ),
                 ),
               ),

@@ -1,5 +1,7 @@
 import 'dart:io' as io;
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'l10n/localization_intl.dart';
 import 'package:provider/provider.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
@@ -20,11 +22,10 @@ class _SettingScreenState extends State<SettingScreen> {
   String yourIconPath = 'assets/icons/14/9.png';
   String homepageWallpaperPath = 'assets/backgrounds/49.jpg';
   String chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
+  String currentLanguage = '';
   bool speechEnable = false;
-  final List<String> llmModel = [
-    "gemini-1.5-pro",
-    "gemini-1.5-flash",
-  ];
+  List<Character> assistantCharacters = [];
+  List<Character> playerCharacters = [];
 
   final List<String> yourAppearancePaths = [
     'assets/icons/2/2_0.png',
@@ -53,6 +54,289 @@ class _SettingScreenState extends State<SettingScreen> {
     super.initState();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    initAssistantCharacters();
+    initPlayerCharacters();
+  }
+
+  void initAssistantCharacters() {
+    assistantCharacters = <Character>[
+      Character(
+        title: DemoLocalizations.of(context).assistantName1,
+        description: DemoLocalizations.of(context).assistantDesc1,
+        avatar: "assets/icons/9/9_0.png",
+        color: 0xFFE83835,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName2,
+        description: DemoLocalizations.of(context).assistantDesc2,
+        avatar: "assets/icons/9/9_1.png",
+        color: 0xFF238BD0,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName3,
+        description: DemoLocalizations.of(context).assistantDesc3,
+        avatar: "assets/icons/9/9_2.png",
+        color: 0xFF354C6C,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName4,
+        description: DemoLocalizations.of(context).assistantDesc4,
+        avatar: "assets/icons/9/9_3.png",
+        color: 0xFF6F2B62,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName5,
+        description: DemoLocalizations.of(context).assistantDesc5,
+        avatar: "assets/icons/9/9_4.png",
+        color: 0xFF447C12,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName6,
+        description: DemoLocalizations.of(context).assistantDesc6,
+        avatar: "assets/icons/9/9_5.png",
+        color: 0xFFE7668E,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName7,
+        description: DemoLocalizations.of(context).assistantDesc7,
+        avatar: "assets/icons/9/9_6.png",
+        color: 0xFFBD9158,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName8,
+        description: DemoLocalizations.of(context).assistantDesc8,
+        avatar: "assets/icons/9/9_7.png",
+        color: 0xFFE8A2B6,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName9,
+        description: DemoLocalizations.of(context).assistantDesc9,
+        avatar: "assets/icons/9/9_8.png",
+        color: 0xFFC5D128,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName10,
+        description: DemoLocalizations.of(context).assistantDesc10,
+        avatar: "assets/icons/11/1.png",
+        color: 0xFF91AF50,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName11,
+        description: DemoLocalizations.of(context).assistantDesc11,
+        avatar: "assets/icons/11/2.png",
+        color: 0xFF3B7F92,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName12,
+        description: DemoLocalizations.of(context).assistantDesc12,
+        avatar: "assets/icons/11/3.png",
+        color: 0xFF6C83AB,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName13,
+        description: DemoLocalizations.of(context).assistantDesc13,
+        avatar: "assets/icons/11/4.png",
+        color: 0xFFA1B2C3,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName14,
+        description: DemoLocalizations.of(context).assistantDesc14,
+        avatar: "assets/icons/11/5.png",
+        color: 0xFFD4E5F6,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName15,
+        description: DemoLocalizations.of(context).assistantDesc15,
+        avatar: "assets/icons/11/6.png",
+        color: 0xFFFA8072,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName16,
+        description: DemoLocalizations.of(context).assistantDesc16,
+        avatar: "assets/icons/11/7.png",
+        color: 0xFF8A2BE2,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName17,
+        description: DemoLocalizations.of(context).assistantDesc17,
+        avatar: "assets/icons/11/8.png",
+        color: 0xFF5F9EA0,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName18,
+        description: DemoLocalizations.of(context).assistantDesc18,
+        avatar: "assets/icons/11/9.png",
+        color: 0xFF7FFF00,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName19,
+        description: DemoLocalizations.of(context).assistantDesc19,
+        avatar: "assets/icons/11/10.png",
+        color: 0xFFD2691E,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName20,
+        description: DemoLocalizations.of(context).assistantDesc20,
+        avatar: "assets/icons/11/11.png",
+        color: 0xFFFF7F50,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).assistantName21,
+        description: DemoLocalizations.of(context).assistantDesc21,
+        avatar: "assets/icons/11/12.png",
+        color: 0xFF6495ED,
+      ),
+    ];
+  }
+
+  void initPlayerCharacters() {
+    playerCharacters = <Character>[
+      Character(
+        title: DemoLocalizations.of(context).playerName1,
+        description: DemoLocalizations.of(context).playerDesc1,
+        avatar: "assets/icons/2/2_0.png",
+        color: 0xFF86A1F2,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName2,
+        description: DemoLocalizations.of(context).playerDesc2,
+        avatar: "assets/icons/2/2_1.png",
+        color: 0xFFB6E3D4,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName3,
+        description: DemoLocalizations.of(context).playerDesc3,
+        avatar: "assets/icons/2/2_2.png",
+        color: 0xFFD4A7B9,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName4,
+        description: DemoLocalizations.of(context).playerDesc4,
+        avatar: "assets/icons/2/2_3.png",
+        color: 0xFF9CD1A8,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName5,
+        description: DemoLocalizations.of(context).playerDesc5,
+        avatar: "assets/icons/2/2_4.png",
+        color: 0xFF97A4C3,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName6,
+        description: DemoLocalizations.of(context).playerDesc6,
+        avatar: "assets/icons/2/2_5.png",
+        color: 0xFFE9B2CF,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName7,
+        description: DemoLocalizations.of(context).playerDesc7,
+        avatar: "assets/icons/2/2_6.png",
+        color: 0xFFADC7E8,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName8,
+        description: DemoLocalizations.of(context).playerDesc8,
+        avatar: "assets/icons/2/2_7.png",
+        color: 0xFFBBEE9F,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName9,
+        description: DemoLocalizations.of(context).playerDesc9,
+        avatar: "assets/icons/2/2_8.png",
+        color: 0xFF8FABC1,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName10,
+        description: DemoLocalizations.of(context).playerDesc10,
+        avatar: "assets/icons/3/2.png",
+        color: 0xFFE4C1D9,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName11,
+        description: DemoLocalizations.of(context).playerDesc11,
+        avatar: "assets/icons/3/3.png",
+        color: 0xFF74D5E1,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName12,
+        description: DemoLocalizations.of(context).playerDesc12,
+        avatar: "assets/icons/3/6.png",
+        color: 0xFFA9F1B6,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName13,
+        description: DemoLocalizations.of(context).playerDesc13,
+        avatar: "assets/icons/3/12.png",
+        color: 0xFFD9B7A3,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName14,
+        description: DemoLocalizations.of(context).playerDesc14,
+        avatar: "assets/icons/3/16.png",
+        color: 0xFF85C5A1,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName15,
+        description: DemoLocalizations.of(context).playerDesc15,
+        avatar: "assets/icons/4/4.png",
+        color: 0xFF98B6DD,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName16,
+        description: DemoLocalizations.of(context).playerDesc16,
+        avatar: "assets/icons/4/14.png",
+        color: 0xFFD3A9F4,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName17,
+        description: DemoLocalizations.of(context).playerDesc17,
+        avatar: "assets/icons/14/2.png",
+        color: 0xFF9EE7AB,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName18,
+        description: DemoLocalizations.of(context).playerDesc18,
+        avatar: "assets/icons/14/5.png",
+        color: 0xFFC5D1FA,
+      ),
+      Character(
+        title: DemoLocalizations.of(context).playerName19,
+        description: DemoLocalizations.of(context).playerDesc19,
+        avatar: "assets/icons/14/9.png",
+        color: 0xFFB0A8EF,
+      ),
+    ];
+  }
+
+  Character findCharacterByTitle(String title) {
+    Character character = Character();
+
+    for (var char in assistantCharacters) {
+      if (char.title == title) {
+        character = char;
+        break;
+      }
+    }
+    
+    return character;
+  }
+
+  Character findCharacterByAvatar(String avatar) {
+    Character character = Character();
+
+    for (var char in assistantCharacters) {
+      if (char.avatar == avatar) {
+        character = char;
+        break;
+      }
+    }
+    
+    return character;
+  }
+
   void wallpaperCallback(String homepageWallpaperPath, String chatpageWallpaperPath) {
     setState(() {
       homepageWallpaperPath = homepageWallpaperPath;
@@ -66,7 +350,7 @@ class _SettingScreenState extends State<SettingScreen> {
       assistantIconPath = path;
       Provider.of<SettingProvider>(context, listen: false).updateRoleIcon(assistantIconPath);
       Character character = findCharacterByAvatar(path);
-      String roleName = character.title ?? "Keras Robot";
+      String roleName = character.title ?? DemoLocalizations.of(context).assistantName20;
       Provider.of<SettingProvider>(context, listen: false).updateRole(roleName);
     });
   }
@@ -98,10 +382,33 @@ class _SettingScreenState extends State<SettingScreen> {
     return '$bytes ${suffix[index]}';
   }
 
+  String convertLanguage(String language) {
+    currentLanguage = DemoLocalizations.of(context).titleAuto;
+    if(language == 'en') {
+      currentLanguage = DemoLocalizations.of(context).titleEnglish;
+    }
+    else if(language == 'zh') {
+      currentLanguage = DemoLocalizations.of(context).titleChinese;
+    }
+    return currentLanguage;
+  }
+
+  String revertLanguage(String language) {
+    String settingLanguage = 'auto';
+    if(language == DemoLocalizations.of(context).titleEnglish) {
+      settingLanguage = 'en';
+    }
+    else if(language == DemoLocalizations.of(context).titleChinese) {
+      settingLanguage = 'zh';
+    }
+    return settingLanguage;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double screenHeight = MediaQuery.of(context).size.height;
+    // final double screenWidth = MediaQuery.of(context).size.width;
+    // final double screenHeight = MediaQuery.of(context).size.height;
+    currentLanguage = convertLanguage(Provider.of<SettingProvider>(context, listen: false).language);
     modelName = Provider.of<SettingProvider>(context, listen: false).modelName;
     assistantIconPath = Provider.of<SettingProvider>(context, listen: false).roleIconPath;
     yourIconPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
@@ -111,9 +418,9 @@ class _SettingScreenState extends State<SettingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Settings',
-          style: TextStyle(
+        title: Text(
+          DemoLocalizations.of(context).titleSetting,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -125,9 +432,9 @@ class _SettingScreenState extends State<SettingScreen> {
           child: SettingsList(
             sections: [
               SettingsSection(
-                title: const Text(
-                  'Chat Settings',
-                  style: TextStyle(
+                title: Text(
+                  DemoLocalizations.of(context).titleChatSetting,
+                  style: const TextStyle(
                     color: Colors.blueGrey,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -136,7 +443,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 tiles: <SettingsTile>[
                   SettingsTile.navigation(
                     leading: const Icon(Icons.chat),
-                    title: const Text('Model'),
+                    title: Text(DemoLocalizations.of(context).titleModel),
                     trailing: DropdownButton<String>(
                       value: modelName,
                       onChanged: (String? newValue) {
@@ -154,7 +461,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                   SettingsTile.navigation(
                     leading: const Icon(Icons.pets),
-                    title: const Text('Assistant Icon'),
+                    title: Text(DemoLocalizations.of(context).titleAssistantIcon),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -183,7 +490,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                   SettingsTile.navigation(
                     leading: const Icon(Icons.person),
-                    title: const Text('Player Icon'),
+                    title: Text(DemoLocalizations.of(context).titlePlayerIcon),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -212,7 +519,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                   SettingsTile.switchTile(
                     initialValue: speechEnable,
-                    title: const Text('Speech'),
+                    title: Text(DemoLocalizations.of(context).titleSpeech),
                     leading: const Icon(Icons.volume_up_sharp),
                     activeSwitchColor: Theme.of(context).colorScheme.primary,
                     onToggle: (value) {
@@ -225,9 +532,9 @@ class _SettingScreenState extends State<SettingScreen> {
                 ],
               ),
               SettingsSection(
-                title: const Text(
-                  'General',
-                  style: TextStyle(
+                title: Text(
+                  DemoLocalizations.of(context).titleGeneral,
+                  style: const TextStyle(
                     color: Colors.blueGrey,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -236,7 +543,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 tiles: <SettingsTile>[
                   SettingsTile.navigation(
                     leading: const Icon(Icons.image),
-                    title: const Text('Wallpaper'),
+                    title: Text(DemoLocalizations.of(context).titleWallpaper),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -275,12 +582,15 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                   SettingsTile.navigation(
                     leading: const Icon(Icons.language),
-                    title: const Text('Language'),
+                    title: Text(DemoLocalizations.of(context).titleLanguage),
                     trailing: DropdownButton<String>(
-                      value: 'English',
+                      value: currentLanguage,
                       onChanged: (String? newValue) {
+                        currentLanguage = newValue!;
+                        Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
+                        setState(() {});
                       },
-                      items: <String>['English']
+                      items: <String>[DemoLocalizations.of(context).titleAuto, DemoLocalizations.of(context).titleEnglish, DemoLocalizations.of(context).titleChinese]
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
@@ -292,9 +602,9 @@ class _SettingScreenState extends State<SettingScreen> {
                 ],
               ),
               SettingsSection(
-                title: const Text(
-                  'Cache',
-                  style: TextStyle(
+                title: Text(
+                  DemoLocalizations.of(context).titleCache,
+                  style: const TextStyle(
                     color: Colors.blueGrey,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -303,20 +613,20 @@ class _SettingScreenState extends State<SettingScreen> {
                 tiles: <SettingsTile>[
                   SettingsTile(
                     leading: const Icon(Icons.cached_sharp),
-                    title: const Text('Cache Size'),
+                    title: Text(DemoLocalizations.of(context).titleCacheSize),
                     trailing: FutureBuilder<io.Directory>(
                       future: getTemporaryDirectory(),
                       builder: (BuildContext context, AsyncSnapshot<io.Directory> snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
-                          return Text('Calculating...');
+                          return Text(DemoLocalizations.of(context).promptCalculating);
                         } else if (snapshot.hasError) {
-                          return Text('Error');
+                          return const Text('Error');
                         } else if (snapshot.hasData) {
                           int size = snapshot.data!.listSync(recursive: true, followLinks: false)
                               .fold<int>(0, (prev, element) => prev + io.File(element.path).statSync().size);
                           return Text(formatBytes(size));
                         } else {
-                          return Text('Unknown');
+                          return const Text('Unknown');
                         }
                       },
                     ),
@@ -325,17 +635,17 @@ class _SettingScreenState extends State<SettingScreen> {
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
-                            title: Text('Clear Cache'),
-                            content: Text('Are you sure you want to clear the cache?'),
+                            title: Text(DemoLocalizations.of(context).titleClearCache),
+                            content: Text(DemoLocalizations.of(context).confirmClearCache),
                             actions: <Widget>[
                               TextButton(
-                                child: Text('Cancel'),
+                                child: Text(DemoLocalizations.of(context).cancelBtn),
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                 },
                               ),
                               TextButton(
-                                child: Text('Clear'),
+                                child: Text(DemoLocalizations.of(context).clearBtn),
                                 onPressed: () async {
                                   Navigator.of(context).pop();
                                   await clearCache();

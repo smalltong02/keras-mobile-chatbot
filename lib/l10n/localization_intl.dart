@@ -297,6 +297,14 @@ class DemoLocalizations {
     );
   }
 
+  String get titleToolBox {
+    return Intl.message(
+      'ToolBox',
+      name: 'titleToolBox',
+      desc: 'title of ToolBox',
+    );
+  }
+
   String get titleGeneral {
     return Intl.message(
       'General',

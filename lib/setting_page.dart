@@ -17,13 +17,14 @@ class SettingScreen extends StatefulWidget {
 }
 
 class _SettingScreenState extends State<SettingScreen> {
-  String modelName = "gemini-1.5-pro";
+  String modelName = "gemini-1.5-flash";
   String assistantIconPath = 'assets/icons/11/11.png';
   String yourIconPath = 'assets/icons/14/9.png';
   String homepageWallpaperPath = 'assets/backgrounds/49.jpg';
   String chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
   String currentLanguage = '';
   bool speechEnable = false;
+  bool toolBoxEnable = false;
   List<Character> assistantCharacters = [];
   List<Character> playerCharacters = [];
 
@@ -415,6 +416,7 @@ class _SettingScreenState extends State<SettingScreen> {
     homepageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).homepageWallpaperPath;
     chatpageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperPath;
     speechEnable = Provider.of<SettingProvider>(context, listen: false).speechEnable;
+    toolBoxEnable = Provider.of<SettingProvider>(context, listen: false).toolBoxEnable;
 
     return Scaffold(
       appBar: AppBar(
@@ -526,6 +528,20 @@ class _SettingScreenState extends State<SettingScreen> {
                       setState(() {
                         speechEnable = value;
                         Provider.of<SettingProvider>(context, listen: false).updateSpeechEnable(speechEnable);
+                      });
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    initialValue: toolBoxEnable,
+                    title: Text(DemoLocalizations.of(context).titleToolBox),
+                    leading: const Icon(Icons.all_inbox_rounded),
+                    activeSwitchColor: Theme.of(context).colorScheme.primary,
+                    onToggle: (value) {
+                      setState(() {
+                        toolBoxEnable = value;
+                        Provider.of<SettingProvider>(context, listen: false).updateToolBoxEnable(toolBoxEnable);
+                        Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
+                        setState(() {});
                       });
                     },
                   ),

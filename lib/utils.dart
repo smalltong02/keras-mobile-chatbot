@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 //import 'package:googleapis/speech/v1.dart';
 import 'package:intl/intl.dart';
@@ -6,11 +8,17 @@ import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
+import 'package:chat_gpt_sdk/chat_gpt_sdk.dart' as openai;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:keras_mobile_chatbot/function_call.dart';
+import 'package:google_generative_ai/google_generative_ai.dart' as gemini;
 import 'package:cloud_text_to_speech/cloud_text_to_speech.dart';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
+
+
+const int maxTokenLength = 4096;
 
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
@@ -115,10 +123,20 @@ final List<String> wallpaperSettingPaths = [
     'assets/backgrounds/78.jpg',
   ];
 
-final List<String> llmModel = [
-  "gemini-1.5-pro",
+enum ModelType { unknown, google, openai }
+
+final List<String> googleModel = [
   "gemini-1.5-flash",
+  "gemini-1.5-pro",
 ];
+
+final List<String> openAIModel = [
+  openai.kChatGptTurboModel,
+  openai.kGpt4o,
+];
+openai.OpenAI? openAIInstance;
+
+final List<String> llmModel = googleModel + openAIModel;
 
 final List<Locale> supportedLocalesInApp = [
   const Locale('en', 'US'),
@@ -138,6 +156,8 @@ void initCameras() async {
     microsoft: InitParamsMicrosoft(subscriptionKey: dotenv.get("azure_speech_key"), region: dotenv.get("azure_speech_region")),
     withLogs: true
   );
+
+  openAIInstance = openai.OpenAI.instance.build(token: dotenv.get("openai_key"), baseOption: openai.HttpSetup(receiveTimeout: const Duration(seconds: 5)),enableLog: true);
 
   deepgram = Deepgram(dotenv.get("deepgram_speech_key"), baseQueryParams: {
     'model': 'nova-2-general',
@@ -177,7 +197,7 @@ class Character {
 }
 
 class SettingProvider with ChangeNotifier {
-  String _modelName = 'gemini-1.5-pro';
+  String _modelName = 'gemini-1.5-flash';
   String _userName = '';
   String _password = '';
   String _currentRole = 'Keras Robot';
@@ -186,7 +206,8 @@ class SettingProvider with ChangeNotifier {
   String _homepageWallpaperPath = 'assets/backgrounds/49.jpg';
   String _chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
   String _language = 'auto';
-  bool _speechEnable = true;
+  bool _speechEnable = false;
+  bool _toolBoxEnable = false;
 
   String get modelName => _modelName;
   String get userName => _userName;
@@ -198,6 +219,7 @@ class SettingProvider with ChangeNotifier {
   String get chatpageWallpaperPath => _chatpageWallpaperPath;
   String get language => _language;
   bool get speechEnable => _speechEnable;
+  bool get toolBoxEnable => _toolBoxEnable;
 
   SettingProvider() {
     _init();
@@ -267,9 +289,15 @@ class SettingProvider with ChangeNotifier {
     saveSetting();
   }
 
+  void updateToolBoxEnable(bool enable) {
+    _toolBoxEnable = enable;
+    notifyListeners();
+    saveSetting();
+  }
+
   Future<void> loadSetting() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-     _modelName = prefs.getString('modelName') ?? 'gemini-1.5-pro';
+     _modelName = prefs.getString('modelName') ?? 'gemini-1.5-flash';
      _userName = prefs.getString('userName') ?? '';
      _password = prefs.getString('password') ?? '';
      _language = prefs.getString('language') ?? 'auto';
@@ -279,6 +307,7 @@ class SettingProvider with ChangeNotifier {
     _homepageWallpaperPath = prefs.getString('homepageWallpaperPath') ?? 'assets/backgrounds/49.jpg';
     _chatpageWallpaperPath = prefs.getString('chatpageWallpaperPath') ?? 'assets/backgrounds/64.jpg';
     _speechEnable = prefs.getBool('speechEnable') ?? true;
+    _toolBoxEnable = prefs.getBool('toolBoxEnable') ?? false;
     notifyListeners();
   }
 
@@ -294,7 +323,167 @@ class SettingProvider with ChangeNotifier {
     prefs.setString('homepageWallpaperPath', _homepageWallpaperPath);
     prefs.setString('chatpageWallpaperPath', _chatpageWallpaperPath);
     prefs.setBool('speechEnable', _speechEnable);
+    prefs.setBool('toolBoxEnable', _toolBoxEnable);
   }
+}
+
+class OpenAIMessage {
+  String text;
+  OpenAIMessage({required this.text});
+}
+
+class OpenaiChatHistory {
+  List<Map<String, dynamic>> history;
+
+  OpenaiChatHistory({required this.history});
+
+  // toList method
+  List<Map<String, dynamic>> toList() {
+    return history;
+  }
+}
+
+class LlmModel {
+  ModelType type;
+  String? name;
+  String? systemInstruction;
+  dynamic model;
+  dynamic chatSession;
+
+  LlmModel({
+    this.type = ModelType.unknown,
+    this.model,
+    this.systemInstruction,
+    this.name,
+    this.chatSession,
+  });
+
+  List<dynamic> getHistory() {
+    List<Map<String, String>> history = [];
+    if(type == ModelType.google && chatSession != null) {
+      List<dynamic> listData = chatSession.history.toList();
+      for(final content in listData) {
+        String text = "";
+        if (content != null && content.parts is List) {
+          Iterable<gemini.TextPart> textParts = content.parts.whereType<gemini.TextPart>();
+          Iterable<String> texts = textParts.map((textPart) => textPart.text);
+          text = texts.join('');
+          String role = content.role.toString();
+          history.add({"role": role, "content": text});
+        }
+      }
+    }
+    else if(type == ModelType.openai && chatSession != null) {
+      if (openAIInstance == null) {
+        return [];
+      }
+      return chatSession.toList();
+    }
+    return history;
+  }
+}
+
+LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnable) {
+  if(modelName.isEmpty) {
+    return null;
+  }
+  for(final name in googleModel) {
+    if(modelName == name) {
+      if(toolEnable) {
+        gemini.ToolConfig toolConfig = gemini.ToolConfig(functionCallingConfig: gemini.FunctionCallingConfig(mode: gemini.FunctionCallingMode.auto));
+        LlmModel llmModel = LlmModel(type: ModelType.google);
+        llmModel.name = modelName;
+        llmModel.systemInstruction = systemInstruction;
+        final model = gemini.GenerativeModel(
+          model: name,
+          apiKey: dotenv.get("api_key"),
+          tools: [
+            gemini.Tool(functionDeclarations: normalFunctionCallTool)
+          ],
+          toolConfig: toolConfig,
+          systemInstruction: gemini.Content.system(systemInstruction),
+        );
+        llmModel.model = model;
+        final chatSession = model.startChat();
+        llmModel.chatSession = chatSession;
+        return llmModel;
+      } else {
+        LlmModel llmModel = LlmModel(type: ModelType.google);
+        llmModel.name = modelName;
+        llmModel.systemInstruction = systemInstruction;
+        final model = gemini.GenerativeModel(
+          model: name,
+          apiKey: dotenv.get("api_key"),
+          systemInstruction: gemini.Content.system(systemInstruction),
+        );
+        llmModel.model = model;
+        final chatSession = model.startChat();
+        llmModel.chatSession = chatSession;
+        return llmModel;
+      }
+    }
+  }
+  
+  if(openAIInstance != null) {
+    for(final name in openAIModel) {
+      if(modelName == name && name == openai.kChatGptTurboModel) {
+        LlmModel llmModel = LlmModel(type: ModelType.openai);
+        llmModel.name = modelName;
+        llmModel.systemInstruction = systemInstruction;
+        final model = openai.GptTurboChatModel();
+        llmModel.model = model;
+        final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
+        llmModel.chatSession = chatSession;
+        return llmModel;
+      }
+      else if (modelName == name && name == openai.kGpt4o) {
+        LlmModel llmModel = LlmModel(type: ModelType.openai);
+        // request = openai.ChatCompleteText(
+        //   model: openai.Gpt4OChatModel(),
+        //   messages: [
+        //     openai.Messages(
+        //             role: Role.user,
+        //             content: "What is the weather like in Boston?",
+        //             name: "get_current_weather")
+        //         .toJson(),
+        //   ],
+        //   maxToken: max128kLength,
+        //   tools: [
+        //     {
+        //       "type": "function",
+        //       "function": {
+        //         "name": "get_current_weather",
+        //         "description": "Get the current weather in a given location",
+        //         "parameters": {
+        //           "type": "object",
+        //           "properties": {
+        //             "location": {
+        //               "type": "string",
+        //               "description": "The city and state, e.g. San Francisco, CA"
+        //             },
+        //             "unit": {
+        //               "type": "string",
+        //               "enum": ["celsius", "fahrenheit"]
+        //             }
+        //           },
+        //           "required": ["location"]
+        //         }
+        //       }
+        //     }
+        //   ],
+        //   toolChoice: 'auto',
+        // );
+        llmModel.name = modelName;
+        llmModel.systemInstruction = systemInstruction;
+        final model = openai.Gpt4OChatModel();
+        llmModel.model = model;
+        final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
+        llmModel.chatSession = chatSession;
+        return llmModel;
+      }
+    }
+  }
+  return null;
 }
 
 String _extractValue(String geocode, String key) {

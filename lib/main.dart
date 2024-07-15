@@ -4,7 +4,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:googleapis/dfareporting/v4.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/home_page.dart';
 import 'package:provider/provider.dart';
@@ -79,7 +78,7 @@ class KerasMobileChatbotMainUI extends StatelessWidget {
             }
           }
 
-          for (final locale in locales!) {
+          for (final locale in locales) {
             for (final supportedLocale in supportedLocales) {
               if (supportedLocale.languageCode == locale.languageCode) {
                 return supportedLocale;

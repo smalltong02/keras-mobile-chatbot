@@ -285,6 +285,7 @@ Future<Map<String, dynamic>> searchVideos(Map<String, Object?> arguments, ) asyn
           'video_id': video.id,
           'title': video.title,
           'description': video.description,
+          'thumbnail': video.thumbnail,
           'url': video.url,
         }
       );

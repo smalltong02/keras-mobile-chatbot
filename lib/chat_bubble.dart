@@ -201,7 +201,24 @@ class SentMessageScreen extends StatelessWidget {
                     child: SizedBox(
                       width: double.infinity,
                       height: 300,
-                      child: Image.file(io.File(imgPath)),
+                      child: GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: Center(
+                                  child: Image.file(io.File(imgPath)),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: Image.file(io.File(imgPath)),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -492,10 +509,10 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
         List<Map<String, dynamic>> placesList = showMap['places'];
         for(Map<String, dynamic> place in placesList) {
           String name = place['name'];
-          String level = place['level'];
-          String address = place['address'];
-          String placeId = place['place_id'];
-          String icon = place['icon'];
+          //String level = place['level'];
+          //String address = place['address'];
+          //String placeId = place['place_id'];
+          //String icon = place['icon'];
           Location location = place['location'];
           final marker = Marker(
             markerId: MarkerId(name),
@@ -547,52 +564,125 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
       if (showVideo['object'] == 'videos') {
         List<Map<String, dynamic>> videosList = showVideo['videos'];
         if (videosList.isNotEmpty) {
-          for(Map<String, dynamic> video in videosList) {
+          for (Map<String, dynamic> video in videosList) {
             String videoTitle = video['title'];
             String videoId = video['video_id'];
             String videoDescription = video['description'];
-            String videoUrl = video['url'];
+            String thumbnailUrl = video['thumbnail'];
+
             YoutubePlayerController controllerYoutube = YoutubePlayerController(
               initialVideoId: videoId,
               flags: const YoutubePlayerFlags(
-                  autoPlay: false,
-                  mute: true,
+                autoPlay: false,
+                mute: false,
               ),
             );
 
-            YoutubePlayer player = YoutubePlayer(
-              controller: controllerYoutube,
-              showVideoProgressIndicator: true,
-              progressIndicatorColor: Colors.amber,
-              progressColors: const ProgressBarColors(
-                playedColor: Colors.amber,
-                handleColor: Colors.amberAccent,
-              ),
-              onReady: () {
-                //_controller.addListener(listener);
-              },
-            );
             extendMessageGroupList.add(Flexible(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    widget.iconPath,
-                    width: _iconSize,
-                    height: _iconSize,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: SizedBox(
+              child: GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        insetPadding: const EdgeInsets.all(0),
+                        child: Scaffold(
+                          appBar: AppBar(
+                            leading: IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            title: Text(
+                              videoTitle,
+                              style: const TextStyle(
+                                fontFamily: 'Roboto',
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            centerTitle: true,
+                            flexibleSpace: Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [Colors.blue, Colors.purple],
+                                ),
+                              ),
+                            ),
+                            elevation: 10,
+                            shadowColor: Colors.black.withOpacity(0.5),
+                          ),
+                          body: Column(
+                            children: [
+                              Expanded(
+                                child: YoutubePlayer(
+                                  controller: controllerYoutube,
+                                  showVideoProgressIndicator: true,
+                                  progressIndicatorColor: Colors.amber,
+                                  progressColors: const ProgressBarColors(
+                                    playedColor: Colors.amber,
+                                    handleColor: Colors.amberAccent,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(0.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Colors.blue.shade100, Colors.purple.shade100],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Text(
+                                    videoDescription,
+                                    style: TextStyle(
+                                      fontFamily: 'Roboto',
+                                      fontSize: 12,
+                                      color: Colors.grey[800],
+                                      height: 1.5,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    textAlign: TextAlign.justify,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Image.network(
+                      thumbnailUrl,
                       width: double.infinity,
                       height: 300,
-                      child: player,
+                      fit: BoxFit.cover,
                     ),
-                  ),
-                ],
-              ))
-            );
+                    Icon(
+                      Icons.play_circle_fill,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            ));
           }
         }
       }
@@ -603,9 +693,9 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
         List<Map<String, dynamic>> imagesList = showVideo['images'];
         if (imagesList.isNotEmpty) {
           for(Map<String, dynamic> image in imagesList) {
-            String imageName = image['name'];
-            String imageDescription = image['description'];
-            String imageCreationTime = image['creation_time'];
+            //String imageName = image['name'];
+            //String imageDescription = image['description'];
+            //String imageCreationTime = image['creation_time'];
             String imgPath = image['imgpath'];
             extendMessageGroupList.add(Flexible(
               child: Row(
@@ -622,7 +712,24 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       height: 300,
-                      child: Image.file(io.File(imgPath)),
+                      child: GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: Center(
+                                  child: Image.file(io.File(imgPath)),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: Image.file(io.File(imgPath)),
+                      ),
                     ),
                   ),
                 ],

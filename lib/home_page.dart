@@ -347,8 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 accessToken: googleAuth.accessToken,
                                 idToken: googleAuth.idToken,
                               );
-                              final UserCredential googleUserCredential =
-                                await firebaseAuth.signInWithCredential(googleCredential);
+                              await firebaseAuth.signInWithCredential(googleCredential);
                             }
                           }
                         },

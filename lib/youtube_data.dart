@@ -6,12 +6,14 @@ class Video {
   final String id;
   final String title;
   final String description;
+  final String thumbnail;
   final String url;
 
   Video({
     this.id="",
     this.title="",
     this.description="",
+    this.thumbnail="",
     this.url="",
   });
 }
@@ -22,7 +24,7 @@ class APIService {
   static final APIService instance = APIService._instantiate();
 
   final String _baseUrl = 'www.googleapis.com';
-  String _nextPageToken = '';
+  String nextPageToken = '';
 
   Future<List<Video>> searchVideos({String title="", int maxResults=4, String apiKey= ""}) async {
     Map<String, String> parameters = {
@@ -47,7 +49,7 @@ class APIService {
     if (response.statusCode == 200) {
       var data = json.decode(response.body);
 
-      _nextPageToken = data['nextPageToken'] ?? '';
+      nextPageToken = data['nextPageToken'] ?? '';
       List<dynamic> videosJson = data['items'];
 
       List<Video> videos = [];
@@ -57,6 +59,7 @@ class APIService {
             id: json['id']['videoId'],
             title: json['snippet']['title'],
             description: json['snippet']['description'],
+            thumbnail: json['snippet']['thumbnails']['high']['url'],
             url: 'https://www.youtube.com/watch?v=${json['id']['videoId']}',
           ),
         ),

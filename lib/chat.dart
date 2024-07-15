@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:io' as io;
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
+import 'package:chat_gpt_sdk/chat_gpt_sdk.dart' as openai;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:google_generative_ai/google_generative_ai.dart' as gemini;
 import 'package:record/record.dart';
 import 'l10n/localization_intl.dart';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
@@ -23,7 +23,7 @@ class ChatHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String name = Provider.of<SettingProvider>(context, listen: false).modelName;
+    String name = "AI Home Assistant";
     return Scaffold(
       appBar: AppBar(
         title: Text(name, style: const TextStyle(fontSize: 25)),
@@ -61,12 +61,13 @@ class ChatUI extends StatefulWidget {
 }
 
 class _ChatUIState extends State<ChatUI> {
-  late GenerativeModel? _model;
-  late ChatSession _chatSession;
+  late LlmModel? llmModel;
   final FocusNode _textFieldFocus = FocusNode();
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _loading = false;
+  bool toolBoxEnable = false;
+  String loadModelName = "";
   String wallpaperPath = "";
   List<String> fileUploadList = [];
   Map<int, dynamic> internalMessageList = {};
@@ -104,31 +105,24 @@ class _ChatUIState extends State<ChatUI> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    ToolConfig toolConfig = ToolConfig(functionCallingConfig: FunctionCallingConfig(mode: FunctionCallingMode.auto));
-    String name = Provider.of<SettingProvider>(context, listen: false).modelName;
-    String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
-    initAssistantCharacters();
-    initPlayerCharacters();
-    initCurrentSpeech();
-    String newSystemInstruction = getSystemInstruction(role);
-    //if(_model == null) {
-      _model = GenerativeModel(
-        model: name,
-        apiKey: dotenv.get("api_key"),
-        tools: [
-          Tool(functionDeclarations: normalFunctionCallTool)
-        ],
-        toolConfig: toolConfig,
-        systemInstruction: Content.system(newSystemInstruction),
-      );
-      _chatSession = _model!.startChat();
-    //}
+    initModel();
   }
 
   @override
   void dispose() {
     timer?.cancel();
     super.dispose();
+  }
+
+  void initModel() {
+    loadModelName = Provider.of<SettingProvider>(context, listen: false).modelName;
+    String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
+    toolBoxEnable = Provider.of<SettingProvider>(context, listen: false).toolBoxEnable;
+    initAssistantCharacters();
+    initPlayerCharacters();
+    initCurrentSpeech();
+    String systemInstruction = getSystemInstruction(role);
+    llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
   }
 
   void initCurrentSpeech() {
@@ -435,7 +429,6 @@ class _ChatUIState extends State<ChatUI> {
   }
 
   double calculateBubbleSize(dynamic data) {
-
     dynamic newData = 200.0 + data * 10.0;
     if(newData < 30.0) {
       newData = 30.0;
@@ -511,7 +504,7 @@ class _ChatUIState extends State<ChatUI> {
 
   @override
   Widget build(BuildContext context) {
-    final history = _chatSession.history.toList();
+    final history = llmModel!.getHistory();
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
@@ -521,6 +514,10 @@ class _ChatUIState extends State<ChatUI> {
         String playerIconPath = settingProvider.playerIconPath;
         String wallpaperPath = settingProvider.chatpageWallpaperPath;
         speechEnable = settingProvider.speechEnable;
+        if(loadModelName != settingProvider.modelName ||
+           toolBoxEnable != settingProvider.toolBoxEnable) {
+          initModel();
+        }
 
         return Scaffold(
           body: Stack(
@@ -544,15 +541,15 @@ class _ChatUIState extends State<ChatUI> {
                         child: ListView.builder(
                           controller: _scrollController,
                           itemBuilder: (context, index) {
-                            final content = history[index];
-                            final text = content.parts
-                                .whereType<TextPart>()
-                                .map<String>((e) => e.text)
-                                .join('');
+                            final rule = history[index];
+                            String text = rule['content'];
                             if (text.isEmpty) {
                               return const SizedBox.shrink();
                             } else {
-                              if (content.role == 'user') {
+                              if(rule['role'] == 'system') {
+                                return const SizedBox.shrink();
+                              }
+                              else if (rule['role'] == 'user') {
                                 Map<String, dynamic> curExtendMessage = {};
                                 if (internalMessageList.containsKey(index)) {
                                   curExtendMessage = internalMessageList[index];
@@ -788,97 +785,129 @@ class _ChatUIState extends State<ChatUI> {
     });
     try {
       Uint8List bytesUint8;
-      List<DataPart> imageParts = [];
+      Map<String, dynamic> curExtendMessage = {};
       if(message.isNotEmpty) {
-        for (String filePath in fileUploadList) {
-          io.File file = io.File(filePath);
-          if (await file.exists()) {
-            bytesUint8 = await file.readAsBytes().then((value) => value);
-            imageParts.add(DataPart('image/jpeg', bytesUint8));
-          }
-        }
-        final textPrompt = TextPart(message);
-        
-        var response = await _chatSession.sendMessage(
-          Content.multi([textPrompt, ...imageParts]),
-        );
-        Map<String, dynamic> curExtendMessage = {};
-        final functionCalls = response.functionCalls.toList();
-        if (functionCalls.isNotEmpty) {
-          final functionCall = functionCalls.first;
-          final result = switch (functionCall.name) {
-            // Forward arguments to the hypothetical API.
-            'getCurrentTime' => await getCurrentTime(),
-            'getCurrentLocation' => await getCurrentLocation(),
-            'getDirections' => await getDirections(functionCall.args),
-            'getPlaces' => await getPlaces(functionCall.args),
-            'searchVideos' => await searchVideos(functionCall.args),
-            'searchInternet' => await searchInternet(functionCall.args),
-            'searchEmails' => await searchEmails(functionCall.args),
-            'sendEmails' => await sendEmails(functionCall.args),
-            'searchDrives' => await searchDrives(functionCall.args),
-            'downloadFromDrives' => await downloadFromDrives(functionCall.args),
-            'getEventCalendar' => await getEventCalendar(functionCall.args),
-            'createEventCalendar' => await createEventCalendar(functionCall.args),
-            'searchPhotos' => await searchPhotos(functionCall.args),
-            // Throw an exception if the model attempted to call a function that was
-            // not declared.
-            _ => throw UnimplementedError(
-                'Function not implemented: ${functionCall.name}')
-          };
-          if(result.isNotEmpty) {
-            String resultValue = result['result'];
-            if(result.containsKey('show_map')) {
-              curExtendMessage = {'show_map': result['show_map']};
-            }
-            else if (result.containsKey('show_video')) {
-              curExtendMessage = {'show_video': result['show_video']};
-            }
-            else if (result.containsKey('show_image')) {
-              curExtendMessage = {'show_image': result['show_image']};
-            }
-            Map<String, dynamic> responseFunction = {'result': resultValue};
-            // Send the result of the function call to the model.
-            response = await _chatSession.sendMessage(Content.functionResponse(functionCall.name, responseFunction));
-          }
-          // Send the response to the model so that it can use the result to generate
-          // text for the user.
-        }
-        // When the model responds with non-null text content, print it.
-        if (response.text case final text?) {
-          if (fileUploadList.isNotEmpty && _chatSession.history.isNotEmpty) {
-            List<Map<String, String>> photosList = fileUploadList.map((path) => {"imgpath": path}).toList();
-            Map<String, dynamic> curInternalMessage = {
-              'show_image': {
-                'object': "images",
-                'images': photosList,
+        if(llmModel != null) {
+          dynamic response;
+          var history = llmModel!.getHistory();
+          if(llmModel!.type == ModelType.google) {
+            List<gemini.DataPart> imageParts = [];
+            for (String filePath in fileUploadList) {
+              io.File file = io.File(filePath);
+              if (await file.exists()) {
+                bytesUint8 = await file.readAsBytes().then((value) => value);
+                imageParts.add(gemini.DataPart('image/jpeg', bytesUint8));
               }
-            };
-            int index = _chatSession.history.length - 2;
-            internalMessageList[index] = curInternalMessage;
-          }
-          if (curExtendMessage.isNotEmpty && _chatSession.history.isNotEmpty) {
-            int index = _chatSession.history.length - 1;
-            extendMessageList[index] = curExtendMessage;
-          }
-          if(speechEnable && _chatSession.history.isNotEmpty) {
-            String? audioPath = await generateAudioFile(response.text!);
-            if(audioPath != null) {
-              int index = _chatSession.history.length - 1;
-              speechMessageList[index] = {
-                'audioPath': audioPath,
-                'autoPlay': true,
-              };
             }
+            final textPrompt = gemini.TextPart(message);
+            
+            response = await llmModel!.chatSession.sendMessage(
+              gemini.Content.multi([textPrompt, ...imageParts]),
+            );
+            
+            final functionCalls = response.functionCalls.toList();
+            if (functionCalls.isNotEmpty) {
+              final functionCall = functionCalls.first;
+              final result = switch (functionCall.name) {
+                // Forward arguments to the hypothetical API.
+                'getCurrentTime' => await getCurrentTime(),
+                'getCurrentLocation' => await getCurrentLocation(),
+                'getDirections' => await getDirections(functionCall.args),
+                'getPlaces' => await getPlaces(functionCall.args),
+                'searchVideos' => await searchVideos(functionCall.args),
+                'searchInternet' => await searchInternet(functionCall.args),
+                'searchEmails' => await searchEmails(functionCall.args),
+                'sendEmails' => await sendEmails(functionCall.args),
+                'searchDrives' => await searchDrives(functionCall.args),
+                'downloadFromDrives' => await downloadFromDrives(functionCall.args),
+                'getEventCalendar' => await getEventCalendar(functionCall.args),
+                'createEventCalendar' => await createEventCalendar(functionCall.args),
+                'searchPhotos' => await searchPhotos(functionCall.args),
+                // Throw an exception if the model attempted to call a function that was
+                // not declared.
+                _ => throw UnimplementedError(
+                    'Function not implemented: ${functionCall.name}')
+              };
+              if(result.isNotEmpty) {
+                String resultValue = result['result'];
+                if(result.containsKey('show_map')) {
+                  curExtendMessage = {'show_map': result['show_map']};
+                }
+                else if (result.containsKey('show_video')) {
+                  curExtendMessage = {'show_video': result['show_video']};
+                }
+                else if (result.containsKey('show_image')) {
+                  curExtendMessage = {'show_image': result['show_image']};
+                }
+                Map<String, dynamic> responseFunction = {'result': resultValue};
+                // Send the result of the function call to the model.
+                response = await llmModel!.chatSession.sendMessage(gemini.Content.functionResponse(functionCall.name, responseFunction));
+              }
+              // Send the response to the model so that it can use the result to generate
+              // text for the user.
+            }
+            history = llmModel!.getHistory();
           }
-          if(text.isEmpty) {
-            _showError('No response from API.');
-            return;
-          } else {
-            setState(() {
-              _loading = false;
-              _scrollDown();
-            });
+          else {
+            List<Map<String, dynamic>> newHistory = history.cast<Map<String, dynamic>>();
+            final query = openai.Messages(role: openai.Role.user, content: message).toJson();
+            newHistory.add(query);
+            var request = openai.ChatCompleteText(
+              model: llmModel!.model,
+              messages: newHistory,
+              maxToken: maxTokenLength,
+              //tools: [],
+              //toolChoice: 'auto',
+            );
+            String text = "";
+            openai.ChatCTResponse? chatResponse = await openAIInstance!.onChatCompletion(request: request);
+            if(chatResponse != null && chatResponse.choices.isNotEmpty) {
+              for (var element in chatResponse.choices) {
+                if(element.message != null) {
+                  text += element.message!.content;
+                }
+              }
+            }
+            response = OpenAIMessage(text:text);
+            final answer = openai.Messages(role: openai.Role.assistant, content: text).toJson();
+            llmModel!.chatSession.history.add(answer);
+          }
+          // When the model responds with non-null text content, print it.
+          if (response.text case final text?) {
+            if (fileUploadList.isNotEmpty && history.isNotEmpty) {
+              List<Map<String, String>> photosList = fileUploadList.map((path) => {"imgpath": path}).toList();
+              Map<String, dynamic> curInternalMessage = {
+                'show_image': {
+                  'object': "images",
+                  'images': photosList,
+                }
+              };
+              int index = history.length - 2;
+              internalMessageList[index] = curInternalMessage;
+            }
+            if (curExtendMessage.isNotEmpty && history.isNotEmpty) {
+              int index = history.length - 1;
+              extendMessageList[index] = curExtendMessage;
+            }
+            if(speechEnable && history.isNotEmpty) {
+              String? audioPath = await generateAudioFile(response.text!);
+              if(audioPath != null) {
+                int index = history.length - 1;
+                speechMessageList[index] = {
+                  'audioPath': audioPath,
+                  'autoPlay': true,
+                };
+              }
+            }
+            if(text.isEmpty) {
+              _showError('No response from API.');
+              return;
+            } else {
+              setState(() {
+                _loading = false;
+                _scrollDown();
+              });
+            }
           }
         }
       }

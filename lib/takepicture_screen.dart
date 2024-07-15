@@ -52,16 +52,12 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   }
 
   void handleScaleUpdate(ScaleUpdateDetails details) {
-  // Calculate the new zoom level based on the scale update
-    double scale = details.scale.clamp(_minAvailableZoom, _maxAvailableZoom); // Clamp scale to a reasonable range
+    double scale = details.scale.clamp(_minAvailableZoom, _maxAvailableZoom);
     double newZoomLevel = _currentZoomLevel * scale;
+    double zoomIncrement = (newZoomLevel - _currentZoomLevel) / 500.0;
 
-    // Calculate a very small incremental change in zoom level for very slow scaling
-    double zoomIncrement = (newZoomLevel - _currentZoomLevel) / 500.0; // Adjust divisor for very slow speed
-
-    // Update zoom level gradually
     Future<void> updateZoom() async {
-      while ((_currentZoomLevel - newZoomLevel).abs() > 0.01) { // Adjust tolerance for smoothness
+      while ((_currentZoomLevel - newZoomLevel).abs() > 0.01) {
         _currentZoomLevel += zoomIncrement;
         _currentZoomLevel = _currentZoomLevel.clamp(_minAvailableZoom, _maxAvailableZoom);
 
@@ -69,10 +65,9 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           _currentZoomLevel = _currentZoomLevel;
         });
 
-        await Future.delayed(const Duration(milliseconds: 10)); // Increase delay duration for very slow zooming
+        await Future.delayed(const Duration(milliseconds: 10));
       }
 
-      // Ensure final zoom level is set correctly
       _currentZoomLevel = newZoomLevel.clamp(_minAvailableZoom, _maxAvailableZoom);
       _controller.setZoomLevel(_currentZoomLevel);
     }
@@ -83,7 +78,6 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   @override
   void dispose() {
     _controller.dispose();
-    // Return the imagePathList to the previous screen
     Navigator.of(context).pop(imagePathList);
     super.dispose();
   }
@@ -112,8 +106,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
       onPopInvoked: (pop) {
         if(pop) {
           return;
-        }
-        else {
+        } else {
           onWillPop();
         }
       },
@@ -127,59 +120,60 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             },
           ),
         ),
-        body: Column(
-          children: [
-            GestureDetector(
-              onScaleUpdate: handleScaleUpdate,
-              child: Stack(
-                children: <Widget>[
-                  CameraPreview(_controller),
-                  Center(
-                    child: Text(
-                      'Zoom: ${_currentZoomLevel.toStringAsFixed(1)}x',
-                      style: const TextStyle(color: Colors.white, fontSize: 20.0),
-                    ),
-                  ),
-                  if (imagePathList.isNotEmpty) ...{
-                    Positioned(
-                      bottom: 8.0,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Wrap(
-                          spacing: 8.0,
-                          runSpacing: 8.0,
-                          children: imagePathList.map((filePath) {
-                            return Stack(
-                              children: [
-                                Image.file(
-                                  io.File(filePath),
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.cover,
-                                ),
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.close,
-                                      size: 16,
-                                    ),
-                                    onPressed: () => removeImage(filePath),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
-                        ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              GestureDetector(
+                onScaleUpdate: handleScaleUpdate,
+                child: Stack(
+                  children: <Widget>[
+                    CameraPreview(_controller),
+                    Center(
+                      child: Text(
+                        'Zoom: ${_currentZoomLevel.toStringAsFixed(1)}x',
+                        style: const TextStyle(color: Colors.white, fontSize: 20.0),
                       ),
                     ),
-                  },
-                ],
+                    if (imagePathList.isNotEmpty)
+                      Positioned(
+                        bottom: 8.0,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Wrap(
+                            spacing: 8.0,
+                            runSpacing: 8.0,
+                            children: imagePathList.map((filePath) {
+                              return Stack(
+                                children: [
+                                  Image.file(
+                                    io.File(filePath),
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                      ),
+                                      onPressed: () => removeImage(filePath),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
 //import 'package:googleapis/speech/v1.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +18,8 @@ import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 
 
 const int maxTokenLength = 4096;
+const int maxReceiveTimeout = 30; // 30 seconds
+const int maxConnectTimeout = 30;
 
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
@@ -140,7 +141,13 @@ final List<String> llmModel = googleModel + openAIModel;
 
 final List<Locale> supportedLocalesInApp = [
   const Locale('en', 'US'),
+  const Locale('fr', 'FR'),
   const Locale('zh', 'CN'),
+  const Locale('de', 'DE'),
+  const Locale('es', 'ES'),
+  const Locale('ja', 'JP'),
+  const Locale('ko', 'KR'),
+  const Locale('ru', 'RU'),
 ];
 
 List<CameraDescription> cameras = [];
@@ -157,7 +164,7 @@ void initCameras() async {
     withLogs: true
   );
 
-  openAIInstance = openai.OpenAI.instance.build(token: dotenv.get("openai_key"), baseOption: openai.HttpSetup(receiveTimeout: const Duration(seconds: 5)),enableLog: true);
+  openAIInstance = openai.OpenAI.instance.build(token: dotenv.get("openai_key"), baseOption: openai.HttpSetup(receiveTimeout: const Duration(seconds: maxReceiveTimeout), connectTimeout: const Duration(seconds: maxConnectTimeout)),enableLog: true);
 
   deepgram = Deepgram(dotenv.get("deepgram_speech_key"), baseQueryParams: {
     'model': 'nova-2-general',
@@ -307,7 +314,6 @@ class SettingProvider with ChangeNotifier {
     _homepageWallpaperPath = prefs.getString('homepageWallpaperPath') ?? 'assets/backgrounds/49.jpg';
     _chatpageWallpaperPath = prefs.getString('chatpageWallpaperPath') ?? 'assets/backgrounds/64.jpg';
     _speechEnable = prefs.getBool('speechEnable') ?? true;
-    _toolBoxEnable = prefs.getBool('toolBoxEnable') ?? false;
     notifyListeners();
   }
 
@@ -323,7 +329,6 @@ class SettingProvider with ChangeNotifier {
     prefs.setString('homepageWallpaperPath', _homepageWallpaperPath);
     prefs.setString('chatpageWallpaperPath', _chatpageWallpaperPath);
     prefs.setBool('speechEnable', _speechEnable);
-    prefs.setBool('toolBoxEnable', _toolBoxEnable);
   }
 }
 
@@ -438,41 +443,6 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
       }
       else if (modelName == name && name == openai.kGpt4o) {
         LlmModel llmModel = LlmModel(type: ModelType.openai);
-        // request = openai.ChatCompleteText(
-        //   model: openai.Gpt4OChatModel(),
-        //   messages: [
-        //     openai.Messages(
-        //             role: Role.user,
-        //             content: "What is the weather like in Boston?",
-        //             name: "get_current_weather")
-        //         .toJson(),
-        //   ],
-        //   maxToken: max128kLength,
-        //   tools: [
-        //     {
-        //       "type": "function",
-        //       "function": {
-        //         "name": "get_current_weather",
-        //         "description": "Get the current weather in a given location",
-        //         "parameters": {
-        //           "type": "object",
-        //           "properties": {
-        //             "location": {
-        //               "type": "string",
-        //               "description": "The city and state, e.g. San Francisco, CA"
-        //             },
-        //             "unit": {
-        //               "type": "string",
-        //               "enum": ["celsius", "fahrenheit"]
-        //             }
-        //           },
-        //           "required": ["location"]
-        //         }
-        //       }
-        //     }
-        //   ],
-        //   toolChoice: 'auto',
-        // );
         llmModel.name = modelName;
         llmModel.systemInstruction = systemInstruction;
         final model = openai.Gpt4OChatModel();
@@ -497,10 +467,10 @@ String parseGeocode(String geocode) {
   final streetAddress = _extractValue(geocode, 'streetAddress');
   final city = _extractValue(geocode, 'city');
   final region = _extractValue(geocode, 'region');
-  final postal = _extractValue(geocode, 'postal');
+  //final postal = _extractValue(geocode, 'postal');
   final countryName = _extractValue(geocode, 'countryName');
 
-  return '$streetNumber $streetAddress\n$city, $region $postal\n$countryName';
+  return '$streetNumber $streetAddress $city, $region, $countryName';
 }
 
 Future<String> getTempPath() async {

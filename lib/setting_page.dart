@@ -388,8 +388,26 @@ class _SettingScreenState extends State<SettingScreen> {
     if(language == 'en') {
       currentLanguage = DemoLocalizations.of(context).titleEnglish;
     }
+    else if(language == 'fr') {
+      currentLanguage = DemoLocalizations.of(context).titleFrench;
+    }
     else if(language == 'zh') {
       currentLanguage = DemoLocalizations.of(context).titleChinese;
+    }
+    else if(language == 'de') {
+      currentLanguage = DemoLocalizations.of(context).titleGerman;
+    }
+    else if(language == 'es') {
+      currentLanguage = DemoLocalizations.of(context).titleSpanish;
+    }
+    else if(language == 'ru') {
+      currentLanguage = DemoLocalizations.of(context).titleRussian;
+    }
+    else if(language == 'ko') {
+      currentLanguage = DemoLocalizations.of(context).titleKorean;
+    }
+    else if(language == 'ja') {
+      currentLanguage = DemoLocalizations.of(context).titleJapanese;
     }
     return currentLanguage;
   }
@@ -399,8 +417,26 @@ class _SettingScreenState extends State<SettingScreen> {
     if(language == DemoLocalizations.of(context).titleEnglish) {
       settingLanguage = 'en';
     }
+    else if(language == DemoLocalizations.of(context).titleFrench) {
+      settingLanguage = 'fr';
+    }
     else if(language == DemoLocalizations.of(context).titleChinese) {
       settingLanguage = 'zh';
+    }
+    else if(language == DemoLocalizations.of(context).titleGerman) {
+      settingLanguage = 'de';
+    }
+    else if(language == DemoLocalizations.of(context).titleSpanish) {
+      settingLanguage = 'es';
+    }
+    else if(language == DemoLocalizations.of(context).titleRussian) {
+      settingLanguage = 'ru';
+    }
+    else if(language == DemoLocalizations.of(context).titleKorean) {
+      settingLanguage = 'ko';
+    }
+    else if(language == DemoLocalizations.of(context).titleJapanese) {
+      settingLanguage = 'ja';
     }
     return settingLanguage;
   }
@@ -606,7 +642,16 @@ class _SettingScreenState extends State<SettingScreen> {
                         Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
                         setState(() {});
                       },
-                      items: <String>[DemoLocalizations.of(context).titleAuto, DemoLocalizations.of(context).titleEnglish, DemoLocalizations.of(context).titleChinese]
+                      items: <String>[
+                        DemoLocalizations.of(context).titleAuto, 
+                        DemoLocalizations.of(context).titleEnglish, 
+                        DemoLocalizations.of(context).titleFrench, 
+                        DemoLocalizations.of(context).titleSpanish, 
+                        DemoLocalizations.of(context).titleGerman,
+                        DemoLocalizations.of(context).titleRussian,
+                        DemoLocalizations.of(context).titleKorean,
+                        DemoLocalizations.of(context).titleJapanese,
+                        DemoLocalizations.of(context).titleChinese]
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,

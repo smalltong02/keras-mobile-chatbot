@@ -302,10 +302,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   context,
                                   toastPosition: GFToastPosition.BOTTOM,
                                   textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
-                                  backgroundColor: GFColors.LIGHT,
+                                  backgroundColor: GFColors.WARNING,
                                   trailing: const Icon(
                                     Icons.thumb_down_rounded,
-                                    color: GFColors.WARNING,
+                                    color: GFColors.DANGER,
                                   )
                                 );
                               }

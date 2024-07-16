@@ -37,6 +37,18 @@ class KerasMobileChatbotMainUI extends StatelessWidget {
     List<Locale> localesInApp = [];
     if (language == "en") {
       localesInApp = [const Locale('en', 'US')];
+    } else if (language == "fr") {
+      localesInApp = [const Locale('fr', 'FR')];
+    } else if (language == "de") {
+      localesInApp = [const Locale('de', 'DE')];
+    } else if (language == "es") {
+      localesInApp = [const Locale('es', 'ES')];
+    } else if (language == "ja") {
+      localesInApp = [const Locale('ja', 'JP')];
+    } else if (language == "ko") {
+      localesInApp = [const Locale('ko', 'KR')];
+    } else if (language == "ru") {
+      localesInApp = [const Locale('ru', 'RU')];
     } else if (language == "zh") {
       localesInApp = [const Locale('zh', 'CN')];
     } else if (language == "auto") {

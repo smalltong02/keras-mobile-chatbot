@@ -341,7 +341,55 @@ class DemoLocalizations {
     return Intl.message(
       'English',
       name: 'titleEnglish',
+      desc: 'title of French',
+    );
+  }
+
+  String get titleFrench {
+    return Intl.message(
+      'French',
+      name: 'titleFrench',
       desc: 'title of English',
+    );
+  }
+
+  String get titleGerman {
+    return Intl.message(
+      'German',
+      name: 'titleGerman',
+      desc: 'title of German',
+    );
+  }
+
+  String get titleSpanish {
+    return Intl.message(
+      'Spanish',
+      name: 'titleSpanish',
+      desc: 'title of Spanish',
+    );
+  }
+
+  String get titleKorean {
+    return Intl.message(
+      'Korean',
+      name: 'titleKorean',
+      desc: 'title of Korean',
+    );
+  }
+
+  String get titleJapanese {
+    return Intl.message(
+      'Japanese',
+      name: 'titleJapanese',
+      desc: 'title of Japanese',
+    );
+  }
+
+  String get titleRussian {
+    return Intl.message(
+      'Russian',
+      name: 'titleRussian',
+      desc: 'title of Russian',
     );
   }
 
@@ -446,6 +494,14 @@ class DemoLocalizations {
       'Character Cards',
       name: 'titleCharacterCards',
       desc: 'title of Character Cards',
+    );
+  }
+
+  String get nonSupportVision {
+    return Intl.message(
+      'This model does not support vision.',
+      name: 'nonSupportVision',
+      desc: 'This model does not support vision.',
     );
   }
 
@@ -1110,7 +1166,7 @@ class DemoLocalizationsDelegate extends LocalizationsDelegate<DemoLocalizations>
   const DemoLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => ['en', 'zh'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => ['en', 'fr', 'de', 'es', 'zh', 'ja', 'ko', 'ru'].contains(locale.languageCode);
 
   @override
   Future<DemoLocalizations> load(Locale locale) {

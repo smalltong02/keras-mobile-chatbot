@@ -117,7 +117,7 @@ Future<Map<String, dynamic>> getCurrentLocation() async {
   };
 }
 
-TravelMode GetTravelModel(String mode) {
+TravelMode getTravelModel(String mode) {
   switch (mode) {
     case "driving":
       return TravelMode.driving;
@@ -141,7 +141,7 @@ Future<Map<String, dynamic>> getDirections(Map<String, Object?> arguments, ) asy
     String mode = arguments['mode'] as String? ?? "";
 
     String apiKey = dotenv.get("search_key");
-    TravelMode travelMode = GetTravelModel(mode);
+    TravelMode travelMode = getTravelModel(mode);
     GoogleMapsDirections directions = GoogleMapsDirections(apiKey: apiKey);
     DirectionsResponse response = await directions.directionsWithAddress(start, end, travelMode: travelMode,);
     if(response.isOkay) {
@@ -906,3 +906,228 @@ final searchPhotosFunc = FunctionDeclaration(
  
 
 final normalFunctionCallTool = [getCurrentTimeFunc, getCurrentLocationFunc, getDirectionsFunc, getPlacesFunc, searchVideosFunc, searchInternetFunc, searchEmailsFunc, sendEmailsFunc, searchDrivesFunc, downloadFromDrivesFunc, getEventCalendarFunc, createEventCalendarFunc, searchPhotosFunc];
+
+final getCurrentTimeOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "getCurrentTime",
+    "description": "Get the current local time.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+      },
+    }
+  }
+};
+
+    
+final getCurrentLocationOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "getCurrentLocation",
+    "description": "Get the current location information.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+      },
+    }
+  }
+};
+
+final getDirectionsOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "getDirections",
+    "description": "Get the directions from origin to destination.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "origin": {"type": "string", "description": "Starting address, if it is a current local address, you can pass an empty string."},
+        "destination": {"type": "string", "description": "Destination address."},
+        "mode": {"type": "string", "enum": ["driving", "walking", "bicycling", "transit"], "description": "Specifies the mode of transport to use when calculating directions. One of 'driving', 'walking', 'bicycling' or 'transit'."},
+      },
+      "required": ["origin", "destination", "mode"],
+    }
+  }
+};
+
+final getPlacesOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "getPlaces",
+    "description": "Get the places that match the query, such as restaurants, libraries, parks, airports, stores, etc.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {"type": "string", "description": "The text string on which to search, for example: 'restaurant'."},
+        "location": {"type": "string", "description": "location, When the location is "", it means that you are in the current location."},
+        "radius": {"type": "string", "description": "Distance in meters within which to bias results."},
+      },
+      "required": ["query", "location"],
+    },
+  }
+};
+
+
+final searchVideosOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "searchVideos",
+    "description": "Get URL about Youtube video from Youtube.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "title": {"type": "string", "description": "Use the advanced search syntax like the Youtube API, Here's an example: 'Language Translation'"},
+      },
+      "required": ["title"],
+    },
+  }
+};
+
+final searchInternetOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "searchInternet",
+    "description": "search any information from network when a question exceeds your knowledge scope or when it's beyond the timeframe of your training data.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "query": {"type": "string", "description": "The questions to look up on the internet."},
+          "max_results": {"type": "integer", "description": "The maximum number of search results returned. The default is 4."},
+      },
+      "required": ["query"],
+    },
+  }
+};
+
+final searchEmailsOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "searchEmails",
+    "description": "Find email in Gmail inbox. The parameter 'search_criteria' conforms to gmail's advanced search syntax format.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "search_criteria": {"type": "string", "description": "conforms to email's advanced search syntax format."},
+          "max_results": {"type": "integer", "description": "The maximum number of returned emails. The default is 4."},
+      },
+      "required": ["search_criteria"],
+    },
+  }
+};
+
+final sendEmailsOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "sendEmails",
+    "description": "Send emails from my inbox to others.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "subject": {"type": "string", "description": "Title of the email."},
+          "body": {"type": "string", "description": "Body of the email."},
+          "to_address": {"type": "string", "description": "The address to receive the email, if not provided, needs to be confirmed by the user."},
+          "from_address": {"type": "string", "description": "The sending address of the email, if using the default address, can be replaced with 'me'."},
+          "attachment_file": {"type": "string", "description": "The attachment parameter can be a file path. If there are no attachments, please pass ""."},
+      },
+      "required": ["subject", "body", "to_address", "from_address", "attachment_file"],
+    },
+  }
+};
+
+final searchDrivesOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "searchDrives",
+    "description": "Search document in Google Drive.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "search_criteria": {"type": "string", "description": '''Use the advanced search syntax like the Google Drive API, Here's an example: name contains "HipsHook Project" and "me" in owners.'''},
+          "max_results": {"type": "integer", "description": "The maximum number of returned documents."},
+      },
+      "required": ["search_criteria"],
+    },
+  }
+};
+
+final downloadFromDrivesOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "downloadFromDrives",
+    "description": "Download document from Google Drive.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "search_criteria": {"type": "string", "description": '''Use the advanced search syntax like the Google Drive API, Here's an example: name contains "HipsHook Project" and "me" in owners.'''},
+          "max_results": {"type": "integer", "description": "The maximum number of returned documents."},
+      },
+      "required": ["search_criteria"],
+    },
+  }
+};
+
+final getEventCalendarOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "getEventCalendar",
+    "description": "get event from calendar.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "start_time": {"type": "string", "description": '''This is start time. If the user provides a date and time, then the format “2024-06-01T08:00:00” can be used. If only the time is provided, but the date is today, then the format “08:00:00” can be used. If the date or time are not available, you need to ask the user to provide them.'''},
+          "end_time": {"type": "string", "description": '''This is end time. If the user provides a date and time, then the format “2024-06-01T08:00:00” can be used. If only the time is provided, but the date is today, then the format “08:00:00” can be used. If the date or time are not available, you need to ask the user to provide them.'''},
+      },
+      "required": ["start_time", "end_time"],
+    },
+  }
+};
+
+final createEventCalendarOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "createEventCalendar",
+    "description": "create a new event reminder to calendar.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "summary": {"type": "string", "description": '''Title of the event reminder.'''},
+          "description": {"type": "string", "description": '''Brief description of the event reminder.'''},
+          "start_time": {"type": "string", "description": '''This is start time. If the user provides a date and time, then the format “2024-06-01T08:00:00” can be used. If only the time is provided, but the date is today, then the format “08:00:00” can be used. If the date or time are not available, you need to ask the user to provide them.'''},
+          "end_time": {"type": "string", "description": '''This is end time. If the user provides a date and time, then the format “2024-06-01T08:00:00” can be used. If only the time is provided, but the date is today, then the format “08:00:00” can be used. If the date or time are not available, you need to ask the user to provide them.'''},
+      },
+      "required": ["summary", "description", "start_time", "end_time"],
+    },
+  }
+};
+
+final searchPhotosOpenai = 
+{
+  "type": "function",
+  "function": {
+    "name": "searchPhotos",
+    "description": "Search and download for photos on Photos Album.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+          "albums_name": {"type": "string", "description": '''The name of the album will be used to search for photos within the album.'''},
+          "max_items": {"type": "integer", "description": '''The maximum number of results to return photos.'''},
+      },
+      "required": ["albums_name"],
+    },
+  }
+};
+
+final functionCallToolOpenai = [getCurrentTimeOpenai, getCurrentLocationOpenai, getDirectionsOpenai, getPlacesOpenai, searchVideosOpenai, searchInternetOpenai, searchEmailsOpenai, sendEmailsOpenai, searchDrivesOpenai, downloadFromDrivesOpenai, getEventCalendarOpenai, createEventCalendarOpenai, searchPhotosOpenai,];

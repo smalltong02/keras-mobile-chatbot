@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' as io;
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart' as openai;
@@ -8,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:google_generative_ai/google_generative_ai.dart' as gemini;
 import 'package:record/record.dart';
 import 'l10n/localization_intl.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:keras_mobile_chatbot/function_call.dart';
 import 'package:keras_mobile_chatbot/chat_bubble.dart';
@@ -134,10 +136,21 @@ class _ChatUIState extends State<ChatUI> {
       }
     } else if(currentLocale.languageCode == "zh") {
       roleSpeech = "zh-CN-XiaoyouNeural";
+      if(currentLocale.countryCode == 'TW') {
+        roleSpeech = "zh-TW-HsiaoYuNeural";
+      }
     } else if(currentLocale.languageCode == "de") {
       roleSpeech = "de-DE-GiselaNeural";
     } else if(currentLocale.languageCode == "fr") {
       roleSpeech = "fr-FR-EloiseNeural";
+    } else if (currentLocale.languageCode == "es") {
+      roleSpeech = "es-ES-DarioNeural";
+    } else if (currentLocale.languageCode == "ja") {
+      roleSpeech = "ja-JP-MayuNeural";
+    } else if (currentLocale.languageCode == "ko") {
+      roleSpeech = "ko-KR-GookMinNeural";
+    } else if (currentLocale.languageCode == "ru") {
+      roleSpeech = "ru-RU-DmitryNeural";
     }
 
     if(voicesList.isNotEmpty) {
@@ -849,27 +862,151 @@ class _ChatUIState extends State<ChatUI> {
             history = llmModel!.getHistory();
           }
           else {
-            List<Map<String, dynamic>> newHistory = history.cast<Map<String, dynamic>>();
-            final query = openai.Messages(role: openai.Role.user, content: message).toJson();
-            newHistory.add(query);
-            var request = openai.ChatCompleteText(
-              model: llmModel!.model,
-              messages: newHistory,
-              maxToken: maxTokenLength,
-              //tools: [],
-              //toolChoice: 'auto',
-            );
             String text = "";
-            openai.ChatCTResponse? chatResponse = await openAIInstance!.onChatCompletion(request: request);
-            if(chatResponse != null && chatResponse.choices.isNotEmpty) {
-              for (var element in chatResponse.choices) {
-                if(element.message != null) {
-                  text += element.message!.content;
+            List<Map<String, dynamic>> imageList = [];
+            for (String filePath in fileUploadList) {
+              io.File file = io.File(filePath);
+              if (await file.exists()) {
+                List<int> fileBytes = await file.readAsBytes();
+                String base64Data = base64Encode(fileBytes);
+                Map<String, dynamic> imageUrlMap = {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/jpeg;base64,$base64Data",
+                  },
+                };
+                imageList.add(imageUrlMap);
+              }
+            }
+
+            List<Map<String, dynamic>> newHistory = history.cast<Map<String, dynamic>>().toList();
+            Map<String, dynamic> query = openai.Messages(role: openai.Role.user, content: message).toJson();
+            Map<String, dynamic> new_query = {};
+            if(imageList.isEmpty) {
+              new_query = query;
+            }
+            else {
+              if(llmModel!.name == openai.kChatGptTurboModel) {
+                new_query = query;
+                GFToast.showToast(
+                  DemoLocalizations.of(context).nonSupportVision,
+                  context,
+                  toastPosition: GFToastPosition.TOP,
+                  textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
+                  backgroundColor: GFColors.WARNING,
+                  trailing: const Icon(
+                    Icons.error,
+                    color: GFColors.DANGER,
+                  )
+                );
+              } else {
+                imageList.insert(0, {"type": "text", "text": message});
+                new_query = {
+                  "role": "user",
+                  "content": imageList,
+                };
+              }
+            }
+            newHistory.add(new_query);
+            if(toolBoxEnable) {
+              var request = openai.ChatCompleteText(
+                model: llmModel!.model,
+                messages: newHistory,
+                maxToken: maxTokenLength,
+                tools: functionCallToolOpenai,
+                toolChoice: 'auto',
+              );
+              openai.ChatCTResponse? chatResponse = await openAIInstance!.onChatCompletion(request: request);
+              if(chatResponse != null && chatResponse.choices.isNotEmpty) {
+                for (var element in chatResponse.choices) {
+                  if(element.message != null) {
+                    if(element.message!.toolCalls != null && element.message!.toolCalls!.isNotEmpty) {
+                      for (var toolCall in element.message!.toolCalls!) {
+                        String toolId = toolCall['id'];
+                        //String toolType = toolCall['type'];
+                        Map<String, dynamic> functionCall = toolCall['function'];
+                        String funcName = functionCall['name'];
+                        String arg = functionCall['arguments'];
+                        Map<String, dynamic> arguments = json.decode(arg);
+                        final result = switch (funcName) {
+                          // Forward arguments to the hypothetical API.
+                          'getCurrentTime' => await getCurrentTime(),
+                          'getCurrentLocation' => await getCurrentLocation(),
+                          'getDirections' => await getDirections(arguments),
+                          'getPlaces' => await getPlaces(arguments),
+                          'searchVideos' => await searchVideos(arguments),
+                          'searchInternet' => await searchInternet(arguments),
+                          'searchEmails' => await searchEmails(arguments),
+                          'sendEmails' => await sendEmails(arguments),
+                          'searchDrives' => await searchDrives(arguments),
+                          'downloadFromDrives' => await downloadFromDrives(arguments),
+                          'getEventCalendar' => await getEventCalendar(arguments),
+                          'createEventCalendar' => await createEventCalendar(arguments),
+                          'searchPhotos' => await searchPhotos(arguments),
+                          // Throw an exception if the model attempted to call a function that was
+                          // not declared.
+                          _ => throw UnimplementedError(
+                              'Function not implemented: ${functionCall['name']}')
+                        };
+                        if(result.isNotEmpty) {
+                          String resultValue = result['result'];
+                          if(result.containsKey('show_map')) {
+                            curExtendMessage = {'show_map': result['show_map']};
+                          }
+                          else if (result.containsKey('show_video')) {
+                            curExtendMessage = {'show_video': result['show_video']};
+                          }
+                          else if (result.containsKey('show_image')) {
+                            curExtendMessage = {'show_image': result['show_image']};
+                          }
+                          // Send the result of the function call to the model.
+                          final query = {"role": 'function', "tool_call_id": toolId, "name": funcName, "content": resultValue};
+                          newHistory.add(query);
+                          //response = await llmModel!.chatSession.sendMessage(gemini.Content.functionResponse(functionCall.name, responseFunction));
+                        }
+                        // Send the response to the model so that it can use the result to generate
+                        var request = openai.ChatCompleteText(
+                          model: llmModel!.model,
+                          messages: newHistory,
+                          maxToken: maxTokenLength,
+                        );
+                        openai.ChatCTResponse? chatResponse = await openAIInstance!.onChatCompletion(request: request);
+                        if(chatResponse != null && chatResponse.choices.isNotEmpty) {
+                          for (var element in chatResponse.choices) {
+                            if(element.message != null) {
+                              text += element.message!.content;
+                            }
+                          }
+                        }
+                        // text for the user.                 
+                      }
+                    } else if (element.message!.content.isNotEmpty) {
+                      text += element.message!.content;
+                    }
+                  }
+                }
+              }
+            } else {
+              var request = openai.ChatCompleteText(
+                model: llmModel!.model,
+                messages: newHistory,
+                maxToken: maxTokenLength,
+              );
+              openai.ChatCTResponse? chatResponse = await openAIInstance!.onChatCompletion(request: request);
+              if(chatResponse != null && chatResponse.choices.isNotEmpty) {
+                for (var element in chatResponse.choices) {
+                  if(element.message != null) {
+                    text += element.message!.content;
+                  }
                 }
               }
             }
+            if(text.isEmpty) {
+              text = "There was no response from the model.";
+            }
             response = OpenAIMessage(text:text);
             final answer = openai.Messages(role: openai.Role.assistant, content: text).toJson();
+            llmModel!.chatSession.history.add(query);
             llmModel!.chatSession.history.add(answer);
           }
           // When the model responds with non-null text content, print it.

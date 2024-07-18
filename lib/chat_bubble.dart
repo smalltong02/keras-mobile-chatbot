@@ -12,6 +12,7 @@ import 'package:neom_maps_services/timezone.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 
 class CustomShape extends CustomPainter {
   final Color bgColor;
@@ -153,6 +154,12 @@ class SentMessageScreen extends StatelessWidget {
     required this.iconPath,
   });
 
+  Future<bool> saveImage(String filePath) async {
+    final result = await ImageGallerySaver.saveFile(filePath);
+    //print(result);
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final messageTextGroup = Flexible(
@@ -206,15 +213,109 @@ class SentMessageScreen extends StatelessWidget {
                           showDialog(
                             context: context,
                             builder: (BuildContext context) {
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Center(
-                                  child: Image.file(io.File(imgPath)),
+                              return AlertDialog(
+                                title: Text(DemoLocalizations.of(context).imageSaveToPhotos),
+                                content: GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Center(
+                                    child: Image.file(io.File(imgPath)),
+                                  ),
                                 ),
+                                actions: <Widget>[
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: 
+                                          ElevatedButton(
+                                            onPressed: () async {
+                                              bool bSuccess = await saveImage(imgPath);
+                                              showDialog(
+                                                context: context,
+                                                builder: (BuildContext context) {
+                                                  return AlertDialog(
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(20.0),
+                                                    ),
+                                                    backgroundColor: bSuccess ? Colors.green[50] : Colors.red[50],
+                                                    title: Row(
+                                                      children: [
+                                                        Icon(
+                                                          bSuccess ? Icons.check_circle : Icons.error,
+                                                          color: bSuccess ? Colors.green : Colors.red,
+                                                        ),
+                                                        const SizedBox(width: 10),
+                                                        Text(
+                                                          bSuccess ? DemoLocalizations.of(context).saveSuccess : DemoLocalizations.of(context).saveFailed,
+                                                          style: TextStyle(
+                                                            color: bSuccess ? Colors.green : Colors.red,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    content: Text(
+                                                      bSuccess ? DemoLocalizations.of(context).saveSuccessDetail : DemoLocalizations.of(context).saveFailedDetail,
+                                                      style: TextStyle(
+                                                        color: bSuccess ? Colors.green[700] : Colors.red[700],
+                                                      ),
+                                                    ),
+                                                    actions: <Widget>[
+                                                      TextButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context).pop();
+                                                        },
+                                                        child: Text(
+                                                          'OK',
+                                                          style: TextStyle(
+                                                            color: bSuccess ? Colors.green : Colors.red,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(24),
+                                              ),
+                                              elevation: 10,
+                                              backgroundColor: Colors.pinkAccent.withOpacity(0.6),
+                                            ),
+                                            child: Text(DemoLocalizations.of(context).saveBtn),
+                                          ),
+                                        )
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: 
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(24),
+                                              ),
+                                              elevation: 10,
+                                              backgroundColor: Colors.amberAccent.withOpacity(0.6),
+                                            ),
+                                            child: Text(DemoLocalizations.of(context).cancelBtn),
+                                          ),
+                                        )
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               );
-                            },
+                            }
                           );
                         },
                         child: Image.file(io.File(imgPath)),
@@ -310,6 +411,12 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
       });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    stopAudio();
+    super.dispose();
   }
 
   Future<void> playAudioFile(String audioPath) async {
@@ -674,7 +781,7 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
                       height: 300,
                       fit: BoxFit.cover,
                     ),
-                    Icon(
+                    const Icon(
                       Icons.play_circle_fill,
                       size: 64,
                       color: Colors.white,

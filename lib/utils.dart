@@ -148,6 +148,9 @@ final List<Locale> supportedLocalesInApp = [
   const Locale('ja', 'JP'),
   const Locale('ko', 'KR'),
   const Locale('ru', 'RU'),
+  const Locale('hi', 'IN'),
+  const Locale('zh', 'TW'),
+  const Locale('yue', 'CN'),
 ];
 
 List<CameraDescription> cameras = [];

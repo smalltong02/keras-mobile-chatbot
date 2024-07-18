@@ -25,7 +25,7 @@ class ChatHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String name = "AI Home Assistant";
+    String name = DemoLocalizations.of(context).homeTitle;
     return Scaffold(
       appBar: AppBar(
         title: Text(name, style: const TextStyle(fontSize: 25)),
@@ -137,20 +137,27 @@ class _ChatUIState extends State<ChatUI> {
     } else if(currentLocale.languageCode == "zh") {
       roleSpeech = "zh-CN-XiaoyouNeural";
       if(currentLocale.countryCode == 'TW') {
-        roleSpeech = "zh-TW-HsiaoYuNeural";
+        String saveLang = Provider.of<SettingProvider>(context, listen: false).language;
+        if(saveLang == 'yue') {
+          roleSpeech = "yue-CN-XiaoMinNeural";
+        } else {
+          roleSpeech = "zh-TW-HsiaoChenNeural";
+        }
       }
     } else if(currentLocale.languageCode == "de") {
       roleSpeech = "de-DE-GiselaNeural";
     } else if(currentLocale.languageCode == "fr") {
       roleSpeech = "fr-FR-EloiseNeural";
     } else if (currentLocale.languageCode == "es") {
-      roleSpeech = "es-ES-DarioNeural";
+      roleSpeech = "es-ES-AlvaroNeural";
     } else if (currentLocale.languageCode == "ja") {
       roleSpeech = "ja-JP-MayuNeural";
     } else if (currentLocale.languageCode == "ko") {
       roleSpeech = "ko-KR-GookMinNeural";
     } else if (currentLocale.languageCode == "ru") {
-      roleSpeech = "ru-RU-DmitryNeural";
+      roleSpeech = "ru-RU-DariyaNeural";
+    } else if (currentLocale.languageCode == "hi") {
+      roleSpeech = "hi-IN-KavyaNeural";
     }
 
     if(voicesList.isNotEmpty) {

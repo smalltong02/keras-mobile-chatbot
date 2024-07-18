@@ -49,8 +49,14 @@ class KerasMobileChatbotMainUI extends StatelessWidget {
       localesInApp = [const Locale('ko', 'KR')];
     } else if (language == "ru") {
       localesInApp = [const Locale('ru', 'RU')];
-    } else if (language == "zh") {
+    } else if (language == "zh-cn" || language == "zh") {
       localesInApp = [const Locale('zh', 'CN')];
+    } else if (language == "zh-tw") {
+      localesInApp = [const Locale('zh', 'TW')];
+    } else if (language == "yue") {
+      localesInApp = [const Locale('zh', 'TW')];
+    } else if (language == "in") {
+      localesInApp = [const Locale('hi', 'IN')];
     } else if (language == "auto") {
       localesInApp = supportedLocalesInApp;
     }

@@ -225,6 +225,54 @@ class DemoLocalizations {
     );
   }
 
+  String get imageSaveToPhotos {
+    return Intl.message(
+      'Image saved to photos',
+      name: 'imageSaveToPhotos',
+      desc: 'Image saved to photos',
+    );
+  }
+
+  String get saveBtn {
+    return Intl.message(
+      'Save',
+      name: 'saveBtn',
+      desc: 'Save button',
+    );
+  }
+
+  String get saveSuccess {
+    return Intl.message(
+      'Save successful!',
+      name: 'saveSuccess',
+      desc: 'Save successful!',
+    );
+  }
+
+  String get saveFailed {
+    return Intl.message(
+      'Save failed!',
+      name: 'saveFailed',
+      desc: 'Save failed!',
+    );
+  }
+
+  String get saveSuccessDetail {
+    return Intl.message(
+      'Your image has been saved successfully.',
+      name: 'saveSuccessDetail',
+      desc: 'Your image has been saved successfully.',
+    );
+  }
+
+  String get saveFailedDetail {
+    return Intl.message(
+      'Failed to save your image. Please try again.',
+      name: 'saveFailedDetail',
+      desc: 'Failed to save your image. Please try again.',
+    );
+  }
+
   String get titleWallpaperPage {
     return Intl.message(
       'Wallpaper',
@@ -395,9 +443,33 @@ class DemoLocalizations {
 
   String get titleChinese {
     return Intl.message(
-      'Chinese',
+      'simplified Chinese',
       name: 'titleChinese',
       desc: 'title of Chinese',
+    );
+  }
+
+  String get titletraditional {
+    return Intl.message(
+      'traditional Chinese',
+      name: 'titletraditional',
+      desc: 'title of traditional Chinese',
+    );
+  }
+
+  String get titleCantonese {
+    return Intl.message(
+      'Cantonese',
+      name: 'titleCantonese',
+      desc: 'title of Cantonese',
+    );
+  }
+
+  String get titleIndia {
+    return Intl.message(
+      'India',
+      name: 'titleIndia',
+      desc: 'title of India',
     );
   }
 
@@ -1166,7 +1238,7 @@ class DemoLocalizationsDelegate extends LocalizationsDelegate<DemoLocalizations>
   const DemoLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => ['en', 'fr', 'de', 'es', 'zh', 'ja', 'ko', 'ru'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => ['en', 'fr', 'de', 'es', 'zh', 'yue', 'ja', 'ko', 'ru', 'hi'].contains(locale.languageCode);
 
   @override
   Future<DemoLocalizations> load(Locale locale) {

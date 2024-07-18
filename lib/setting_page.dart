@@ -1,8 +1,8 @@
 import 'dart:io' as io;
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'l10n/localization_intl.dart';
 import 'package:provider/provider.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:path_provider/path_provider.dart';
@@ -391,8 +391,14 @@ class _SettingScreenState extends State<SettingScreen> {
     else if(language == 'fr') {
       currentLanguage = DemoLocalizations.of(context).titleFrench;
     }
-    else if(language == 'zh') {
+    else if(language == 'zh-cn') {
       currentLanguage = DemoLocalizations.of(context).titleChinese;
+    }
+    else if(language == 'zh-tw') {
+      currentLanguage = DemoLocalizations.of(context).titletraditional;
+    }
+    else if(language == 'yue') {
+      currentLanguage = DemoLocalizations.of(context).titleCantonese;
     }
     else if(language == 'de') {
       currentLanguage = DemoLocalizations.of(context).titleGerman;
@@ -409,6 +415,9 @@ class _SettingScreenState extends State<SettingScreen> {
     else if(language == 'ja') {
       currentLanguage = DemoLocalizations.of(context).titleJapanese;
     }
+    else if(language == 'hi') {
+      currentLanguage = DemoLocalizations.of(context).titleIndia;
+    }
     return currentLanguage;
   }
 
@@ -421,7 +430,13 @@ class _SettingScreenState extends State<SettingScreen> {
       settingLanguage = 'fr';
     }
     else if(language == DemoLocalizations.of(context).titleChinese) {
-      settingLanguage = 'zh';
+      settingLanguage = 'zh-cn';
+    }
+    else if(language == DemoLocalizations.of(context).titletraditional) {
+      settingLanguage = 'zh-tw';
+    }
+    else if(language == DemoLocalizations.of(context).titleCantonese) {
+      settingLanguage = 'yue';
     }
     else if(language == DemoLocalizations.of(context).titleGerman) {
       settingLanguage = 'de';
@@ -437,6 +452,9 @@ class _SettingScreenState extends State<SettingScreen> {
     }
     else if(language == DemoLocalizations.of(context).titleJapanese) {
       settingLanguage = 'ja';
+    }
+    else if(language == DemoLocalizations.of(context).titleIndia) {
+      settingLanguage = 'in';
     }
     return settingLanguage;
   }
@@ -485,9 +503,22 @@ class _SettingScreenState extends State<SettingScreen> {
                     trailing: DropdownButton<String>(
                       value: modelName,
                       onChanged: (String? newValue) {
-                        modelName = newValue!;
-                        Provider.of<SettingProvider>(context, listen: false).updateModel(modelName);
-                        setState(() {});
+                        if(modelName != newValue) {
+                          modelName = newValue!;
+                          Provider.of<SettingProvider>(context, listen: false).updateModel(modelName);
+                          GFToast.showToast(
+                            "Loading $modelName...",
+                            context,
+                            toastPosition: GFToastPosition.TOP,
+                            textStyle: const TextStyle(fontSize: 12, color: GFColors.WHITE),
+                            backgroundColor: GFColors.FOCUS,
+                            trailing: const Icon(
+                              Icons.error,
+                              color: GFColors.INFO,
+                            )
+                          );
+                          setState(() {});
+                        }
                       },
                       items: llmModel.map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
@@ -638,9 +669,11 @@ class _SettingScreenState extends State<SettingScreen> {
                     trailing: DropdownButton<String>(
                       value: currentLanguage,
                       onChanged: (String? newValue) {
-                        currentLanguage = newValue!;
-                        Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
-                        setState(() {});
+                        if(currentLanguage != newValue) {
+                          currentLanguage = newValue!;
+                          Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
+                          setState(() {});
+                        }
                       },
                       items: <String>[
                         DemoLocalizations.of(context).titleAuto, 
@@ -651,7 +684,9 @@ class _SettingScreenState extends State<SettingScreen> {
                         DemoLocalizations.of(context).titleRussian,
                         DemoLocalizations.of(context).titleKorean,
                         DemoLocalizations.of(context).titleJapanese,
-                        DemoLocalizations.of(context).titleChinese]
+                        DemoLocalizations.of(context).titleChinese,
+                        DemoLocalizations.of(context).titletraditional,
+                        DemoLocalizations.of(context).titleCantonese,]
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,

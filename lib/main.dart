@@ -21,8 +21,11 @@ main() async {
   );
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => SettingProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => SettingProvider()),
+        ChangeNotifierProvider(create: (context) => KerasAuthProvider()),
+      ],
       child: const KerasMobileChatbotMainUI(),
     ),
   );

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'l10n/localization_intl.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
+import 'package:keras_mobile_chatbot/policy_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -239,6 +241,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             }
                           },
                         ),
+                      ),
+                    Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              text: 'By creating an account, you are agreeing to our ',
+                              style: const TextStyle(color: Colors.black),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: 'Terms & Conditions',
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md'));
+                                    },
+                                ),
+                                const TextSpan(
+                                  text: ' and ',
+                                ),
+                                TextSpan(
+                                  text: 'Privacy Policy',
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md'));
+                                    },
+                                ),
+                                const TextSpan(
+                                  text: '!',
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
                       ),
                   ],
                 ),

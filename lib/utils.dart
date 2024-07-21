@@ -15,11 +15,18 @@ import 'package:keras_mobile_chatbot/function_call.dart';
 import 'package:google_generative_ai/google_generative_ai.dart' as gemini;
 import 'package:cloud_text_to_speech/cloud_text_to_speech.dart';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
+import 'package:qonversion_flutter/qonversion_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:keras_mobile_chatbot/google_sign.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:android_id/android_id.dart';
 
 
 const int maxTokenLength = 4096;
 const int maxReceiveTimeout = 30; // 30 seconds
 const int maxConnectTimeout = 30;
+const int maxLogginDevices = 3;
 
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
@@ -132,11 +139,11 @@ final List<String> googleModel = [
 ];
 
 final List<String> openAIModel = [
-  openai.kChatGptTurboModel,
   openai.kGpt4o,
+  'gpt-4o-mini'
 ];
 openai.OpenAI? openAIInstance;
-
+String uniqueId = "";
 final List<String> llmModel = googleModel + openAIModel;
 
 final List<Locale> supportedLocalesInApp = [
@@ -166,6 +173,14 @@ void initCameras() async {
     microsoft: InitParamsMicrosoft(subscriptionKey: dotenv.get("azure_speech_key"), region: dotenv.get("azure_speech_region")),
     withLogs: true
   );
+  uniqueId = await const AndroidId().getId() ?? "unknown";
+  final config = new QonversionConfigBuilder(
+    dotenv.get("qonversion_proj_key"),
+    QLaunchMode.subscriptionManagement
+  )
+  .enableKidsMode()
+  .build();
+  Qonversion.initialize(config);
 
   openAIInstance = openai.OpenAI.instance.build(token: dotenv.get("openai_key"), baseOption: openai.HttpSetup(receiveTimeout: const Duration(seconds: maxReceiveTimeout), connectTimeout: const Duration(seconds: maxConnectTimeout)),enableLog: true);
 
@@ -434,11 +449,11 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
   
   if(openAIInstance != null) {
     for(final name in openAIModel) {
-      if(modelName == name && name == openai.kChatGptTurboModel) {
+      if(modelName == name && name == 'gpt-4o-mini') {
         LlmModel llmModel = LlmModel(type: ModelType.openai);
         llmModel.name = modelName;
         llmModel.systemInstruction = systemInstruction;
-        final model = openai.GptTurboChatModel();
+        final model = openai.ChatModelFromValue(model: name);
         llmModel.model = model;
         final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
         llmModel.chatSession = chatSession;
@@ -573,4 +588,158 @@ Future<String> downloadAndSaveImage(String url, String filePath) async {
     downloadPath = filePath;
   }
   return downloadPath;
+}
+
+enum AuthStatus { success, failed, hasLogin, maxLoggin, exceptionError }
+enum LoginStatus { emailLogin, googleLogin, logout}
+
+class KerasAuthProvider with ChangeNotifier {
+  final firebaseAuth = FirebaseAuth.instance;
+  final DatabaseReference database = FirebaseDatabase.instance.ref();
+  bool bsignInSilently = false;
+  LoginStatus loggedStatus = LoginStatus.logout;
+  UserCredential? userCredential;
+
+  LoginStatus getLoginStatus() => loggedStatus;
+  bool isLoggedin() => loggedStatus != LoginStatus.logout;
+
+  Future<AuthStatus> isSignInAllowed(UserCredential user) async {
+    String uid = user.user!.uid;
+    DatabaseReference userRef = database.child('userLoginInfo').child(uid);
+    DataSnapshot snapshot = await userRef.get();
+    List<String> userData = (snapshot.value as List<dynamic>?)?.map((e) => e as String).toList() ?? [];
+    if(userData.isEmpty) {
+      userData.add(uniqueId);
+      userRef.set(userData);
+      return AuthStatus.success;
+    }
+    else {
+      if(userData.contains(uniqueId)) {
+        return AuthStatus.success;
+      }
+      else {
+        if(userData.length >= maxLogginDevices) {
+          return AuthStatus.maxLoggin;
+        }
+        userData.add(uniqueId);
+        userRef.set(userData);
+        return AuthStatus.success;
+      }
+    }
+  }
+
+  Future<AuthStatus> handleEmailSignIn(String userName, String password) async {
+    if(loggedStatus != LoginStatus.logout) {
+      return AuthStatus.hasLogin;
+    }
+    if(userName.isNotEmpty && password.isNotEmpty) {
+      try {
+        UserCredential user = await firebaseAuth.signInWithEmailAndPassword(
+          email: userName.trim(),
+          password: password.trim(),
+        );
+        AuthStatus status = await isSignInAllowed(user);
+        if(status == AuthStatus.success) {
+          loggedStatus = LoginStatus.emailLogin;
+          userCredential = user;
+          notifyListeners();
+        } else {
+          await signOut();
+          loggedStatus = LoginStatus.logout;
+        }
+        return status;
+      } on FirebaseAuthException catch (_) {
+        return AuthStatus.exceptionError;
+      }
+    }
+    return AuthStatus.failed;
+  }
+
+  Future<AuthStatus> googleSignInSilently() async {
+    if(loggedStatus != LoginStatus.logout) {
+      return AuthStatus.hasLogin;
+    }
+    if(bsignInSilently == true) {
+      return AuthStatus.failed;
+    }
+    bsignInSilently = true;
+    GoogleSignInAccount? account = await googleSignIn.signInSilently();
+    if(account != null) {
+      final GoogleSignInAuthentication googleAuth = await account.authentication;
+      final OAuthCredential googleCredential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      UserCredential user = await firebaseAuth.signInWithCredential(googleCredential);
+      AuthStatus status = await isSignInAllowed(user);
+      if(status == AuthStatus.success) {
+        loggedStatus = LoginStatus.googleLogin;
+        userCredential = user;
+        notifyListeners();
+      } else {
+        await signOut();
+        loggedStatus = LoginStatus.logout;
+      }
+      return status;
+    }
+    return AuthStatus.failed;
+  }
+
+  Future<AuthStatus> handleGoogleSignIn() async {
+    if(loggedStatus != LoginStatus.logout) {
+      return AuthStatus.hasLogin;
+    }
+    GoogleSignInAccount? account;
+    try {
+        account = await googleSignIn.signIn();     
+    } catch (error) {
+      print(error);
+    }
+    if(account != null) {
+      final GoogleSignInAuthentication googleAuth = await account.authentication;
+      final OAuthCredential googleCredential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      UserCredential user = await firebaseAuth.signInWithCredential(googleCredential);
+      AuthStatus status = await isSignInAllowed(user);
+      if(status == AuthStatus.success) {
+        loggedStatus = LoginStatus.googleLogin;
+        userCredential = user;
+        notifyListeners();
+      } else {
+        await signOut();
+        loggedStatus = LoginStatus.logout;
+      }
+      return status;
+    }
+    return AuthStatus.failed;
+  }
+
+  Future<void> signOut() async {
+    if(loggedStatus == LoginStatus.logout) {
+      return;
+    }
+    if(userCredential == null) {
+      return;
+    }
+    try {
+      String uid = userCredential!.user!.uid;
+      DatabaseReference userRef = database.child('userLoginInfo').child(uid);
+      DataSnapshot snapshot = await userRef.get();
+      List<String> userData = (snapshot.value as List<dynamic>?)?.map((e) => e as String).toList() ?? [];
+      if(userData.isNotEmpty) {
+        if(userData.contains(uniqueId)) {
+          userData.remove(uniqueId);
+          userRef.set(userData);
+        }
+      }
+      await firebaseAuth.signOut();
+      userCredential = null;
+      loggedStatus = LoginStatus.logout;
+      notifyListeners();
+    } catch (error) {
+      print(error);
+    }
+  }
 }

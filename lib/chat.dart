@@ -10,47 +10,125 @@ import 'package:google_generative_ai/google_generative_ai.dart' as gemini;
 import 'package:record/record.dart';
 import 'l10n/localization_intl.dart';
 import 'package:getwidget/getwidget.dart';
+import 'package:qonversion_flutter/qonversion_flutter.dart';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:keras_mobile_chatbot/function_call.dart';
 import 'package:keras_mobile_chatbot/chat_bubble.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
+import 'package:keras_mobile_chatbot/subscription_screen.dart';
 import 'package:keras_mobile_chatbot/setting_page.dart';
 import 'package:keras_mobile_chatbot/takepicture_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_text_to_speech/cloud_text_to_speech.dart';
+//import 'package:qonversion_flutter/qonversion_flutter.dart';
+
+class GradientText extends StatelessWidget {
+  GradientText(this.text, {required this.gradient, this.style});
+
+  final String text;
+  final TextStyle? style;
+  final Gradient gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (bounds) => gradient.createShader(
+        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+      ),
+      child: Text(
+        text,
+        style: style?.copyWith(color: Colors.white),
+      ),
+    );
+  }
+}
 
 class ChatHome extends StatelessWidget {
   const ChatHome({super.key});
 
   @override
   Widget build(BuildContext context) {
-    String name = DemoLocalizations.of(context).homeTitle;
+    String name = DemoLocalizations.of(context).subscriptionBtn;
     return Scaffold(
       appBar: AppBar(
-        title: Text(name, style: const TextStyle(fontSize: 25)),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(
-              Icons.search,
-              semanticLabel: 'search',
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            const Spacer(),
+            InkWell(
+              onTap: () async {
+                try {
+                  var config = new QScreenPresentationConfig(QScreenPresentationStyle.push, true);
+                  // Set configuration for all screens.
+                  Automations.getSharedInstance().setScreenPresentationConfig(config);
+                  // Set configuration for the concrete screen.
+                  Automations.getSharedInstance().setScreenPresentationConfig(config, "TpZRl55p");
+                  await Automations.getSharedInstance().showScreen("TpZRl55p");
+                } catch (e) {
+                  // handle error here
+                }
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => SubscriptionScreen()),
+                // );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    name,
+                    style: const TextStyle(fontSize: 20),
+                    textAlign: TextAlign.center,
+                  ),
+                // children: <Widget>[
+                //   GradientText(
+                //     name,
+                //     style: TextStyle(
+                //       fontSize: 20,
+                //       fontWeight: FontWeight.bold,
+                //     ),
+                //     gradient: LinearGradient(
+                //       colors: [
+                //         Colors.red,
+                //         Colors.orange,
+                //         Colors.yellow,
+                //         Colors.green,
+                //         Colors.blue,
+                //         Colors.indigo,
+                //         Colors.purple,
+                //       ],
+                //     ),
+                //   ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.subscriptions,
+                      semanticLabel: 'subscriptions',
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SubscriptionScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-            onPressed: () {
-            },
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.settings,
-              semanticLabel: 'settings',
+            IconButton(
+              icon: const Icon(
+                Icons.settings,
+                semanticLabel: 'settings',
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingScreen()),
+                );
+              },
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingScreen()),
-              );
-            },
-          ),
-        ],
+          ],
+        ),
       ),
       body: ChatUI(),
     );
@@ -482,6 +560,7 @@ class _ChatUIState extends State<ChatUI> {
       timer?.cancel();
       final path = await record.stop();
       setState(() {
+        _loading = true;
         isRecording = false;
         silenceDuration = 0;
       });
@@ -494,6 +573,11 @@ class _ChatUIState extends State<ChatUI> {
       if(message.isNotEmpty) {
         _textController.text = message;
         _sendChatMessage(_textController.text);
+      }
+      else {
+        setState(() {
+          _loading = false;
+        });
       }
     }
   }

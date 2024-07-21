@@ -107,9 +107,17 @@ class DemoLocalizations {
 
   String get credToastSignBtn {
     return Intl.message(
-      'Login failed: ',
+      'Login failed!',
       name: 'credToastSignBtn',
       desc: 'Invalid login credentials Toast.',
+    );
+  }
+
+  String get moreLoginErrSignBtn {
+    return Intl.message(
+      'Simultaneous logins on more than 3 devices are not allowed.',
+      name: 'moreLoginErrSignBtn',
+      desc: 'Simultaneous logins on more than 3 devices are not allowed.',
     );
   }
 
@@ -270,6 +278,14 @@ class DemoLocalizations {
       'Failed to save your image. Please try again.',
       name: 'saveFailedDetail',
       desc: 'Failed to save your image. Please try again.',
+    );
+  }
+
+  String get subscriptionBtn {
+    return Intl.message(
+      'Get Subscription',
+      name: 'subscriptionBtn',
+      desc: 'subscription of button',
     );
   }
 

@@ -46,15 +46,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
-    userName = Provider.of<SettingProvider>(context, listen: false).userName;
-    password = Provider.of<SettingProvider>(context, listen: false).password;
-    if(authProvider!.getLoginStatus() == LoginStatus.logout) {
-      authProvider!.handleEmailSignIn(userName, password);
-    }
 
     return Consumer<SettingProvider>(
       builder: (context, settingProvider, _) {
         String wallpaperPath = settingProvider.homepageWallpaperPath;
+        userName = Provider.of<SettingProvider>(context, listen: false).userName;
+        password = Provider.of<SettingProvider>(context, listen: false).password;
+        if(authProvider!.getLoginStatus() == LoginStatus.logout) {
+          authProvider!.handleEmailSignIn(userName, password);
+        }
         return Scaffold(
           body: SingleChildScrollView(
             child: SafeArea(

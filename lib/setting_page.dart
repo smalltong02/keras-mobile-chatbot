@@ -418,6 +418,9 @@ class _SettingScreenState extends State<SettingScreen> {
     else if(language == 'hi') {
       currentLanguage = DemoLocalizations.of(context).titleIndia;
     }
+    else if(language == 'vi') {
+      currentLanguage = DemoLocalizations.of(context).titleVietnam;
+    }
     return currentLanguage;
   }
 
@@ -455,6 +458,9 @@ class _SettingScreenState extends State<SettingScreen> {
     }
     else if(language == DemoLocalizations.of(context).titleIndia) {
       settingLanguage = 'in';
+    }
+    else if(language == DemoLocalizations.of(context).titleVietnam) {
+      settingLanguage = 'vi';
     }
     return settingLanguage;
   }
@@ -686,7 +692,9 @@ class _SettingScreenState extends State<SettingScreen> {
                         DemoLocalizations.of(context).titleJapanese,
                         DemoLocalizations.of(context).titleChinese,
                         DemoLocalizations.of(context).titletraditional,
-                        DemoLocalizations.of(context).titleCantonese,]
+                        DemoLocalizations.of(context).titleCantonese,
+                        DemoLocalizations.of(context).titleIndia,
+                        DemoLocalizations.of(context).titleVietnam,]
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,

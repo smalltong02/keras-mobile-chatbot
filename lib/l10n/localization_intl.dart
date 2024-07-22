@@ -489,6 +489,14 @@ class DemoLocalizations {
     );
   }
 
+  String get titleVietnam {
+    return Intl.message(
+      'Vietnamese',
+      name: 'titleVietnam',
+      desc: 'title of Vietnam',
+    );
+  }
+
   String get titleCache {
     return Intl.message(
       'Cache',
@@ -1254,7 +1262,7 @@ class DemoLocalizationsDelegate extends LocalizationsDelegate<DemoLocalizations>
   const DemoLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => ['en', 'fr', 'de', 'es', 'zh', 'yue', 'ja', 'ko', 'ru', 'hi'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => ['en', 'fr', 'de', 'es', 'zh', 'yue', 'ja', 'ko', 'ru', 'hi', 'vi'].contains(locale.languageCode);
 
   @override
   Future<DemoLocalizations> load(Locale locale) {

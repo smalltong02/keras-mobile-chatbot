@@ -24,9 +24,11 @@ import 'package:android_id/android_id.dart';
 
 
 const int maxTokenLength = 4096;
-const int maxReceiveTimeout = 30; // 30 seconds
+const int maxReceiveTimeout = 50; // 50 seconds
 const int maxConnectTimeout = 30;
+const int imageQuality = 80;
 const int maxLogginDevices = 3;
+const int maxDialogRounds = 5;
 
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
@@ -158,6 +160,8 @@ final List<Locale> supportedLocalesInApp = [
   const Locale('hi', 'IN'),
   const Locale('zh', 'TW'),
   const Locale('yue', 'CN'),
+  const Locale('hi', 'IN'),
+  const Locale('vi', 'VN'),
 ];
 
 List<CameraDescription> cameras = [];
@@ -607,21 +611,27 @@ class KerasAuthProvider with ChangeNotifier {
     String uid = user.user!.uid;
     DatabaseReference userRef = database.child('userLoginInfo').child(uid);
     DataSnapshot snapshot = await userRef.get();
-    List<String> userData = (snapshot.value as List<dynamic>?)?.map((e) => e as String).toList() ?? [];
+    
+    Map<String, String> userData = (snapshot.value as Map<dynamic, dynamic>?)
+        ?.map((key, value) => MapEntry(key as String, value as String)) 
+        ?? {};
+
+    String currentTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+
     if(userData.isEmpty) {
-      userData.add(uniqueId);
+      userData[uniqueId] = currentTime;
       userRef.set(userData);
       return AuthStatus.success;
-    }
-    else {
-      if(userData.contains(uniqueId)) {
+    } else {
+      if(userData.containsKey(uniqueId)) {
+        userData[uniqueId] = currentTime;
+        userRef.set(userData);
         return AuthStatus.success;
-      }
-      else {
+      } else {
         if(userData.length >= maxLogginDevices) {
           return AuthStatus.maxLoggin;
         }
-        userData.add(uniqueId);
+        userData[uniqueId] = currentTime;
         userRef.set(userData);
         return AuthStatus.success;
       }
@@ -717,23 +727,28 @@ class KerasAuthProvider with ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    if(loggedStatus == LoginStatus.logout) {
+    if (loggedStatus == LoginStatus.logout) {
       return;
     }
-    if(userCredential == null) {
+    if (userCredential == null) {
       return;
     }
     try {
       String uid = userCredential!.user!.uid;
       DatabaseReference userRef = database.child('userLoginInfo').child(uid);
       DataSnapshot snapshot = await userRef.get();
-      List<String> userData = (snapshot.value as List<dynamic>?)?.map((e) => e as String).toList() ?? [];
-      if(userData.isNotEmpty) {
-        if(userData.contains(uniqueId)) {
+
+      Map<String, String> userData = (snapshot.value as Map<dynamic, dynamic>?)
+          ?.map((key, value) => MapEntry(key as String, value as String))
+          ?? {};
+
+      if (userData.isNotEmpty) {
+        if (userData.containsKey(uniqueId)) {
           userData.remove(uniqueId);
           userRef.set(userData);
         }
       }
+
       await firebaseAuth.signOut();
       userCredential = null;
       loggedStatus = LoginStatus.logout;

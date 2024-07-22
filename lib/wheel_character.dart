@@ -53,10 +53,12 @@ class _DetailPageState extends State<DetailPage> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Hero(
-          tag: "background_${widget.character.title}",
-          child: Container(
-            color: Color(widget.character.color!),
+        RepaintBoundary(
+          child: Hero(
+            tag: "background_${widget.character.title}",
+            child: Container(
+              color: Color(widget.character.color!),
+            ),
           ),
         ),
         Scaffold(
@@ -135,13 +137,14 @@ class _CharactersListState extends State<CharactersListPage> {
   PageController? _controller;
   List<Character> curCharactersList = [];
   String selectedCharacterPath = "";
+  double _currentPage = 0.0;
 
-  _goToDetail(Character character) {
+  void _goToDetail(Character character) {
     bool checkMark = false;
     String characterPath = character.avatar ?? "";
     String curRolePath = Provider.of<SettingProvider>(context, listen: false).roleIconPath;
     String curPlayerPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
-    if(characterPath == curRolePath || characterPath == curPlayerPath) {
+    if (characterPath == curRolePath || characterPath == curPlayerPath) {
       checkMark = true;
     }
     final page = DetailPage(character: character, characterCallback: widget.characterCallback, checkMark: checkMark);
@@ -164,17 +167,19 @@ class _CharactersListState extends State<CharactersListPage> {
     );
   }
 
-  _pageListener() {
-    setState(() {});
+  void _pageListener() {
+    setState(() {
+      _currentPage = _controller?.page ?? 0.0;
+    });
   }
 
   @override
   void initState() {
+    super.initState();
     curCharactersList = widget.charactersList;
     selectedCharacterPath = widget.characterIconPath;
     _controller = PageController(viewportFraction: 0.6);
     _controller!.addListener(_pageListener);
-    super.initState();
   }
 
   @override
@@ -205,21 +210,16 @@ class _CharactersListState extends State<CharactersListPage> {
           controller: _controller,
           itemCount: curCharactersList.length,
           itemBuilder: (context, index) {
-            double? currentPage = 0;
-            try {
-              currentPage = _controller!.page;
-            } catch (_) {}
-
-            final num resizeFactor =
-                (1 - (((currentPage! - index).abs() * 0.3).clamp(0.0, 1.0)));
+            final double resizeFactor = (1 - (((_currentPage - index).abs() * 0.3).clamp(0.0, 1.0)));
             final currentCharacter = curCharactersList[index];
+
             return ListItem(
               character: currentCharacter,
-              resizeFactor: resizeFactor as double,
+              resizeFactor: resizeFactor,
               characterCallback: widget.characterCallback,
               onTap: () => _goToDetail(currentCharacter),
             );
-          }
+          },
         ),
       ),
     );

@@ -10,6 +10,7 @@ import 'package:google_generative_ai/google_generative_ai.dart' as gemini;
 import 'package:record/record.dart';
 import 'l10n/localization_intl.dart';
 import 'package:getwidget/getwidget.dart';
+import 'package:image/image.dart' as img;
 import 'package:qonversion_flutter/qonversion_flutter.dart';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:keras_mobile_chatbot/function_call.dart';
@@ -81,25 +82,6 @@ class ChatHome extends StatelessWidget {
                     style: const TextStyle(fontSize: 20),
                     textAlign: TextAlign.center,
                   ),
-                // children: <Widget>[
-                //   GradientText(
-                //     name,
-                //     style: TextStyle(
-                //       fontSize: 20,
-                //       fontWeight: FontWeight.bold,
-                //     ),
-                //     gradient: LinearGradient(
-                //       colors: [
-                //         Colors.red,
-                //         Colors.orange,
-                //         Colors.yellow,
-                //         Colors.green,
-                //         Colors.blue,
-                //         Colors.indigo,
-                //         Colors.purple,
-                //       ],
-                //     ),
-                //   ),
                   IconButton(
                     icon: const Icon(
                       Icons.subscriptions,
@@ -235,7 +217,9 @@ class _ChatUIState extends State<ChatUI> {
     } else if (currentLocale.languageCode == "ru") {
       roleSpeech = "ru-RU-DariyaNeural";
     } else if (currentLocale.languageCode == "hi") {
-      roleSpeech = "hi-IN-KavyaNeural";
+      roleSpeech = "hi-IN-SwaraNeural";
+    } else if (currentLocale.languageCode == "vi") {
+      roleSpeech = "vi-VN-HoaiMyNeural";
     }
 
     if(voicesList.isNotEmpty) {
@@ -900,7 +884,10 @@ class _ChatUIState extends State<ChatUI> {
               io.File file = io.File(filePath);
               if (await file.exists()) {
                 bytesUint8 = await file.readAsBytes().then((value) => value);
-                imageParts.add(gemini.DataPart('image/jpeg', bytesUint8));
+                img.Image image = img.decodeImage(bytesUint8)!;
+                img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
+                List<int> compressedBytes = img.encodeJpg(resizedImage);
+                imageParts.add(gemini.DataPart('image/jpeg', Uint8List.fromList(compressedBytes)));
               }
             }
             final textPrompt = gemini.TextPart(message);
@@ -958,8 +945,12 @@ class _ChatUIState extends State<ChatUI> {
             for (String filePath in fileUploadList) {
               io.File file = io.File(filePath);
               if (await file.exists()) {
-                List<int> fileBytes = await file.readAsBytes();
-                String base64Data = base64Encode(fileBytes);
+                bytesUint8 = await file.readAsBytes().then((value) => value);
+                img.Image image = img.decodeImage(bytesUint8)!;
+                img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
+                List<int> compressedBytes = img.encodeJpg(resizedImage);
+                String base64Data = base64Encode(compressedBytes);
+                //print("length: ${base64Data.length}");
                 Map<String, dynamic> imageUrlMap = {
                   "type": "image_url",
                   "image_url": {
@@ -1112,6 +1103,7 @@ class _ChatUIState extends State<ChatUI> {
               };
               int index = history.length - 2;
               internalMessageList[index] = curInternalMessage;
+              fileUploadList = [];
             }
             if (curExtendMessage.isNotEmpty && history.isNotEmpty) {
               int index = history.length - 1;

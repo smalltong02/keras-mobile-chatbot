@@ -283,7 +283,7 @@ class DemoLocalizations {
 
   String get subscriptionBtn {
     return Intl.message(
-      'Get Subscription',
+      'Subscription',
       name: 'subscriptionBtn',
       desc: 'subscription of button',
     );
@@ -582,6 +582,222 @@ class DemoLocalizations {
       'Delete',
       name: 'delBtn',
       desc: 'delete button',
+    );
+  }
+
+  String get okBtn {
+    return Intl.message(
+      'OK',
+      name: 'okBtn',
+      desc: 'ok button',
+    );
+  }
+
+  String get closeBtn {
+    return Intl.message(
+      'Close',
+      name: 'closeBtn',
+      desc: 'close button',
+    );
+  }
+
+  String get acceptBtn {
+    return Intl.message(
+      'Accept',
+      name: 'acceptBtn',
+      desc: 'accept button',
+    );
+  }
+
+  String get submitBtn {
+    return Intl.message(
+      'Submit',
+      name: 'submitBtn',
+      desc: 'submit button',
+    );
+  }
+
+  String get expiredTitle {
+    return Intl.message(
+      'Expired!',
+      name: 'expiredTitle',
+      desc: 'title of expired',
+    );
+  }
+
+  String get freeTrialWarning {
+    return Intl.message(
+      'Free trial has expired. To continue using Keras Chatbot, please subscribe.',
+      name: 'freeTrialWarning',
+      desc: 'warning of free trial',
+    );
+  }
+
+  String get userAccountTitle {
+    return Intl.message(
+      'User Account',
+      name: 'userAccountTitle',
+      desc: 'User Account title',
+    );
+  }
+
+  String get accountDialogTitle {
+    return Intl.message(
+      'Delete Account and Data',
+      name: 'accountDialogTitle',
+      desc: 'Delete Account and Data',
+    );
+  }
+
+  String get submitRequestQuery {
+    return Intl.message(
+      'Are you sure you want to submit a request to delete your account and Data?',
+      name: 'submitRequestQuery',
+      desc: 'Are you sure you want to submit a request to delete your account and Data?',
+    );
+  }
+
+  String get otherRequestTitle {
+    return Intl.message(
+      'Send Other Request',
+      name: 'otherRequestTitle',
+      desc: 'Send Other Request',
+    );
+  }
+
+  String get welcomeTitle {
+    return Intl.message(
+      'Thank you for downloading Keras Chatbot',
+      name: 'welcomeTitle',
+      desc: 'welcome title',
+    );
+  }
+
+  String get welcomeParagraph1 {
+    return Intl.message(
+      '  Welcome! 🎉 As a welcome gift, You will receive a ',
+      name: 'welcomeParagraph1',
+      desc: 'welcome paragraph 1',
+    );
+  }
+
+  String get welcomeParagraph2 {
+    return Intl.message(
+      '3-day trial',
+      name: 'welcomeParagraph2',
+      desc: 'welcome paragraph 2',
+    );
+  }
+
+  String get welcomeParagraph3 {
+    return Intl.message(
+      ' for the ',
+      name: 'welcomeParagraph3',
+      desc: 'welcome paragraph 3',
+    );
+  }
+
+  String get welcomeParagraph4 {
+    return Intl.message(
+      'Professional Subscription',
+      name: 'welcomeParagraph4',
+      desc: 'welcome paragraph 4',
+    );
+  }
+
+  String get welcomeParagraph5 {
+    return Intl.message(
+      ' features.',
+      name: 'welcomeParagraph5',
+      desc: 'welcome paragraph 5',
+    );
+  }
+
+  String get welcomeParagraph6 {
+    return Intl.message(
+      '  Rest assured, after the ',
+      name: 'welcomeParagraph6',
+      desc: 'welcome paragraph 6',
+    );
+  }
+
+  String get welcomeParagraph7 {
+    return Intl.message(
+      ' period ends, Keras Chatbot will ',
+      name: 'welcomeParagraph7',
+      desc: 'welcome paragraph 7',
+    );
+  }
+
+  String get welcomeParagraph8 {
+    return Intl.message(
+      'not automatically subscribe',
+      name: 'welcomeParagraph8',
+      desc: 'welcome paragraph 8',
+    );
+  }
+
+  String get welcomeParagraph9 {
+    return Intl.message(
+      ' to a paid plan. You will simply lose access to ',
+      name: 'welcomeParagraph9',
+      desc: 'welcome paragraph 9',
+    );
+  }
+
+  String get welcomeParagraph10 {
+    return Intl.message(
+      ' features unless you choose to subscribe.',
+      name: 'welcomeParagraph10',
+      desc: 'welcome paragraph 10',
+    );
+  }
+
+  String get welcomeParagraph11 {
+    return Intl.message(
+      '  Note: ',
+      name: 'welcomeParagraph11',
+      desc: 'welcome paragraph 11',
+    );
+  }
+
+  String get welcomeParagraph12 {
+    return Intl.message(
+      'There will be ',
+      name: 'welcomeParagraph12',
+      desc: 'welcome paragraph 12',
+    );
+  }
+
+  String get welcomeParagraph13 {
+    return Intl.message(
+      'no hidden charges',
+      name: 'welcomeParagraph13',
+      desc: 'welcome paragraph 13',
+    );
+  }
+
+  String get welcomeParagraph14 {
+    return Intl.message(
+      ' or ',
+      name: 'welcomeParagraph14',
+      desc: 'welcome paragraph 14',
+    );
+  }
+
+  String get welcomeParagraph15 {
+    return Intl.message(
+      'automatic fees',
+      name: 'welcomeParagraph15',
+      desc: 'welcome paragraph 15',
+    );
+  }
+
+  String get welcomeParagraph16 {
+    return Intl.message(
+      ', so you can use Keras Chatbot with complete peace of mind and confidence.',
+      name: 'welcomeParagraph16',
+      desc: 'welcome paragraph 16',
     );
   }
 

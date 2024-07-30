@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:audioplayers/audioplayers.dart' as audio;
 import 'package:neom_maps_services/timezone.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -63,15 +63,6 @@ class _EditableTextWithLinksState extends State<EditableTextWithLinks> {
   void initState() {
     super.initState();
     textController.text = widget.message;
-  }
-
-  void launchURL(String url) async {
-    Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      throw 'Could not launch $url';
-    }
   }
 
   @override
@@ -233,7 +224,7 @@ class SentMessageScreen extends StatelessWidget {
                                           ElevatedButton(
                                             onPressed: () async {
                                               bool bSuccess = await saveImage(imgPath);
-                                              showDialog(
+                                              await showDialog(
                                                 context: context,
                                                 builder: (BuildContext context) {
                                                   return AlertDialog(

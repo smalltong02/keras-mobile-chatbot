@@ -11,6 +11,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'l10n/localization_intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 main() async {
   dotenv.load(fileName: ".env");
@@ -19,12 +20,17 @@ main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug,
+  );
+  final settingProvider = SettingProvider();
+  await settingProvider.initialize();
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => SettingProvider()),
+        ChangeNotifierProvider(create: (context) => settingProvider),
         ChangeNotifierProvider(create: (context) => KerasAuthProvider()),
+        ChangeNotifierProvider(create: (context) => KerasSubscriptionProvider()),
       ],
       child: const KerasMobileChatbotMainUI(),
     ),

@@ -6,6 +6,7 @@ import 'package:getwidget/getwidget.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/policy_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:keras_mobile_chatbot/welcome_dialog.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void initState() {
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -200,6 +202,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: GFColors.SUCCESS,
                                   )
                                 );
+                                await showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return WelcomeDialog();
+                                  },
+                                );
                                 Future.delayed(const Duration(seconds: 2), () {
                                   // Pass the username and password back to the login screen
                                   Navigator.pop(context, {
@@ -259,7 +267,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md'));
+                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md', justShow: true,));
                                     },
                                 ),
                                 const TextSpan(
@@ -273,7 +281,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md'));
+                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md', justShow: true,));
                                     },
                                 ),
                                 const TextSpan(

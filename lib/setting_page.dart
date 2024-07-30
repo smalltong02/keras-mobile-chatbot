@@ -6,6 +6,7 @@ import 'package:getwidget/getwidget.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/wheel_character.dart';
 import 'package:keras_mobile_chatbot/wallpaper_page.dart';
 
@@ -477,6 +478,18 @@ class _SettingScreenState extends State<SettingScreen> {
     chatpageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperPath;
     speechEnable = Provider.of<SettingProvider>(context, listen: false).speechEnable;
     toolBoxEnable = Provider.of<SettingProvider>(context, listen: false).toolBoxEnable;
+    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+    final authProvider = Provider.of<KerasAuthProvider>(context);
+    bool speechPermission = subProvider.speechPermission();
+    bool modelPermission = subProvider.powerModelPermission();
+    bool toolboxPermission = subProvider.toolboxPermission();
+    List<String> modelList = lowPowerModel;
+    if(modelPermission) {
+      modelList = allModel;
+    }
+    if(!modelList.contains(modelName)) {
+      modelName = modelList[0];
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -526,7 +539,7 @@ class _SettingScreenState extends State<SettingScreen> {
                           setState(() {});
                         }
                       },
-                      items: llmModel.map<DropdownMenuItem<String>>((String value) {
+                      items: modelList.map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
@@ -592,32 +605,34 @@ class _SettingScreenState extends State<SettingScreen> {
                       );
                     },
                   ),
-                  SettingsTile.switchTile(
-                    initialValue: speechEnable,
-                    title: Text(DemoLocalizations.of(context).titleSpeech),
-                    leading: const Icon(Icons.volume_up_sharp),
-                    activeSwitchColor: Theme.of(context).colorScheme.primary,
-                    onToggle: (value) {
-                      setState(() {
-                        speechEnable = value;
-                        Provider.of<SettingProvider>(context, listen: false).updateSpeechEnable(speechEnable);
-                      });
-                    },
-                  ),
-                  SettingsTile.switchTile(
-                    initialValue: toolBoxEnable,
-                    title: Text(DemoLocalizations.of(context).titleToolBox),
-                    leading: const Icon(Icons.all_inbox_rounded),
-                    activeSwitchColor: Theme.of(context).colorScheme.primary,
-                    onToggle: (value) {
-                      setState(() {
-                        toolBoxEnable = value;
-                        Provider.of<SettingProvider>(context, listen: false).updateToolBoxEnable(toolBoxEnable);
-                        Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
-                        setState(() {});
-                      });
-                    },
-                  ),
+                  if(speechPermission)
+                    SettingsTile.switchTile(
+                      initialValue: speechEnable,
+                      title: Text(DemoLocalizations.of(context).titleSpeech),
+                      leading: const Icon(Icons.volume_up_sharp),
+                      activeSwitchColor: Theme.of(context).colorScheme.primary,
+                      onToggle: (value) {
+                        setState(() {
+                          speechEnable = value;
+                          Provider.of<SettingProvider>(context, listen: false).updateSpeechEnable(speechEnable);
+                        });
+                      },
+                    ),
+                  if(toolboxPermission)
+                    SettingsTile.switchTile(
+                      initialValue: toolBoxEnable,
+                      title: Text(DemoLocalizations.of(context).titleToolBox),
+                      leading: const Icon(Icons.all_inbox_rounded),
+                      activeSwitchColor: Theme.of(context).colorScheme.primary,
+                      onToggle: (value) {
+                        setState(() {
+                          toolBoxEnable = value;
+                          Provider.of<SettingProvider>(context, listen: false).updateToolBoxEnable(toolBoxEnable);
+                          Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
+                          setState(() {});
+                        });
+                      },
+                    ),
                 ],
               ),
               SettingsSection(
@@ -759,6 +774,57 @@ class _SettingScreenState extends State<SettingScreen> {
                           );
                         },
                       );
+                    },
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: Text(
+                  DemoLocalizations.of(context).userAccountTitle,
+                  style: const TextStyle(
+                    color: Colors.blueGrey,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                tiles: <SettingsTile>[
+                  SettingsTile(
+                    leading: const Icon(Icons.auto_delete_sharp),
+                    title: Text(DemoLocalizations.of(context).accountDialogTitle),
+                    onPressed: (context) async {
+                      await showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text(DemoLocalizations.of(context).accountDialogTitle),
+                            content: Text(DemoLocalizations.of(context).submitRequestQuery),
+                            actions: <Widget>[
+                              TextButton(
+                                child: Text(DemoLocalizations.of(context).cancelBtn),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                              TextButton(
+                                child: Text(DemoLocalizations.of(context).submitBtn),
+                                onPressed: () async {
+                                  final mailer = Mailer();
+                                  await mailer.sendDeleteDataRequest(authProvider.getLoginEmail(), authProvider.getLoginName());
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  SettingsTile(
+                    leading: const Icon(Icons.email_rounded),
+                    title: Text(DemoLocalizations.of(context).otherRequestTitle),
+                    onPressed: (context) async {
+                      final mailer = Mailer();
+                      await mailer.sendEmail("",mailer.defaultRecipients, "", null, null, null, false);
                     },
                   ),
                 ],

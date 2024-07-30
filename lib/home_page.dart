@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:flutter/gestures.dart';
@@ -8,6 +9,7 @@ import 'package:keras_mobile_chatbot/register_screen.dart';
 import 'package:keras_mobile_chatbot/policy_dialog.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'l10n/localization_intl.dart';
+import 'package:keras_mobile_chatbot/welcome_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,15 +33,78 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    Future.microtask(() {
+      showPolicyDialogs();
+    });
   }
 
   @override
   void didChangeDependencies() async {
     super.didChangeDependencies();
     authProvider = Provider.of<KerasAuthProvider>(context);
-    if(authProvider!.getLoginStatus() == LoginStatus.logout) {
-      authProvider!.googleSignInSilently();
+    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+    if(authProvider != null && authProvider!.getLoginStatus() == LoginStatus.logout) {
+      final status = await authProvider!.googleSignInSilently();
+      if(status == AuthStatus.success) {
+        await subProvider.updateSubscriptionState();
+        bool firstLogin = authProvider!.isFirstLogin();
+        if(firstLogin) {
+          await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return WelcomeDialog();
+            },
+          );
+        }
+      }
     }
+  }
+
+  Future<void> showPolicyDialogs() async {
+    String? result;
+
+    bool showPolicy = Provider.of<SettingProvider>(context, listen: false).showPolicy;
+    if(!showPolicy) {
+      return;
+    }
+    // Show the first dialog and wait for its result
+    result = await showDialog<String>(
+      context: context,
+      builder: (context) => PolicyDialog(
+        mdFileName: 'privacy_policy.md',
+        justShow: false,
+      ),
+    );
+
+    if (result == 'accept') {
+      // Handle the accept action for the privacy policy
+      print('User accepted the privacy policy');
+    } else if (result == 'close') {
+      // Handle the close action for the privacy policy
+      print('User closed the privacy policy dialog');
+      SystemNavigator.pop();
+      return;
+    }
+
+    // Show the second dialog and wait for its result
+    result = await showDialog<String>(
+      context: context,
+      builder: (context) => PolicyDialog(
+        mdFileName: 'terms_conditions.md',
+        justShow: false,
+      ),
+    );
+
+    if (result == 'accept') {
+      // Handle the accept action for the terms and conditions
+      print('User accepted the terms and conditions');
+    } else if (result == 'close') {
+      // Handle the close action for the terms and conditions
+      print('User closed the terms and conditions dialog');
+      SystemNavigator.pop();
+      return;
+    }
+    Provider.of<SettingProvider>(context, listen: false).updateShowPolicy(false);
   }
 
   @override
@@ -52,8 +117,16 @@ class _HomeScreenState extends State<HomeScreen> {
         String wallpaperPath = settingProvider.homepageWallpaperPath;
         userName = Provider.of<SettingProvider>(context, listen: false).userName;
         password = Provider.of<SettingProvider>(context, listen: false).password;
+        final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+        String subScriptionStatus = subProvider.getSubscriptionStatus();
+        Color subTextColor = Colors.white;
+        Color subBkColor = Colors.green;
+        if(subScriptionStatus == 'Free') {
+          subBkColor = Colors.redAccent;
+        }
         if(authProvider!.getLoginStatus() == LoginStatus.logout) {
           authProvider!.handleEmailSignIn(userName, password);
+          subProvider.updateSubscriptionState();
         }
         return Scaffold(
           body: SingleChildScrollView(
@@ -76,10 +149,43 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          Image.asset(
-                            'assets/log-imgs/logo-phone.png',
-                            width: screenWidth * 0.5,
-                          ),
+                          if(subScriptionStatus == "") ...{
+                            Image.asset(
+                              'assets/log-imgs/logo-phone.png',
+                              width: screenWidth * 0.5,
+                            ),
+                          } else ... {
+                            Stack(
+                              children: [
+                                // Green background with white text
+                                Positioned(
+                                  top: 10,
+                                  left: 10,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8), // Adjust padding as needed
+                                    decoration: BoxDecoration(
+                                      color: subBkColor,
+                                      borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
+                                    ),
+                                    child: Text(
+                                      subScriptionStatus,
+                                      style: TextStyle(
+                                        color: subTextColor,
+                                        fontSize: 16, // Adjust font size as needed
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Centered image
+                                Center(
+                                  child: Image.asset(
+                                    'assets/log-imgs/logo-phone.png',
+                                    width: screenWidth * 0.5,
+                                  ),
+                                ),
+                              ],
+                            )
+                          },
                           const SizedBox(height: 16.0),
                           Text(
                             DemoLocalizations.of(context).homeTitle,
@@ -205,6 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               else {
                                 AuthStatus status = await authProvider!.handleEmailSignIn(usernameController.text.trim(), passwordController.text.trim());
                                 if(status == AuthStatus.success) {
+                                  subProvider.updateSubscriptionState();
                                   GFToast.showToast(
                                     DemoLocalizations.of(context).sucSignBtn,
                                     context,
@@ -218,6 +325,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                   );
                                   Provider.of<SettingProvider>(context, listen: false).updateUserName(usernameController.text);
                                   Provider.of<SettingProvider>(context, listen: false).updatePassword(passwordController.text);
+                                  bool firstLogin = authProvider!.isFirstLogin();
+                                  if(firstLogin) {
+                                    await showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return WelcomeDialog();
+                                      },
+                                    );
+                                  }
                                   setState(() {
                                   });
                                 } else if(status == AuthStatus.maxLoggin) {
@@ -277,6 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () async {
                             AuthStatus status = await authProvider!.handleGoogleSignIn();
                             if(status == AuthStatus.success) {
+                              subProvider.updateSubscriptionState();
                               GFToast.showToast(
                                 DemoLocalizations.of(context).sucSignBtn,
                                 context,
@@ -290,6 +407,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                               Provider.of<SettingProvider>(context, listen: false).updateUserName(usernameController.text);
                               Provider.of<SettingProvider>(context, listen: false).updatePassword(passwordController.text);
+                              bool firstLogin = authProvider!.isFirstLogin();
+                              if(firstLogin) {
+                                await showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return WelcomeDialog();
+                                  },
+                                );
+                              }
                               setState(() {
                               });
                             } else if(status == AuthStatus.maxLoggin) {
@@ -352,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onPressed: () async {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(builder: (context) => const ChatHome()),
+                                      MaterialPageRoute(builder: (context) => ChatHome()),
                                     );
                                   },
                                 ),
@@ -444,7 +570,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
-                                        showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md'));
+                                        showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md', justShow: true,));
                                       },
                                   ),
                                   const TextSpan(
@@ -458,7 +584,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
-                                        showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md'));
+                                        showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md', justShow: true,));
                                       },
                                   ),
                                   const TextSpan(

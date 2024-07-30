@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'l10n/localization_intl.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 class PolicyDialog extends StatelessWidget {
   final double radius;
   final String mdFileName;
+  bool justShow = false;
 
-  PolicyDialog({super.key, this.radius = 16, required this.mdFileName})
+  PolicyDialog({super.key, this.radius = 16, required this.mdFileName, required this.justShow})
       : assert(mdFileName.contains('.md'), 'The file must contain the .md extension');
 
   @override
@@ -34,7 +36,10 @@ class PolicyDialog extends StatelessWidget {
                       child: Markdown(
                         data: snapshot.data ?? "",
                         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                          p: Theme.of(context).textTheme.bodyMedium!.copyWith(fontSize: 16),
+                          p: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                            fontSize: 16, 
+                            color: Colors.black,
+                          ),
                         ),
                       ),
                     );
@@ -46,30 +51,91 @@ class PolicyDialog extends StatelessWidget {
               ),
             ),
             const Divider(height: 1),
-            Container(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(radius),
-                      bottomRight: Radius.circular(radius),
+            if(justShow) ...{
+              Container(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(radius),
+                        bottomRight: Radius.circular(radius),
+                      ),
                     ),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    backgroundColor: Theme.of(context).primaryColor,
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Theme.of(context).primaryColor,
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text(
-                  "CLOSE",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  onPressed: () {
+                      // Return result when "CLOSE" is clicked
+                      Navigator.of(context).pop('close');
+                    },
+                  child: Text(
+                    DemoLocalizations.of(context).closeBtn,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
-            ),
+            } else ...{
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        shape: const RoundedRectangleBorder(
+                          // borderRadius: BorderRadius.only(
+                          //   bottomLeft: Radius.circular(radius),
+                          // ),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        backgroundColor: Theme.of(context).primaryColor,
+                      ),
+                      onPressed: () {
+                        // Return result when "CLOSE" is clicked
+                        Navigator.of(context).pop('accept');
+                      },
+                      child: Text(
+                        DemoLocalizations.of(context).acceptBtn,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        shape: const RoundedRectangleBorder(
+                          // borderRadius: BorderRadius.only(
+                          //   bottomLeft: Radius.circular(radius),
+                          // ),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        backgroundColor: Theme.of(context).primaryColor,
+                      ),
+                      onPressed: () {
+                        // Return result when "CLOSE" is clicked
+                        Navigator.of(context).pop('close');
+                      },
+                      child: Text(
+                        DemoLocalizations.of(context).closeBtn,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            },
           ],
         ),
       ),

@@ -84,6 +84,8 @@ dependencies:
   image_gallery_saver: ^2.0.3
   qonversion_flutter: ^9.0.1
   android_id: ^0.4.0
+  firebase_app_check: ^0.3.0+3
+  flutter_email_sender: ^6.0.3
 
 dev_dependencies:
   flutter_test:

@@ -122,7 +122,7 @@ class SubscriptionScreen extends StatelessWidget {
                 },
                 child: GestureDetector(
                   onTap: () {
-                    showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md'));
+                    showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md', justShow: true,));
                   },
                   child: const Text(
                     'Terms of use',

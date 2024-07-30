@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io' as io;
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart' as openai;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,13 +16,12 @@ import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:keras_mobile_chatbot/function_call.dart';
 import 'package:keras_mobile_chatbot/chat_bubble.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
-import 'package:keras_mobile_chatbot/subscription_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keras_mobile_chatbot/setting_page.dart';
 import 'package:keras_mobile_chatbot/takepicture_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_text_to_speech/cloud_text_to_speech.dart';
-//import 'package:qonversion_flutter/qonversion_flutter.dart';
 
 class GradientText extends StatelessWidget {
   GradientText(this.text, {required this.gradient, this.style});
@@ -45,34 +44,77 @@ class GradientText extends StatelessWidget {
   }
 }
 
-class ChatHome extends StatelessWidget {
-  const ChatHome({super.key});
+class ChatHome extends StatefulWidget {
+  @override
+  _ChatHomeState createState() => _ChatHomeState();
+}
+
+class _ChatHomeState  extends State<ChatHome>  {
+  final String paywallCode = dotenv.get('qonversion_paywall');
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() async {
+    super.didChangeDependencies();
+  }
+
+  Future<void> subscriptionScreen() async {
+    try {
+      var config = new QScreenPresentationConfig(QScreenPresentationStyle.push, true);
+      // Set configuration for all screens.
+      Automations.getSharedInstance().setScreenPresentationConfig(config);
+      // Set configuration for the concrete screen.
+      Automations.getSharedInstance().setScreenPresentationConfig(config, paywallCode);
+      await Automations.getSharedInstance().showScreen(paywallCode);
+    } catch (e) {
+      // handle error here
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     String name = DemoLocalizations.of(context).subscriptionBtn;
+    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+    String subScriptionStatus = subProvider.getSubscriptionStatus();
+    Color subTextColor = Colors.white;
+    Color subBkColor = Colors.green;
+    if(subScriptionStatus == 'Free') {
+      subBkColor = Colors.redAccent;
+    }
     return Scaffold(
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(8), // Adjust padding as needed
+                  decoration: BoxDecoration(
+                    color: subBkColor,
+                    borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
+                  ),
+                  child: Text(
+                    subScriptionStatus,
+                    style: TextStyle(
+                      color: subTextColor,
+                      fontSize: 16, // Adjust font size as needed
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16), // Add spacing between "Play" and other widgets
+              ],
+            ),
             const Spacer(),
             InkWell(
               onTap: () async {
-                try {
-                  var config = new QScreenPresentationConfig(QScreenPresentationStyle.push, true);
-                  // Set configuration for all screens.
-                  Automations.getSharedInstance().setScreenPresentationConfig(config);
-                  // Set configuration for the concrete screen.
-                  Automations.getSharedInstance().setScreenPresentationConfig(config, "TpZRl55p");
-                  await Automations.getSharedInstance().showScreen("TpZRl55p");
-                } catch (e) {
-                  // handle error here
-                }
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => SubscriptionScreen()),
-                // );
+                await subscriptionScreen();
+                setState(() {
+                });
               },
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -87,11 +129,10 @@ class ChatHome extends StatelessWidget {
                       Icons.subscriptions,
                       semanticLabel: 'subscriptions',
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SubscriptionScreen()),
-                      );
+                    onPressed: () async {
+                      await subscriptionScreen();
+                      setState(() {
+                      });
                     },
                   ),
                 ],
@@ -124,6 +165,7 @@ class ChatUI extends StatefulWidget {
 
 class _ChatUIState extends State<ChatUI> {
   late LlmModel? llmModel;
+  KerasAuthProvider? authProvider;
   final FocusNode _textFieldFocus = FocusNode();
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -138,6 +180,8 @@ class _ChatUIState extends State<ChatUI> {
   String roleIconPath = '';
   String playerIconPath = '';
   bool speechEnable = false;
+  bool freeTrialExpired = false;
+  SubscriptionStatus subStatus = SubscriptionStatus.free;
   final record = AudioRecorder();
   String recordPath = "";
   bool isRecording = false;
@@ -147,12 +191,10 @@ class _ChatUIState extends State<ChatUI> {
   List<Character> assistantCharacters = [];
   List<Character> playerCharacters = [];
 
-
   String getSystemInstruction(String role) {
 
     Character character = findCharacterByTitle(role);
     String description = character.description ?? "";
-    
     String dot = ".";
     String printLog = DemoLocalizations.of(context).promptSysInstruction2;
     print("promptSysInstruction2: $printLog");
@@ -165,8 +207,9 @@ class _ChatUIState extends State<ChatUI> {
   }
 
   @override
-  void didChangeDependencies() {
+  void didChangeDependencies() async {
     super.didChangeDependencies();
+    authProvider = Provider.of<KerasAuthProvider>(context);
     initModel();
   }
 
@@ -177,61 +220,29 @@ class _ChatUIState extends State<ChatUI> {
   }
 
   void initModel() {
+    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+    bool permissionCheck = subProvider.toolboxPermission();
+    SubscriptionStatus status = subProvider.getSubscriptionStatusCode();
     loadModelName = Provider.of<SettingProvider>(context, listen: false).modelName;
     String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
-    toolBoxEnable = Provider.of<SettingProvider>(context, listen: false).toolBoxEnable;
+    toolBoxEnable = permissionCheck == true ? Provider.of<SettingProvider>(context, listen: false).toolBoxEnable : permissionCheck;
+    Locale locale = Localizations.localeOf(context);
+    String language = Provider.of<SettingProvider>(context, listen: false).language;
+    
     initAssistantCharacters();
     initPlayerCharacters();
-    initCurrentSpeech();
+    if(status == SubscriptionStatus.basic) {
+      ttsProviderInstance!.switchProvider(VoiceProvider.google, null);
+    }
+    else if(status == SubscriptionStatus.free ||
+            status == SubscriptionStatus.professional ||
+            status == SubscriptionStatus.premium ||
+            status == SubscriptionStatus.ultimate) {
+      ttsProviderInstance!.switchProvider(VoiceProvider.microsoft, null);
+    }
+    ttsProviderInstance!.initCurrentSpeech(locale, language);
     String systemInstruction = getSystemInstruction(role);
     llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
-  }
-
-  void initCurrentSpeech() {
-    String roleSpeech = "en-US-AnaNeural";
-    Locale currentLocale = Localizations.localeOf(context);
-    if (currentLocale.languageCode == 'en') {
-      if(currentLocale.countryCode == 'GB') {
-        roleSpeech = "en-GB-MaisieNeural";
-      }
-    } else if(currentLocale.languageCode == "zh") {
-      roleSpeech = "zh-CN-XiaoyouNeural";
-      if(currentLocale.countryCode == 'TW') {
-        String saveLang = Provider.of<SettingProvider>(context, listen: false).language;
-        if(saveLang == 'yue') {
-          roleSpeech = "yue-CN-XiaoMinNeural";
-        } else {
-          roleSpeech = "zh-TW-HsiaoChenNeural";
-        }
-      }
-    } else if(currentLocale.languageCode == "de") {
-      roleSpeech = "de-DE-GiselaNeural";
-    } else if(currentLocale.languageCode == "fr") {
-      roleSpeech = "fr-FR-EloiseNeural";
-    } else if (currentLocale.languageCode == "es") {
-      roleSpeech = "es-ES-AlvaroNeural";
-    } else if (currentLocale.languageCode == "ja") {
-      roleSpeech = "ja-JP-MayuNeural";
-    } else if (currentLocale.languageCode == "ko") {
-      roleSpeech = "ko-KR-GookMinNeural";
-    } else if (currentLocale.languageCode == "ru") {
-      roleSpeech = "ru-RU-DariyaNeural";
-    } else if (currentLocale.languageCode == "hi") {
-      roleSpeech = "hi-IN-SwaraNeural";
-    } else if (currentLocale.languageCode == "vi") {
-      roleSpeech = "vi-VN-HoaiMyNeural";
-    }
-
-    if(voicesList.isNotEmpty) {
-      VoiceUniversal? foundVoice;
-      for (int i = 0; i < voicesList.length; i++) {
-        if (voicesList[i].code == roleSpeech) {
-          foundVoice = voicesList[i];
-          break;
-        }
-      }
-      roleVoice = foundVoice;
-    }
   }
 
   void initAssistantCharacters() {
@@ -601,12 +612,19 @@ class _ChatUIState extends State<ChatUI> {
         String roleIconPath = settingProvider.roleIconPath;
         String playerIconPath = settingProvider.playerIconPath;
         String wallpaperPath = settingProvider.chatpageWallpaperPath;
-        speechEnable = settingProvider.speechEnable;
+        final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+        subStatus = subProvider.getSubscriptionStatusCode();
+        if(subStatus == SubscriptionStatus.free && authProvider != null && !checkFreeTrial(authProvider!.getFirstCreateDate())) {
+          freeTrialExpired = true;
+        } else {
+          freeTrialExpired = false;
+        }
+        bool permissionCheck = subProvider.speechPermission();
+        speechEnable = permissionCheck == true ? settingProvider.speechEnable : permissionCheck;
         if(loadModelName != settingProvider.modelName ||
            toolBoxEnable != settingProvider.toolBoxEnable) {
           initModel();
         }
-
         return Scaffold(
           body: Stack(
             children: [
@@ -736,20 +754,23 @@ class _ChatUIState extends State<ChatUI> {
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                              if (deepgram != null) ...{
+                              if (permissionCheck && deepgram != null) ...{
                                 if(isRecording == false) ...{
-                                  IconButton(
-                                    icon: const Icon(Icons.mic),
-                                    onPressed: () async {                                  
-                                      await startRecording();
-                                      if(isRecording == false) {
-                                        print(recordPath);
-                                        if(recordPath.isNotEmpty) {
-                                          
+                                  if(!freeTrialExpired) ...{
+                                    IconButton(
+                                      icon: const Icon(Icons.mic),
+                                      onPressed: () async {
+                                        statisticsInformation.updateVoiceStatistics();
+                                        await startRecording();
+                                        if(isRecording == false) {
+                                          print(recordPath);
+                                          if(recordPath.isNotEmpty) {
+                                            
+                                          }
                                         }
-                                      }
-                                    },
-                                  ),
+                                      },
+                                    ),
+                                  },
                                 } else ...{
                                   IconButton(
                                     icon: const Icon(Icons.stop),
@@ -868,6 +889,58 @@ class _ChatUIState extends State<ChatUI> {
   }
 
   Future<void> _sendChatMessage(String message,) async {
+    if(freeTrialExpired) {
+      print('Free trial has expired!');
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            backgroundColor: Colors.yellowAccent[50],
+            title: Row(
+              children: [
+                const Icon(
+                  Icons.error,
+                  color: Colors.redAccent,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  DemoLocalizations.of(context).expiredTitle,
+                  style: const TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              DemoLocalizations.of(context).freeTrialWarning,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.blueGrey,
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  DemoLocalizations.of(context).okBtn,
+                  style: const TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
     setState(() {
       _loading = true;
     });
@@ -888,6 +961,7 @@ class _ChatUIState extends State<ChatUI> {
                 img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
                 List<int> compressedBytes = img.encodeJpg(resizedImage);
                 imageParts.add(gemini.DataPart('image/jpeg', Uint8List.fromList(compressedBytes)));
+                statisticsInformation.updateImageStatistics();
               }
             }
             final textPrompt = gemini.TextPart(message);
@@ -932,6 +1006,7 @@ class _ChatUIState extends State<ChatUI> {
                 }
                 Map<String, dynamic> responseFunction = {'result': resultValue};
                 // Send the result of the function call to the model.
+                statisticsInformation.updateChatStatistics();
                 response = await llmModel!.chatSession.sendMessage(gemini.Content.functionResponse(functionCall.name, responseFunction));
               }
               // Send the response to the model so that it can use the result to generate
@@ -958,6 +1033,7 @@ class _ChatUIState extends State<ChatUI> {
                   },
                 };
                 imageList.add(imageUrlMap);
+                statisticsInformation.updateImageStatistics();
               }
             }
 
@@ -1052,6 +1128,7 @@ class _ChatUIState extends State<ChatUI> {
                           messages: newHistory,
                           maxToken: maxTokenLength,
                         );
+                        statisticsInformation.updateChatStatistics();
                         openai.ChatCTResponse? chatResponse = await openAIInstance!.onChatCompletion(request: request);
                         if(chatResponse != null && chatResponse.choices.isNotEmpty) {
                           for (var element in chatResponse.choices) {
@@ -1093,6 +1170,10 @@ class _ChatUIState extends State<ChatUI> {
           }
           // When the model responds with non-null text content, print it.
           if (response.text case final text?) {
+            statisticsInformation.updateChatStatistics();
+            if(toolBoxEnable) {
+              statisticsInformation.updateToolBoxStatistics();
+            }
             if (fileUploadList.isNotEmpty && history.isNotEmpty) {
               List<Map<String, String>> photosList = fileUploadList.map((path) => {"imgpath": path}).toList();
               Map<String, dynamic> curInternalMessage = {
@@ -1103,15 +1184,18 @@ class _ChatUIState extends State<ChatUI> {
               };
               int index = history.length - 2;
               internalMessageList[index] = curInternalMessage;
-              fileUploadList = [];
+              if(!speechEnable) {
+                fileUploadList = [];
+              }
             }
             if (curExtendMessage.isNotEmpty && history.isNotEmpty) {
               int index = history.length - 1;
               extendMessageList[index] = curExtendMessage;
             }
             if(speechEnable && history.isNotEmpty) {
-              String? audioPath = await generateAudioFile(response.text!);
+              String? audioPath = await ttsProviderInstance!.generateAudioFile(response.text!);
               if(audioPath != null) {
+                statisticsInformation.updateSpeechStatistics();
                 int index = history.length - 1;
                 speechMessageList[index] = {
                   'audioPath': audioPath,
@@ -1145,38 +1229,6 @@ class _ChatUIState extends State<ChatUI> {
     }
   }
 
-  Future<String?> generateAudioFile(String message) async {
-    if (roleVoice != null) {
-      TtsParamsUniversal params = TtsParamsUniversal(
-        voice: roleVoice!,
-        audioFormatGoogle: AudioOutputFormatGoogle.mp3,
-        audioFormatMicrosoft: AudioOutputFormatMicrosoft.audio48Khz192kBitrateMonoMp3,
-        text: message,
-        rate: 'default', // optional
-        pitch: 'default' // optional
-      );
-
-      final ttsResponse = await TtsUniversal.convertTts(params);
-
-      // Get the audio bytes.
-      final audioBytes = ttsResponse.audio.buffer.asByteData().buffer.asUint8List();
-
-      // Get the temporary directory of the app.
-      final directory = await getTemporaryDirectory();
-      
-      // Create a unique file name.
-      final filePath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
-
-      // Write the audio bytes to the file.
-      final file = io.File(filePath);
-      await file.writeAsBytes(audioBytes);
-
-      // Return the file path.
-      return filePath;
-    }
-    return null;
-  }
-
   void _scrollDown() {
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _scrollController.animateTo(
@@ -1203,7 +1255,7 @@ class _ChatUIState extends State<ChatUI> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('OK'),
+              child: Text(DemoLocalizations.of(context).okBtn),
             )
           ],
         );

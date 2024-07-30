@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 //import 'package:googleapis/speech/v1.dart';
 import 'package:intl/intl.dart';
 import 'package:camera/camera.dart';
@@ -21,7 +22,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:keras_mobile_chatbot/google_sign.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:android_id/android_id.dart';
-
+import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_email_sender/flutter_email_sender.dart';
 
 const int maxTokenLength = 4096;
 const int maxReceiveTimeout = 50; // 50 seconds
@@ -29,6 +32,7 @@ const int maxConnectTimeout = 30;
 const int imageQuality = 80;
 const int maxLogginDevices = 3;
 const int maxDialogRounds = 5;
+const String deleteRequestUrl = "https://github.com/smalltong02/keras-mobile-chatbot/blob/main/assets/docs/delete_request.md";
 
 final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.audio": "audio/wav"},
@@ -135,18 +139,29 @@ final List<String> wallpaperSettingPaths = [
 
 enum ModelType { unknown, google, openai }
 
+final List<String> lowPowerModel = [
+  "gemini-1.5-flash",
+  'gpt-4o-mini',
+];
+
+final List<String> highPowerModel = [
+  "gemini-1.5-pro",
+  openai.kGpt4o,
+];
+
 final List<String> googleModel = [
   "gemini-1.5-flash",
   "gemini-1.5-pro",
 ];
 
 final List<String> openAIModel = [
+  'gpt-4o-mini',
   openai.kGpt4o,
-  'gpt-4o-mini'
 ];
+
 openai.OpenAI? openAIInstance;
 String uniqueId = "";
-final List<String> llmModel = googleModel + openAIModel;
+final List<String> allModel = lowPowerModel + highPowerModel;
 
 final List<Locale> supportedLocalesInApp = [
   const Locale('en', 'US'),
@@ -165,29 +180,283 @@ final List<Locale> supportedLocalesInApp = [
 ];
 
 List<CameraDescription> cameras = [];
-List<VoiceUniversal> voicesList = [];
-VoiceUniversal? roleVoice;
 Deepgram? deepgram;
+TtsProvider? ttsProviderInstance;
+KerasStatisticsInformation statisticsInformation = KerasStatisticsInformation();
+
+
+enum VoiceProvider { microsoft, google, openai, amazon }
+
+class TtsProvider {
+  VoiceProvider defaultProvider = VoiceProvider.google;
+  VoiceUniversal? roleVoice;
+  List<VoiceUniversal>? voices;
+
+  TtsProvider() {
+    return;
+  }
+
+  String getProviderName() {
+    switch(defaultProvider) {
+      case VoiceProvider.microsoft:
+        return 'microsoft';
+      case VoiceProvider.google:
+        return 'google';
+      case VoiceProvider.openai:
+        return 'openai';
+      case VoiceProvider.amazon:
+        return 'amazon';
+      default:
+        return 'google';
+    }
+  }
+
+  String getDefaultVoice() {
+    switch(defaultProvider) {
+      case VoiceProvider.microsoft:
+        return 'en-US-AnaNeural';
+      case VoiceProvider.google:
+        return 'en-US-Standard-H';
+      // case VoiceProvider.openai:
+      //   return 'en-US-JennyNeural';
+      // case VoiceProvider.amazon:
+      //   return 'Joanna';
+      default:
+        return 'en-US-Standard-H';
+    }
+  }
+
+  Future<void> switchProvider(VoiceProvider provider, String? roleSpeech) async {
+    try {
+      if(defaultProvider != provider) {
+        defaultProvider = provider;
+        TtsUniversal.setProvider(provider: getProviderName());
+      }
+      if(roleSpeech != null) {
+        String speech = roleSpeech!;
+        final voicesResponse = await TtsUniversal.getVoices();
+        voices = voicesResponse.voices; 
+        if(voices!.isNotEmpty) {
+          VoiceUniversal? foundVoice;
+          for (int i = 0; i < voices!.length; i++) {
+            if (voices![i].code == speech) {
+              foundVoice = voices![i];
+              break;
+            }
+          }
+          roleVoice = foundVoice;
+        }
+      }
+    } catch (e) {
+      print('unInitialize failed: $e');
+    }
+    return;
+  }
+
+  Future<void> unInitialize() async {
+    try {
+      roleVoice = null;
+      voices = null;
+    } catch (e) {
+      print('unInitialize failed: $e');
+    }
+    return;
+  }
+
+  Future<void> initialize() async {
+    try {
+      TtsUniversal.init(
+        provider: getProviderName(),
+        google: InitParamsGoogle(apiKey: dotenv.get("search_key")),
+        microsoft: InitParamsMicrosoft(subscriptionKey: dotenv.get("azure_speech_key"), region: dotenv.get("azure_speech_region")),
+        withLogs: true
+      );
+      await switchProvider(defaultProvider, getDefaultVoice());
+    } catch (e) {
+      print('initialize failed: $e');
+    }
+    return;
+  }
+
+  void initCurrentSpeech(Locale currentLocale, String language) {
+    String? roleSpeech;
+    if (currentLocale.languageCode == 'en') {
+      if(currentLocale.countryCode == 'GB') {
+        switch(defaultProvider) {
+          case VoiceProvider.microsoft:
+            roleSpeech = "en-GB-MaisieNeural";
+          case VoiceProvider.google:
+            roleSpeech = "en-US-Standard-H";
+          default:
+            roleSpeech = "en-US-Standard-H";
+        }
+      } else {
+        switch(defaultProvider) {
+          case VoiceProvider.microsoft:
+            roleSpeech = "en-US-AnaNeural";
+          case VoiceProvider.google:
+            roleSpeech = "en-GB-Standard-A";
+          default:
+            roleSpeech = "en-GB-Standard-A";
+        }
+      }
+    } else if(currentLocale.languageCode == "zh") {
+      if(currentLocale.countryCode == 'TW') {
+        if(language == 'yue') {
+          switch(defaultProvider) {
+            case VoiceProvider.microsoft:
+              roleSpeech = "yue-CN-XiaoMinNeural";
+            case VoiceProvider.google:
+              roleSpeech = "yue-HK-Standard-A";
+            default:
+              roleSpeech = "yue-HK-Standard-A";
+          }
+        } else {
+          switch(defaultProvider) {
+            case VoiceProvider.microsoft:
+              roleSpeech = "zh-TW-HsiaoChenNeural";
+            case VoiceProvider.google:
+              roleSpeech = "cmn-TW-Standard-A";
+            default:
+              roleSpeech = "cmn-TW-Standard-A";
+          }
+        }
+      }
+      else {
+        switch(defaultProvider) {
+          case VoiceProvider.microsoft:
+            roleSpeech = "zh-CN-XiaoyouNeural";
+          case VoiceProvider.google:
+            roleSpeech = "cmn-CN-Standard-D";
+          default:
+            roleSpeech = "cmn-CN-Standard-D";
+        }
+      }
+    } else if(currentLocale.languageCode == "de") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "de-DE-GiselaNeural";
+        case VoiceProvider.google:
+          roleSpeech = "de-DE-Standard-A";
+        default:
+          roleSpeech = "de-DE-Standard-A";
+      }
+    } else if(currentLocale.languageCode == "fr") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "fr-FR-EloiseNeural";
+        case VoiceProvider.google:
+          roleSpeech = "fr-FR-Standard-A";
+        default:
+          roleSpeech = "fr-FR-Standard-A";
+      }
+    } else if (currentLocale.languageCode == "es") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "es-ES-AlvaroNeural";
+        case VoiceProvider.google:
+          roleSpeech = "es-ES-Standard-A";
+        default:
+          roleSpeech = "es-ES-Standard-A";
+      }
+    } else if (currentLocale.languageCode == "ja") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "ja-JP-MayuNeural";
+        case VoiceProvider.google:
+          roleSpeech = "ja-JP-Standard-B";
+        default:
+          roleSpeech = "ja-JP-Standard-B";
+      }
+    } else if (currentLocale.languageCode == "ko") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "ko-KR-GookMinNeural";
+        case VoiceProvider.google:
+          roleSpeech = "ko-KR-Standard-A";
+        default:
+          roleSpeech = "ko-KR-Standard-A";
+      }
+    } else if (currentLocale.languageCode == "ru") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "ru-RU-DariyaNeural";
+        case VoiceProvider.google:
+          roleSpeech = "ru-RU-Standard-C";
+        default:
+          roleSpeech = "ru-RU-Standard-C";
+      }
+    } else if (currentLocale.languageCode == "hi") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "hi-IN-SwaraNeural";
+        case VoiceProvider.google:
+          roleSpeech = "hi-IN-Standard-A";
+        default:
+          roleSpeech = "hi-IN-Standard-A";
+      }
+    } else if (currentLocale.languageCode == "vi") {
+      switch(defaultProvider) {
+        case VoiceProvider.microsoft:
+          roleSpeech = "vi-VN-HoaiMyNeural";
+        case VoiceProvider.google:
+          roleSpeech = "vi-VN-Standard-A";
+        default:
+          roleSpeech = "vi-VN-Standard-A";
+      }
+    }
+
+    switchProvider(defaultProvider, roleSpeech);
+  }
+
+  Future<String?> generateAudioFile(String message) async {
+    if (roleVoice != null) {
+      TtsParamsUniversal params = TtsParamsUniversal(
+        voice: roleVoice!,
+        audioFormatGoogle: AudioOutputFormatGoogle.mp3,
+        audioFormatMicrosoft: AudioOutputFormatMicrosoft.audio48Khz192kBitrateMonoMp3,
+        text: message,
+        rate: 'default', // optional
+        pitch: 'default' // optional
+      );
+
+      final ttsResponse = await TtsUniversal.convertTts(params);
+
+      // Get the audio bytes.
+      final audioBytes = ttsResponse.audio.buffer.asByteData().buffer.asUint8List();
+
+      // Get the temporary directory of the app.
+      final directory = await getTemporaryDirectory();
+      
+      // Create a unique file name.
+      final filePath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
+
+      // Write the audio bytes to the file.
+      final file = File(filePath);
+      await file.writeAsBytes(audioBytes);
+
+      // Return the file path.
+      return filePath;
+    }
+    return null;
+  }
+}
 
 void initCameras() async {
   cameras = await availableCameras();
-  TtsUniversal.init(
-    provider: 'microsoft',
-    google: InitParamsGoogle(apiKey: dotenv.get("api_key")),
-    microsoft: InitParamsMicrosoft(subscriptionKey: dotenv.get("azure_speech_key"), region: dotenv.get("azure_speech_region")),
-    withLogs: true
-  );
   uniqueId = await const AndroidId().getId() ?? "unknown";
   final config = new QonversionConfigBuilder(
     dotenv.get("qonversion_proj_key"),
     QLaunchMode.subscriptionManagement
   )
+  .setEnvironment(QEnvironment.sandbox)
   .enableKidsMode()
   .build();
   Qonversion.initialize(config);
 
   openAIInstance = openai.OpenAI.instance.build(token: dotenv.get("openai_key"), baseOption: openai.HttpSetup(receiveTimeout: const Duration(seconds: maxReceiveTimeout), connectTimeout: const Duration(seconds: maxConnectTimeout)),enableLog: true);
-
+  ttsProviderInstance = TtsProvider();
+  await ttsProviderInstance!.initialize();
   deepgram = Deepgram(dotenv.get("deepgram_speech_key"), baseQueryParams: {
     'model': 'nova-2-general',
     'detect_language': true,
@@ -195,20 +464,6 @@ void initCameras() async {
     'punctuation': true,
       // more options here : https://developers.deepgram.com/reference/listen-file
   });
-
-  final voicesResponse = await TtsUniversal.getVoices();
-  final voices = voicesResponse.voices; 
-  if(voices.isNotEmpty) {
-    voicesList = voices;
-    VoiceUniversal? foundVoice;
-    for (int i = 0; i < voices.length; i++) {
-      if (voices[i].code == "en-US-AnaNeural") {
-        foundVoice = voices[i];
-        break;
-      }
-    }
-    roleVoice = foundVoice;
-  }
 }
 
 class Character {
@@ -237,6 +492,7 @@ class SettingProvider with ChangeNotifier {
   String _language = 'auto';
   bool _speechEnable = false;
   bool _toolBoxEnable = false;
+  bool _showPolicy = false;
 
   String get modelName => _modelName;
   String get userName => _userName;
@@ -249,12 +505,13 @@ class SettingProvider with ChangeNotifier {
   String get language => _language;
   bool get speechEnable => _speechEnable;
   bool get toolBoxEnable => _toolBoxEnable;
+  bool get showPolicy => _showPolicy;
 
   SettingProvider() {
-    _init();
+    return;
   }
 
-  Future<void> _init() async {
+  Future<void> initialize() async {
     await loadSetting();
   }
 
@@ -324,6 +581,12 @@ class SettingProvider with ChangeNotifier {
     saveSetting();
   }
 
+  void updateShowPolicy(bool bShow) {
+    _showPolicy = bShow;
+    notifyListeners();
+    saveSetting();
+  }
+
   Future<void> loadSetting() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
      _modelName = prefs.getString('modelName') ?? 'gemini-1.5-flash';
@@ -336,6 +599,7 @@ class SettingProvider with ChangeNotifier {
     _homepageWallpaperPath = prefs.getString('homepageWallpaperPath') ?? 'assets/backgrounds/49.jpg';
     _chatpageWallpaperPath = prefs.getString('chatpageWallpaperPath') ?? 'assets/backgrounds/64.jpg';
     _speechEnable = prefs.getBool('speechEnable') ?? true;
+    _showPolicy = prefs.getBool('showPolicy') ?? true;
     notifyListeners();
   }
 
@@ -351,6 +615,7 @@ class SettingProvider with ChangeNotifier {
     prefs.setString('homepageWallpaperPath', _homepageWallpaperPath);
     prefs.setString('chatpageWallpaperPath', _chatpageWallpaperPath);
     prefs.setBool('speechEnable', _speechEnable);
+    prefs.setBool('showPolicy', _showPolicy);
   }
 }
 
@@ -495,6 +760,15 @@ String parseGeocode(String geocode) {
   return '$streetNumber $streetAddress $city, $region, $countryName';
 }
 
+void launchURL(String url) async {
+    Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
 Future<String> getTempPath() async {
   final directory = await getTemporaryDirectory();
   return directory.path;
@@ -594,47 +868,157 @@ Future<String> downloadAndSaveImage(String url, String filePath) async {
   return downloadPath;
 }
 
+bool checkFreeTrial(DateTime startTime) {
+  DateTime now = DateTime.now();
+  Duration duration = now.difference(startTime);
+  if (duration.inDays >= 1) {
+    return false;
+  }
+  return true;
+}
+
+class UserInfo {
+  String userId;
+  String firstCreate;
+  String lastLogin;
+  String email;
+  List<String> loginDevices;
+
+  UserInfo({
+    required this.userId,
+    required this.firstCreate,
+    required this.lastLogin,
+    required this.email,
+    required this.loginDevices,
+  });
+
+  factory UserInfo.fromMap(Map<dynamic, dynamic> map) {
+    return UserInfo(
+      userId: map['userId'] ?? '',
+      firstCreate: map['firstCreate'] ?? '',
+      lastLogin: map['lastLogin'] ?? '',
+      email: map['email'] ?? '',
+      loginDevices: List<String>.from(map['loginDevices'] ?? []),
+    );
+  }
+
+  factory UserInfo.fromJson(String jsonStr) {
+    final Map<dynamic, dynamic> map = jsonDecode(jsonStr);
+    return UserInfo.fromMap(map);
+  }
+
+  Map<dynamic, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'firstCreate': firstCreate,
+      'lastLogin': lastLogin,
+      'email': email,
+      'loginDevices': loginDevices,
+    };
+  }
+
+  String toJson() {
+    return jsonEncode(toMap());
+  }
+
+  @override
+  String toString() {
+    return 'UserInfo(userId: $userId, firstCreate: $firstCreate, lastLogin: $lastLogin, email: $email, loginDevices: $loginDevices)';
+  }
+}
+
 enum AuthStatus { success, failed, hasLogin, maxLoggin, exceptionError }
 enum LoginStatus { emailLogin, googleLogin, logout}
 
 class KerasAuthProvider with ChangeNotifier {
   final firebaseAuth = FirebaseAuth.instance;
   final DatabaseReference database = FirebaseDatabase.instance.ref();
+  bool bFirstLogin = false;
   bool bsignInSilently = false;
+  UserInfo? userInfo;
   LoginStatus loggedStatus = LoginStatus.logout;
+  OAuthCredential? googleCredential;
   UserCredential? userCredential;
 
   LoginStatus getLoginStatus() => loggedStatus;
   bool isLoggedin() => loggedStatus != LoginStatus.logout;
+  bool isFirstLogin() => bFirstLogin;
+
+  DateTime getFirstCreateDate() {
+    if(userInfo == null) {
+      return DateTime(1900, 1, 1, 0, 0, 0);
+    }
+    String firstCreate = userInfo!.firstCreate;
+    DateTime time = DateTime.parse(firstCreate);
+    return time;
+  }
+
+  String getLoginEmail() {
+    if(userCredential == null) {
+      return "";
+    }
+    try {
+      String email = userCredential!.user!.email ?? "";
+      return email;
+    } catch (e) {
+      print('getLoginEmail failed: $e');
+    }
+    return "";
+  }
+
+  String getLoginName() {
+    if(userCredential == null) {
+      return "";
+    }
+    try {
+      String email = userCredential!.user!.displayName ?? "";
+      return email;
+    } catch (e) {
+      print('getLoginName failed: $e');
+    }
+    return "";
+  }
 
   Future<AuthStatus> isSignInAllowed(UserCredential user) async {
     String uid = user.user!.uid;
+    String email = user.user!.email ?? "";
     DatabaseReference userRef = database.child('userLoginInfo').child(uid);
     DataSnapshot snapshot = await userRef.get();
-    
-    Map<String, String> userData = (snapshot.value as Map<dynamic, dynamic>?)
-        ?.map((key, value) => MapEntry(key as String, value as String)) 
-        ?? {};
 
     String currentTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
 
-    if(userData.isEmpty) {
-      userData[uniqueId] = currentTime;
-      userRef.set(userData);
+    if (!snapshot.exists) {
+      // Create new UserInfo if no record exists
+      UserInfo newUserInfo = UserInfo(
+        userId: uid,
+        firstCreate: currentTime,
+        lastLogin: currentTime,
+        email: email,
+        loginDevices: [uniqueId],
+      );
+      await userRef.set(newUserInfo.toMap());
+      bFirstLogin = true;
+      userInfo = newUserInfo;
       return AuthStatus.success;
     } else {
-      if(userData.containsKey(uniqueId)) {
-        userData[uniqueId] = currentTime;
-        userRef.set(userData);
-        return AuthStatus.success;
-      } else {
-        if(userData.length >= maxLogginDevices) {
-          return AuthStatus.maxLoggin;
-        }
-        userData[uniqueId] = currentTime;
-        userRef.set(userData);
+      // Update existing UserInfo
+      bFirstLogin = false;
+      Map<dynamic, dynamic> userData = snapshot.value as Map<dynamic, dynamic>;
+      UserInfo existingUserInfo = UserInfo.fromMap(userData);
+      if(existingUserInfo.loginDevices.contains(uniqueId)) {
+        existingUserInfo.lastLogin = currentTime;
+        await userRef.set(existingUserInfo.toMap());
+        userInfo = existingUserInfo;
         return AuthStatus.success;
       }
+      if (existingUserInfo.loginDevices.length >= maxLogginDevices) {
+        return AuthStatus.maxLoggin;
+      }
+      existingUserInfo.lastLogin = currentTime;
+      existingUserInfo.loginDevices.add(uniqueId);
+      await userRef.set(existingUserInfo.toMap());
+      userInfo = existingUserInfo;
+      return AuthStatus.success;
     }
   }
 
@@ -644,12 +1028,15 @@ class KerasAuthProvider with ChangeNotifier {
     }
     if(userName.isNotEmpty && password.isNotEmpty) {
       try {
-        UserCredential user = await firebaseAuth.signInWithEmailAndPassword(
+        UserCredential user = userCredential ?? await firebaseAuth.signInWithEmailAndPassword(
           email: userName.trim(),
           password: password.trim(),
         );
         AuthStatus status = await isSignInAllowed(user);
         if(status == AuthStatus.success) {
+          String uid = user.user!.uid;
+          Qonversion.getSharedInstance().identify(uid);
+          statisticsInformation.initialize();
           loggedStatus = LoginStatus.emailLogin;
           userCredential = user;
           notifyListeners();
@@ -675,22 +1062,29 @@ class KerasAuthProvider with ChangeNotifier {
     bsignInSilently = true;
     GoogleSignInAccount? account = await googleSignIn.signInSilently();
     if(account != null) {
-      final GoogleSignInAuthentication googleAuth = await account.authentication;
-      final OAuthCredential googleCredential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      UserCredential user = await firebaseAuth.signInWithCredential(googleCredential);
-      AuthStatus status = await isSignInAllowed(user);
-      if(status == AuthStatus.success) {
-        loggedStatus = LoginStatus.googleLogin;
-        userCredential = user;
-        notifyListeners();
-      } else {
-        await signOut();
-        loggedStatus = LoginStatus.logout;
+      if(googleCredential == null) {
+        final GoogleSignInAuthentication googleAuth = await account.authentication;
+        googleCredential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
       }
-      return status;
+      if(googleCredential != null) {
+        UserCredential user = userCredential ?? await firebaseAuth.signInWithCredential(googleCredential!);
+        AuthStatus status = await isSignInAllowed(user);
+        if(status == AuthStatus.success) {
+          String uid = user.user!.uid;
+          Qonversion.getSharedInstance().identify(uid);
+          statisticsInformation.initialize();
+          loggedStatus = LoginStatus.googleLogin;
+          userCredential = user;
+          notifyListeners();
+        } else {
+          await signOut();
+          loggedStatus = LoginStatus.logout;
+        }
+        return status;
+      }
     }
     return AuthStatus.failed;
   }
@@ -701,27 +1095,34 @@ class KerasAuthProvider with ChangeNotifier {
     }
     GoogleSignInAccount? account;
     try {
-        account = await googleSignIn.signIn();     
+      account = await googleSignIn.signIn();     
+      if(account != null) {
+        if(googleCredential == null) {
+          final GoogleSignInAuthentication googleAuth = await account.authentication;
+          googleCredential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          );
+        }
+        if(googleCredential != null) {
+          UserCredential user = userCredential ?? await firebaseAuth.signInWithCredential(googleCredential!);
+          AuthStatus status = await isSignInAllowed(user);
+          if(status == AuthStatus.success) {
+            String uid = user.user!.uid;
+            Qonversion.getSharedInstance().identify(uid);
+            statisticsInformation.initialize();
+            loggedStatus = LoginStatus.googleLogin;
+            userCredential = user;
+            notifyListeners();
+          } else {
+            await signOut();
+            loggedStatus = LoginStatus.logout;
+          }
+          return status;
+        }
+      }
     } catch (error) {
       print(error);
-    }
-    if(account != null) {
-      final GoogleSignInAuthentication googleAuth = await account.authentication;
-      final OAuthCredential googleCredential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      UserCredential user = await firebaseAuth.signInWithCredential(googleCredential);
-      AuthStatus status = await isSignInAllowed(user);
-      if(status == AuthStatus.success) {
-        loggedStatus = LoginStatus.googleLogin;
-        userCredential = user;
-        notifyListeners();
-      } else {
-        await signOut();
-        loggedStatus = LoginStatus.logout;
-      }
-      return status;
     }
     return AuthStatus.failed;
   }
@@ -738,23 +1139,396 @@ class KerasAuthProvider with ChangeNotifier {
       DatabaseReference userRef = database.child('userLoginInfo').child(uid);
       DataSnapshot snapshot = await userRef.get();
 
-      Map<String, String> userData = (snapshot.value as Map<dynamic, dynamic>?)
-          ?.map((key, value) => MapEntry(key as String, value as String))
-          ?? {};
-
-      if (userData.isNotEmpty) {
-        if (userData.containsKey(uniqueId)) {
-          userData.remove(uniqueId);
-          userRef.set(userData);
+      if (snapshot.exists) {
+        Map<dynamic, dynamic> userData = snapshot.value as Map<dynamic, dynamic>;
+        UserInfo existingUserInfo = UserInfo.fromMap(userData);
+        if(existingUserInfo.loginDevices.contains(uniqueId)) {
+          existingUserInfo.loginDevices.remove(uniqueId);
+          await userRef.set(existingUserInfo.toMap());
         }
       }
-
       await firebaseAuth.signOut();
+      Qonversion.getSharedInstance().logout();
+      await statisticsInformation.unInitialize();
       userCredential = null;
+      googleCredential = null;
       loggedStatus = LoginStatus.logout;
       notifyListeners();
     } catch (error) {
       print(error);
     }
+  }
+}
+
+enum SubscriptionStatus { free, basic, professional, premium, ultimate }
+
+class KerasSubscriptionProvider with ChangeNotifier {
+  QEntitlement? curEntitlement;
+  SubscriptionStatus curSubscriptionStatus = SubscriptionStatus.free;
+  Timer? _timer;
+
+  KerasSubscriptionProvider() {
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      await updateSubscriptionState();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  SubscriptionStatus getSubscriptionStatusCode() {
+    return curSubscriptionStatus;
+  }
+
+  String getSubscriptionStatus() {
+    String statusStr = "";
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        statusStr = 'Free';
+      case SubscriptionStatus.basic:
+        statusStr = 'Basic';
+      case SubscriptionStatus.professional:
+        statusStr = 'Professional';
+      case SubscriptionStatus.premium:
+        statusStr = 'Premium';
+      case SubscriptionStatus.ultimate:
+        statusStr = 'Ultimate';
+      default:
+        statusStr = 'Unknown';
+    }
+    print("getSubscriptionStatus: $statusStr");
+    return statusStr;
+  }
+
+  bool speechPermission() {
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        return true;
+      case SubscriptionStatus.basic:
+        return true;
+      case SubscriptionStatus.professional:
+        return true;
+      case SubscriptionStatus.premium:
+        return true;
+      case SubscriptionStatus.ultimate:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool powerModelPermission() {
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        return false;
+      case SubscriptionStatus.basic:
+        return false;
+      case SubscriptionStatus.professional:
+        return false;
+      case SubscriptionStatus.premium:
+        return true;
+      case SubscriptionStatus.ultimate:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool toolboxPermission() {
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        return false;
+      case SubscriptionStatus.basic:
+        return false;
+      case SubscriptionStatus.professional:
+        return false;
+      case SubscriptionStatus.premium:
+        return false;
+      case SubscriptionStatus.ultimate:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  Future<void> updateSubscriptionState() async {
+    try {
+      final Map<String, QEntitlement> ents = await Qonversion.getSharedInstance().checkEntitlements();
+      final basic = ents['basic_subscription'];
+      final professional = ents['professional_subscription'];
+      final premium = ents['premium_subscription'];
+      final ultimate = ents['ultimate_subscription'];
+
+      SubscriptionStatus newStatus;
+      if (ultimate != null && ultimate.isActive) {
+        newStatus = SubscriptionStatus.ultimate;
+        print("updateSubscriptionState: ultimate");
+        curEntitlement = ultimate;
+      } else if (premium != null && premium.isActive) {
+        newStatus = SubscriptionStatus.premium;
+        print("updateSubscriptionState: premium");
+        curEntitlement = premium;
+      } else if (professional != null && professional.isActive) {
+        newStatus = SubscriptionStatus.professional;
+        print("updateSubscriptionState: professional");
+        curEntitlement = professional;
+      } else if (basic != null && basic.isActive) {
+        newStatus = SubscriptionStatus.basic;
+        print("updateSubscriptionState: basic");
+        curEntitlement = basic;
+      } else {
+        print("updateSubscriptionState: free");
+        newStatus = SubscriptionStatus.free;
+        curEntitlement = null;
+      }
+
+      if (curSubscriptionStatus != newStatus) {
+        print("change status: $curSubscriptionStatus to $newStatus");
+        curSubscriptionStatus = newStatus;
+        notifyListeners();
+      }
+    } catch (e) {
+      print("updateSubscriptionState: $e");
+    }
+  }
+}
+
+class StatisticsInfo {
+  String userId;
+  int chatStatistics;
+  int imageStatistics;
+  int voiceStatistics;
+  int speechStatistics;
+  int toolBoxStatistics;
+
+  StatisticsInfo({
+    required this.userId,
+    required this.chatStatistics,
+    required this.imageStatistics,
+    required this.voiceStatistics,
+    required this.speechStatistics,
+    required this.toolBoxStatistics,
+  });
+
+   factory StatisticsInfo.fromMap(Map<String, dynamic> map) {
+    return StatisticsInfo(
+      userId: map['userId'] ?? '',
+      chatStatistics: map['chatCounts'] ?? 0,
+      imageStatistics: map['imageCounts'] ?? 0,
+      voiceStatistics: map['voiceCounts'] ?? 0,
+      speechStatistics: map['speechCounts'] ?? 0,
+      toolBoxStatistics: map['toolBoxCounts'] ?? 0,
+    );
+  }
+
+  factory StatisticsInfo.fromJson(String jsonStr) {
+    final Map<String, dynamic> map = jsonDecode(jsonStr);
+    return StatisticsInfo.fromMap(map);
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'chatCounts': chatStatistics,
+      'imageCounts': imageStatistics,
+      'voiceCounts': voiceStatistics,
+      'speechCounts': speechStatistics,
+      'toolBoxCounts': toolBoxStatistics,
+    };
+  }
+
+  Map<String, dynamic> toJson() {
+    return toMap();
+  }
+
+  @override
+  String toString() {
+    return 'StatisticsInfo(userId: $userId, chatCounts: $chatStatistics, imageCounts: $imageStatistics, voiceCounts: $voiceStatistics, speechCounts: $speechStatistics, toolBoxCounts: $toolBoxStatistics)';
+  }
+}
+
+class KerasStatisticsInformation {
+  static const int maxUpdateCounter = 5;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  int statisticsIncrementCounter = 0;
+  String loginUserId = "";
+  StatisticsInfo? statisticsInfo;
+
+  KerasStatisticsInformation() {
+    return;
+  }
+
+  Future<void> unInitialize() async {
+    try {
+      uploadStatistics();
+      statisticsIncrementCounter = 0;
+      loginUserId = "";
+      statisticsInfo = null;
+    } catch (e) {
+      print('unInitialize failed: $e');
+    }
+    return;
+  }
+
+  Future<void> initialize() async {
+    try {
+      // Update the statistics information for the previous login user.
+      uploadStatistics();
+
+      loginUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+      statisticsInfo = StatisticsInfo(
+        userId: loginUserId, 
+        chatStatistics: 0, 
+        imageStatistics: 0,
+        voiceStatistics: 0,
+        speechStatistics: 0,
+        toolBoxStatistics: 0,
+      );
+
+    } catch (e) {
+      print('Error fetching statistics info: $e');
+      statisticsInfo = StatisticsInfo(
+          userId: loginUserId, 
+          chatStatistics: 0, 
+          imageStatistics: 0,
+          voiceStatistics: 0,
+          speechStatistics: 0,
+          toolBoxStatistics: 0,
+        );
+    }
+    return;
+  }
+
+  Future<void> tryToUpload() async {
+    if(statisticsIncrementCounter >= maxUpdateCounter) {
+      await uploadStatistics();
+      statisticsIncrementCounter = 0;
+    }
+  }
+
+  Future<StatisticsInfo> getInfoFromCloud() async {
+    try {
+      if(loginUserId != "") {
+        DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+        .collection('user_statistics')
+        .doc(loginUserId)
+        .get();
+
+        if (docSnapshot.exists) {
+          Map<String, dynamic> data = docSnapshot.data() as Map<String, dynamic>;
+          StatisticsInfo info = StatisticsInfo.fromMap(data);
+          print('success get statistics information for userId $loginUserId');
+          return info;
+        }
+      }
+    } catch (e) {
+      print('Error update statistics: $e');
+    }
+    return StatisticsInfo(
+      userId: loginUserId, 
+      chatStatistics: 0, 
+      imageStatistics: 0,
+      voiceStatistics: 0,
+      speechStatistics: 0,
+      toolBoxStatistics: 0,
+    );
+  }
+
+  Future<void> uploadStatistics() async {
+    if(loginUserId != "" && statisticsInfo != null) {
+      StatisticsInfo info = await getInfoFromCloud();
+      info.chatStatistics += statisticsInfo!.chatStatistics;
+      info.imageStatistics += statisticsInfo!.imageStatistics;
+      info.voiceStatistics += statisticsInfo!.voiceStatistics;
+      info.speechStatistics += statisticsInfo!.speechStatistics;
+      info.toolBoxStatistics += statisticsInfo!.toolBoxStatistics;
+      statisticsInfo!.chatStatistics = 0;
+      statisticsInfo!.imageStatistics = 0;
+      statisticsInfo!.voiceStatistics = 0;
+      statisticsInfo!.speechStatistics = 0;
+      statisticsInfo!.toolBoxStatistics = 0;
+      Map<String, dynamic> stats = info.toMap();
+      await firestore.collection('user_statistics').doc(loginUserId).set(stats);
+    }
+  }
+
+  void updateChatStatistics() async {
+    if(statisticsInfo != null) {
+      statisticsInfo!.chatStatistics += 1;
+      statisticsIncrementCounter += 1;
+      tryToUpload();
+    }
+  }
+
+  void updateImageStatistics() async {
+    if(statisticsInfo != null) {
+      statisticsInfo!.imageStatistics += 1;
+    }
+  }
+
+  void updateVoiceStatistics() async {
+    if(statisticsInfo != null) {
+      statisticsInfo!.voiceStatistics += 1;
+    }
+  }
+
+  void updateSpeechStatistics() async {
+    if(statisticsInfo != null) {
+      statisticsInfo!.speechStatistics += 1;
+    }
+  }
+
+  void updateToolBoxStatistics() async {
+    if(statisticsInfo != null) {
+      statisticsInfo!.toolBoxStatistics += 1;
+    }
+  }
+}
+
+class Mailer {
+  String defaultRecipients = dotenv.get("author_email");
+  String defaultSubject = "Data deletion request";
+  String defaultBody1 = "Dear author,\n\nI would like to request the deletion of my data from your application. My Account ID ";
+  String defaultBody2 = ".\n\nThank you for your attention to this matter.\n\nBest regards,\n\n";
+  String defaultAttachment = "";
+  bool defaultIsHTML = false;
+  String defaultCC = "";
+  String defaultBCC = "";
+
+  Future<bool> sendDeleteDataRequest(String accountID, String accountName) async {
+    String body = defaultBody1 + accountID + defaultBody2 + accountName;
+    final Email email = Email(
+      body: body,
+      subject: defaultSubject,
+      recipients: [defaultRecipients],
+      isHTML: defaultIsHTML,
+    );
+
+    await FlutterEmailSender.send(email);
+    return true;
+  }
+  
+  Future<bool> sendEmail(String subject, String recipients, String body, String? cc, String? bcc, String? attachment, bool isHTML) async {
+    List<String> ccList = cc != null ? [cc] : [];
+    List<String> bccList = bcc != null ? [bcc] : [];
+    List<String> attachmentList = attachment != null ? [attachment] : [];
+    final Email email = Email(
+      body: body,
+      subject: subject,
+      recipients: [recipients],
+      cc: ccList,
+      bcc: bccList,
+      attachmentPaths: attachmentList,
+      isHTML: isHTML,
+    );
+    await FlutterEmailSender.send(email);
+    return true;
   }
 }

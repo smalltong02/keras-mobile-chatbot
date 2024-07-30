@@ -10,6 +10,10 @@ plugins {
 
 dependencies {
     implementation 'com.google.android.gms:play-services-auth:20.4.1'
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation("com.google.firebase:firebase-appcheck-playintegrity")
+    implementation 'com.google.firebase:firebase-appcheck-debug:16.0.0-beta01'
 }
 
 def localProperties = new Properties()
@@ -35,7 +39,7 @@ def keystoreProperties = new Properties()
 keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
 android {
-    namespace = "com.example.keras_mobile_chatbot"
+    namespace = "com.keras.keras_android_chatbot"
     compileSdk = flutter.compileSdkVersion
     ndkVersion "25.1.8937393"
 
@@ -45,12 +49,12 @@ android {
     }
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.keras_mobile_chatbot"
+        applicationId = "com.keras.keras_android_chatbot"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
-        versionCode = 1
+        versionCode = 5
         versionName = "1.0"
     }
     signingConfigs {

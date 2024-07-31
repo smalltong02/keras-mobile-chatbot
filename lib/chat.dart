@@ -228,7 +228,9 @@ class _ChatUIState extends State<ChatUI> {
     toolBoxEnable = permissionCheck == true ? Provider.of<SettingProvider>(context, listen: false).toolBoxEnable : permissionCheck;
     Locale locale = Localizations.localeOf(context);
     String language = Provider.of<SettingProvider>(context, listen: false).language;
-    
+    if(toolBoxEnable) {
+      toolBoxEnable = restrictionInformation.isToolboxRestriction() ? false : toolBoxEnable;
+    }
     initAssistantCharacters();
     initPlayerCharacters();
     if(status == SubscriptionStatus.basic) {
@@ -621,6 +623,9 @@ class _ChatUIState extends State<ChatUI> {
         }
         bool permissionCheck = subProvider.speechPermission();
         speechEnable = permissionCheck == true ? settingProvider.speechEnable : permissionCheck;
+        if(speechEnable) {
+          speechEnable = restrictionInformation.isSpeechRestriction() ? false : speechEnable;
+        }
         if(loadModelName != settingProvider.modelName ||
            toolBoxEnable != settingProvider.toolBoxEnable) {
           initModel();
@@ -754,7 +759,7 @@ class _ChatUIState extends State<ChatUI> {
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                              if (permissionCheck && deepgram != null) ...{
+                              if (speechEnable && deepgram != null) ...{
                                 if(isRecording == false) ...{
                                   if(!freeTrialExpired) ...{
                                     IconButton(
@@ -889,7 +894,9 @@ class _ChatUIState extends State<ChatUI> {
   }
 
   Future<void> _sendChatMessage(String message,) async {
-    if(freeTrialExpired) {
+    if(freeTrialExpired || restrictionInformation.isConversationRestriction()) {
+      String title = freeTrialExpired ? DemoLocalizations.of(context).expiredTitle : 'Restriction!';
+      String warning = freeTrialExpired ? DemoLocalizations.of(context).freeTrialWarning: 'Reached the conversation restriction!';
       print('Free trial has expired!');
       await showDialog(
         context: context,
@@ -907,7 +914,7 @@ class _ChatUIState extends State<ChatUI> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  DemoLocalizations.of(context).expiredTitle,
+                  title,
                   style: const TextStyle(
                     color: Colors.blueAccent,
                     fontWeight: FontWeight.bold,
@@ -916,7 +923,7 @@ class _ChatUIState extends State<ChatUI> {
               ],
             ),
             content: Text(
-              DemoLocalizations.of(context).freeTrialWarning,
+              warning,
               style: const TextStyle(
                 fontSize: 16,
                 color: Colors.blueGrey,
@@ -953,15 +960,31 @@ class _ChatUIState extends State<ChatUI> {
           var history = llmModel!.getHistory();
           if(llmModel!.type == ModelType.google) {
             List<gemini.DataPart> imageParts = [];
-            for (String filePath in fileUploadList) {
-              io.File file = io.File(filePath);
-              if (await file.exists()) {
-                bytesUint8 = await file.readAsBytes().then((value) => value);
-                img.Image image = img.decodeImage(bytesUint8)!;
-                img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
-                List<int> compressedBytes = img.encodeJpg(resizedImage);
-                imageParts.add(gemini.DataPart('image/jpeg', Uint8List.fromList(compressedBytes)));
-                statisticsInformation.updateImageStatistics();
+            if(!restrictionInformation.isImageRestriction()) {
+              for (String filePath in fileUploadList) {
+                io.File file = io.File(filePath);
+                if (await file.exists()) {
+                  bytesUint8 = await file.readAsBytes().then((value) => value);
+                  img.Image image = img.decodeImage(bytesUint8)!;
+                  img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
+                  List<int> compressedBytes = img.encodeJpg(resizedImage);
+                  imageParts.add(gemini.DataPart('image/jpeg', Uint8List.fromList(compressedBytes)));
+                  statisticsInformation.updateImageStatistics();
+                }
+              }
+            } else {
+              if(fileUploadList.isNotEmpty) {
+                GFToast.showToast(
+                  'Reached the image restriction!',
+                  context,
+                  toastPosition: GFToastPosition.TOP,
+                  textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
+                  backgroundColor: GFColors.WARNING,
+                  trailing: const Icon(
+                    Icons.error,
+                    color: GFColors.DANGER,
+                  )
+                );
               }
             }
             final textPrompt = gemini.TextPart(message);
@@ -1017,26 +1040,41 @@ class _ChatUIState extends State<ChatUI> {
           else {
             String text = "";
             List<Map<String, dynamic>> imageList = [];
-            for (String filePath in fileUploadList) {
-              io.File file = io.File(filePath);
-              if (await file.exists()) {
-                bytesUint8 = await file.readAsBytes().then((value) => value);
-                img.Image image = img.decodeImage(bytesUint8)!;
-                img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
-                List<int> compressedBytes = img.encodeJpg(resizedImage);
-                String base64Data = base64Encode(compressedBytes);
-                //print("length: ${base64Data.length}");
-                Map<String, dynamic> imageUrlMap = {
-                  "type": "image_url",
-                  "image_url": {
-                    "url": "data:image/jpeg;base64,$base64Data",
-                  },
-                };
-                imageList.add(imageUrlMap);
-                statisticsInformation.updateImageStatistics();
+            if(!restrictionInformation.isImageRestriction()) {
+              for (String filePath in fileUploadList) {
+                io.File file = io.File(filePath);
+                if (await file.exists()) {
+                  bytesUint8 = await file.readAsBytes().then((value) => value);
+                  img.Image image = img.decodeImage(bytesUint8)!;
+                  img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
+                  List<int> compressedBytes = img.encodeJpg(resizedImage);
+                  String base64Data = base64Encode(compressedBytes);
+                  //print("length: ${base64Data.length}");
+                  Map<String, dynamic> imageUrlMap = {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/jpeg;base64,$base64Data",
+                    },
+                  };
+                  imageList.add(imageUrlMap);
+                  statisticsInformation.updateImageStatistics();
+                }
+              }
+            } else {
+              if(fileUploadList.isNotEmpty) {
+                GFToast.showToast(
+                  'Reached the image restriction!',
+                  context,
+                  toastPosition: GFToastPosition.TOP,
+                  textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
+                  backgroundColor: GFColors.WARNING,
+                  trailing: const Icon(
+                    Icons.error,
+                    color: GFColors.DANGER,
+                  )
+                );
               }
             }
-
             List<Map<String, dynamic>> newHistory = history.cast<Map<String, dynamic>>().toList();
             Map<String, dynamic> query = openai.Messages(role: openai.Role.user, content: message).toJson();
             Map<String, dynamic> new_query = {};
@@ -1174,18 +1212,17 @@ class _ChatUIState extends State<ChatUI> {
             if(toolBoxEnable) {
               statisticsInformation.updateToolBoxStatistics();
             }
-            if (fileUploadList.isNotEmpty && history.isNotEmpty) {
-              List<Map<String, String>> photosList = fileUploadList.map((path) => {"imgpath": path}).toList();
-              Map<String, dynamic> curInternalMessage = {
-                'show_image': {
-                  'object': "images",
-                  'images': photosList,
-                }
-              };
-              int index = history.length - 2;
-              internalMessageList[index] = curInternalMessage;
-              if(!speechEnable) {
-                fileUploadList = [];
+            if(!restrictionInformation.isImageRestriction()) {
+              if (fileUploadList.isNotEmpty && history.isNotEmpty) {
+                List<Map<String, String>> photosList = fileUploadList.map((path) => {"imgpath": path}).toList();
+                Map<String, dynamic> curInternalMessage = {
+                  'show_image': {
+                    'object': "images",
+                    'images': photosList,
+                  }
+                };
+                int index = history.length - 2;
+                internalMessageList[index] = curInternalMessage;
               }
             }
             if (curExtendMessage.isNotEmpty && history.isNotEmpty) {

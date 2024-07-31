@@ -25,6 +25,7 @@ import 'package:android_id/android_id.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 
 const int maxTokenLength = 4096;
 const int maxReceiveTimeout = 50; // 50 seconds
@@ -183,7 +184,7 @@ List<CameraDescription> cameras = [];
 Deepgram? deepgram;
 TtsProvider? ttsProviderInstance;
 KerasStatisticsInformation statisticsInformation = KerasStatisticsInformation();
-
+RestrictionInformation restrictionInformation = RestrictionInformation();
 
 enum VoiceProvider { microsoft, google, openai, amazon }
 
@@ -1360,9 +1361,45 @@ class KerasStatisticsInformation {
   int statisticsIncrementCounter = 0;
   String loginUserId = "";
   StatisticsInfo? statisticsInfo;
+  StatisticsInfo? totalstatisticsInfo;
 
   KerasStatisticsInformation() {
     return;
+  }
+
+  int getTotalChatStatistics() {
+    if(totalstatisticsInfo != null) {
+      return totalstatisticsInfo!.chatStatistics;
+    }
+    return 0;
+  }
+
+  int getTotalImageStatistics() {
+    if(totalstatisticsInfo != null) {
+      return totalstatisticsInfo!.imageStatistics;
+    }
+    return 0;
+  }
+
+  int getTotalVoiceStatistics() {
+    if(totalstatisticsInfo != null) {
+      return totalstatisticsInfo!.voiceStatistics;
+    }
+    return 0;
+  }
+
+  int getTotalSpeechStatistics() {
+    if(totalstatisticsInfo != null) {
+      return totalstatisticsInfo!.speechStatistics;
+    }
+    return 0;
+  }
+
+  int getTotalToolBoxStatistics() {
+    if(totalstatisticsInfo != null) {
+      return totalstatisticsInfo!.toolBoxStatistics;
+    }
+    return 0;
   }
 
   Future<void> unInitialize() async {
@@ -1371,6 +1408,7 @@ class KerasStatisticsInformation {
       statisticsIncrementCounter = 0;
       loginUserId = "";
       statisticsInfo = null;
+      totalstatisticsInfo = null;
     } catch (e) {
       print('unInitialize failed: $e');
     }
@@ -1383,6 +1421,7 @@ class KerasStatisticsInformation {
       uploadStatistics();
 
       loginUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+      final info = await getInfoFromCloud();
       statisticsInfo = StatisticsInfo(
         userId: loginUserId, 
         chatStatistics: 0, 
@@ -1391,6 +1430,7 @@ class KerasStatisticsInformation {
         speechStatistics: 0,
         toolBoxStatistics: 0,
       );
+      totalstatisticsInfo = info;
 
     } catch (e) {
       print('Error fetching statistics info: $e');
@@ -1401,7 +1441,15 @@ class KerasStatisticsInformation {
           voiceStatistics: 0,
           speechStatistics: 0,
           toolBoxStatistics: 0,
-        );
+      );
+      totalstatisticsInfo = StatisticsInfo(
+        userId: loginUserId, 
+        chatStatistics: 0, 
+        imageStatistics: 0,
+        voiceStatistics: 0,
+        speechStatistics: 0,
+        toolBoxStatistics: 0,
+      );
     }
     return;
   }
@@ -1449,6 +1497,9 @@ class KerasStatisticsInformation {
       info.voiceStatistics += statisticsInfo!.voiceStatistics;
       info.speechStatistics += statisticsInfo!.speechStatistics;
       info.toolBoxStatistics += statisticsInfo!.toolBoxStatistics;
+      if(totalstatisticsInfo != null) {
+        totalstatisticsInfo = info;
+      }
       statisticsInfo!.chatStatistics = 0;
       statisticsInfo!.imageStatistics = 0;
       statisticsInfo!.voiceStatistics = 0;
@@ -1531,4 +1582,135 @@ class Mailer {
     await FlutterEmailSender.send(email);
     return true;
   }
+}
+
+class RestrictionInformation {
+  final remoteConfig = FirebaseRemoteConfigService();
+
+  bool restrictionsEnable() {
+    bool enable = remoteConfig.getBool(FirebaseRemoteConfigKeys.restrictionsEnableKey);
+    //print("RestrictionInformation: restrictionsEnable: $enable");
+    return enable;
+  }
+
+  int getConversationRestriction() {
+    if(restrictionsEnable()) {
+      int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.conversationRestKey);
+      print("RestrictionInformation: getConversationRestriction: $counts");
+      return counts;
+    }
+    return 30000;
+  }
+
+  int getImageRestriction() {
+    if(restrictionsEnable()) {
+      int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.imageRestKey);
+      print("RestrictionInformation: getImageRestriction: $counts");
+      return counts;
+    }
+    return 30000;
+  }
+
+  int getVoiceRestriction() {
+    if(restrictionsEnable()) {
+      int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.voiceRestKey);
+      print("RestrictionInformation: getVoiceRestriction: $counts");
+      return counts;
+    }
+    return 30000;
+  }
+
+  int getToolboxRestriction() {
+    if(restrictionsEnable()) {
+      int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.toolboxRestKey);
+      print("RestrictionInformation: getToolboxRestriction: $counts");
+      return counts;
+    }
+    return 30000;
+  }
+
+  bool isConversationRestriction() {
+    int totalCounts = statisticsInformation.getTotalChatStatistics();
+    int maxCounts = getConversationRestriction();
+    return totalCounts >= maxCounts;
+  }
+
+  bool isImageRestriction() {
+    int totalCounts = statisticsInformation.getTotalImageStatistics();
+    int maxCounts = getImageRestriction();
+    return totalCounts >= maxCounts;
+  }
+
+  bool isVoiceRestriction() {
+    int totalCounts = statisticsInformation.getTotalVoiceStatistics();
+    int maxCounts = getVoiceRestriction();
+    return totalCounts >= maxCounts;
+  }
+
+  bool isSpeechRestriction() {
+    int totalCounts = statisticsInformation.getTotalSpeechStatistics();
+    int maxCounts = getVoiceRestriction();
+    return totalCounts >= maxCounts;
+  }
+
+  bool isToolboxRestriction() {
+    int totalCounts = statisticsInformation.getTotalToolBoxStatistics();
+    int maxCounts = getToolboxRestriction();
+    return totalCounts >= maxCounts;
+  }
+}
+
+class FirebaseRemoteConfigService {
+  FirebaseRemoteConfigService._() : _remoteConfig = FirebaseRemoteConfig.instance;
+
+  static FirebaseRemoteConfigService? _instance;
+  factory FirebaseRemoteConfigService() => _instance ??= FirebaseRemoteConfigService._();
+
+  final FirebaseRemoteConfig _remoteConfig;
+
+  Future<void> initialize() async {
+    await setConfigSettings();
+    await setDefaults();
+    await fetchAndActivate();
+}
+
+  String getString(String key) => _remoteConfig.getString(key);
+  bool getBool(String key) =>_remoteConfig.getBool(key);
+  int getInt(String key) =>_remoteConfig.getInt(key);
+  double getDouble(String key) =>_remoteConfig.getDouble(key);
+
+  Future<void> setConfigSettings() async => _remoteConfig.setConfigSettings(
+    RemoteConfigSettings(
+      fetchTimeout: const Duration(minutes: 1),
+      minimumFetchInterval: const Duration(hours: 12),
+    ),
+  );
+
+  Future<void> setDefaults() async => _remoteConfig.setDefaults(
+    const {
+      FirebaseRemoteConfigKeys.restrictionsEnableKey: false,
+      FirebaseRemoteConfigKeys.conversationRestKey: 30000,
+      FirebaseRemoteConfigKeys.imageRestKey: 3000,
+      FirebaseRemoteConfigKeys.voiceRestKey: 30000,
+      FirebaseRemoteConfigKeys.toolboxRestKey: 30000,
+    },
+  );
+
+  Future<void> fetchAndActivate() async {
+    bool updated = await _remoteConfig.fetchAndActivate();
+
+    if (updated) {
+      debugPrint('The config has been updated.');
+    } else {
+      debugPrint('The config is not updated..');
+    }
+  }
+}
+
+class FirebaseRemoteConfigKeys {
+  static const String restrictionsEnableKey = 'restrictions_enable';
+  static const String conversationRestKey = 'conversation_restriction_counts';
+  static const String imageRestKey = 'image_restriction_counts';
+  static const String voiceRestKey = 'voice_restriction_counts';
+  static const String toolboxRestKey = 'toolbox_restriction_counts';
 }

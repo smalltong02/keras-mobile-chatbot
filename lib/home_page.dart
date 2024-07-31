@@ -445,14 +445,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
                           },
                         ),
-                        SignInButton(
-                          Buttons.Apple,
-                          onPressed: () {},
-                        ),
-                        SignInButton(
-                          Buttons.Microsoft,
-                          onPressed: () {},
-                        )
+                        // SignInButton(
+                        //   Buttons.Apple,
+                        //   onPressed: () {},
+                        // ),
+                        // SignInButton(
+                        //   Buttons.Microsoft,
+                        //   onPressed: () {},
+                        // )
                       } else ...{
                         Expanded(
                           child: Column(

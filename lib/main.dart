@@ -25,6 +25,7 @@ main() async {
   );
   final settingProvider = SettingProvider();
   await settingProvider.initialize();
+  await FirebaseRemoteConfigService().initialize();
   runApp(
     MultiProvider(
       providers: [

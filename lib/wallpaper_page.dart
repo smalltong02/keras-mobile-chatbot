@@ -11,10 +11,10 @@ class WallpaperPage extends StatefulWidget {
   const WallpaperPage({super.key, required this.homepageWallpaperPath, required this.chatpageWallpaperPath, required this.wallpaperCallback,});
 
   @override
-  _WallpaperPageState createState() => _WallpaperPageState();
+  WallpaperPageState createState() => WallpaperPageState();
 }
 
-class _WallpaperPageState extends State<WallpaperPage> {
+class WallpaperPageState extends State<WallpaperPage> {
   final List<String> wallpaperPaths = wallpaperSettingPaths;
   String curHomepageWallpaperPath = "";
   String curChatpageWallpaperPath = "";

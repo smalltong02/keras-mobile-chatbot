@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart' as audio;
 import 'package:neom_maps_services/timezone.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
@@ -45,18 +46,18 @@ class EditableTextWithLinks extends StatefulWidget {
   final Color textColor;
 
   const EditableTextWithLinks({
-    Key? key,
+    super.key,
     required this.message,
     required this.fontSize,
     required this.backgroundColor,
     required this.textColor,
-  }) : super(key: key);
+  });
 
   @override
-  _EditableTextWithLinksState createState() => _EditableTextWithLinksState();
+  EditableTextWithLinksState createState() => EditableTextWithLinksState();
 }
 
-class _EditableTextWithLinksState extends State<EditableTextWithLinks> {
+class EditableTextWithLinksState extends State<EditableTextWithLinks> {
   final TextEditingController textController = TextEditingController();
 
   @override
@@ -125,56 +126,158 @@ class _EditableTextWithLinksState extends State<EditableTextWithLinks> {
   }
 }
 
-class SentMessageScreen extends StatelessWidget {
+class FullScreenTextPage extends StatelessWidget {
+  final String message;
+  final double messageFontSize;
+  final Color messageBackgroundColor;
+  final Color messageTextColor;
+  final Color borderColor;
+  final bool isRight;
+  final VoidCallback onClose;
+  static const double _messagePaddingAll = 14.0;
+
+  const FullScreenTextPage({super.key, required this.message, required this.messageFontSize, required this.messageBackgroundColor, required this.messageTextColor, required this.borderColor, required this.isRight, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    String wallpaperPath = Provider.of<SettingProvider>(context).chatpageWallpaperPath;
+    return Scaffold(
+      body: Center(
+        child: GestureDetector(
+          onTap: onClose,
+          child: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(wallpaperPath), // Use wallpaper path here
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(_messagePaddingAll),
+                  decoration: BoxDecoration(
+                    color: borderColor,
+                    borderRadius: isRight ? const BorderRadius.only(
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(18),
+                    ) : const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(18),
+                    ),
+                  ),
+                  child: EditableTextWithLinks(message: message, fontSize: messageFontSize, textColor: messageTextColor, backgroundColor: messageBackgroundColor,),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SentMessageScreen extends StatefulWidget {
   final String message;
   final Map<String, dynamic> extendMessage;
   final String iconPath;
-
-  static const double _paddingHorizontal = 18.0;
-  static const double _paddingVertical = 15.0;
-  static const double _messagePaddingAll = 14.0;
-  static const double _iconSize = 40.0;
-  static const double _messageFontSize = 14.0;
-  static const Color _messageBackgroundColor = Colors.cyan;
-  static const Color _messageTextColor = Colors.white;
+  final Function(String) onAddFile;
 
   const SentMessageScreen({
     super.key,
     required this.message,
     required this.extendMessage,
     required this.iconPath,
+    required this.onAddFile,
   });
 
+  @override
+  SentMessageScreenState createState() => SentMessageScreenState();
+}
+
+class SentMessageScreenState extends State<SentMessageScreen> {
+
+  static const double _paddingHorizontal = 18.0;
+  static const double _paddingVertical = 15.0;
+  static const double _messagePaddingAll = 14.0;
+  static const double _iconSize = 40.0;
+  static const Color _messageBackgroundColor = Colors.cyan;
+  static const Color _messageTextColor = Colors.white;
+  bool isFullScreen = false;
+  double _messageFontSize = 14.0;
+
   Future<bool> saveImage(String filePath) async {
-    final result = await ImageGallerySaver.saveFile(filePath);
-    //print(result);
+    await ImageGallerySaver.saveFile(filePath);
     return true;
+  }
+
+  bool addImage(String filePath) {
+    try {
+      widget.onAddFile(filePath);
+      return true;
+    } catch (e, stackTrace) {
+      logger.e("addImage crash: ", stackTrace: stackTrace);
+    }
+    return false;
+  }
+
+  void toggleFullScreen() {
+    setState(() {
+      isFullScreen = !isFullScreen;
+    });
+
+    if (isFullScreen) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => FullScreenTextPage(
+            message: widget.message,
+            messageFontSize: 26,
+            messageTextColor: _messageTextColor,
+            messageBackgroundColor: _messageBackgroundColor,
+            borderColor: Colors.cyan,
+            isRight: false,
+            onClose: () {
+              setState(() {
+                isFullScreen = false;
+              });
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    _messageFontSize = Provider.of<SettingProvider>(context, listen: false).chatFontSize.toDouble();
     final messageTextGroup = Flexible(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(_messagePaddingAll),
-              decoration: const BoxDecoration(
-                color: Colors.cyan,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
-                  bottomRight: Radius.circular(18),
+            child: GestureDetector(
+              onTap: toggleFullScreen,
+              child: Container(
+                padding: const EdgeInsets.all(_messagePaddingAll),
+                decoration: const BoxDecoration(
+                  color: Colors.cyan,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    bottomLeft: Radius.circular(18),
+                    bottomRight: Radius.circular(18),
+                  ),
                 ),
+                child: EditableTextWithLinks(message: widget.message, fontSize: _messageFontSize, textColor: _messageTextColor, backgroundColor: _messageBackgroundColor,),
               ),
-              child: EditableTextWithLinks(message: message, fontSize: _messageFontSize, textColor: _messageTextColor, backgroundColor: _messageBackgroundColor,),
             ),
           ),
           const SizedBox(width: 4),
           Image.asset(
-            iconPath,
+            widget.iconPath,
             width: _iconSize,
             height: _iconSize,
           ),
@@ -183,8 +286,8 @@ class SentMessageScreen extends StatelessWidget {
 
     List<Widget> extendMessageGroupList = [];
 
-    if (extendMessage.containsKey('show_image')) {
-      Map<String, dynamic> showImage = extendMessage['show_image'];
+    if (widget.extendMessage.containsKey('show_image')) {
+      Map<String, dynamic> showImage = widget.extendMessage['show_image'];
       if (showImage['object'] == 'images') {
         List<Map<String, dynamic>> imagesList = showImage['images'];
         if (imagesList.isNotEmpty) {
@@ -260,7 +363,7 @@ class SentMessageScreen extends StatelessWidget {
                                                           Navigator.of(context).pop();
                                                         },
                                                         child: Text(
-                                                          'OK',
+                                                          DemoLocalizations.of(context).okBtn,
                                                           style: TextStyle(
                                                             color: bSuccess ? Colors.green : Colors.red,
                                                             fontWeight: FontWeight.bold,
@@ -289,6 +392,7 @@ class SentMessageScreen extends StatelessWidget {
                                           child: 
                                           ElevatedButton(
                                             onPressed: () {
+                                              addImage(imgPath);
                                               Navigator.of(context).pop();
                                             },
                                             style: ElevatedButton.styleFrom(
@@ -298,7 +402,7 @@ class SentMessageScreen extends StatelessWidget {
                                               elevation: 10,
                                               backgroundColor: Colors.amberAccent.withOpacity(0.6),
                                             ),
-                                            child: Text(DemoLocalizations.of(context).cancelBtn),
+                                            child: Text(DemoLocalizations.of(context).addBtn),
                                           ),
                                         )
                                       ),
@@ -315,7 +419,7 @@ class SentMessageScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Image.asset(
-                    iconPath,
+                    widget.iconPath,
                     width: _iconSize,
                     height: _iconSize,
                   ),
@@ -374,21 +478,22 @@ class ReceivedMessageScreen extends StatefulWidget {
   });
 
   @override
-  _ReceivedMessageScreenState createState() => _ReceivedMessageScreenState();
+  ReceivedMessageScreenState createState() => ReceivedMessageScreenState();
 }
 
-class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
+class ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
   static const double _paddingHorizontal = 18.0;
   static const double _paddingVertical = 10.0;
   static const double _messagePaddingAll = 14.0;
   static const double _iconSize = 40.0;
-  static const double _messageFontSize = 14.0;
   static const Color _messageBackgroundColor = Colors.grey;
   static const Color _messageTextColor = Colors.black;
+  double _messageFontSize = 14.0;
 
   audio.AudioPlayer? audioPlayer;
   bool hasPlayed = false;
   bool isPlaying = false;
+  bool isFullScreen = false;
 
   @override
   void initState() {
@@ -414,29 +519,65 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
     if(audioPath.isEmpty) {
       return;
     }
-    if (audioPlayer != null && !isPlaying && !hasPlayed) {
-      isPlaying = true;
-      audioPlayer!.setReleaseMode(audio.ReleaseMode.stop);
-      await audioPlayer!.setSourceDeviceFile(audioPath);
-      await audioPlayer!.resume();
-      setState(() {
-        hasPlayed = true;
-      });
+    try {
+      if (audioPlayer != null && !isPlaying && !hasPlayed) {
+        isPlaying = true;
+        audioPlayer!.setReleaseMode(audio.ReleaseMode.stop);
+        await audioPlayer!.setSourceDeviceFile(audioPath);
+        await audioPlayer!.resume();
+        setState(() {
+          hasPlayed = true;
+        });
+      }
+    } catch (e, stackTrace) {
+      logger.e("playAudioFile crash: ", stackTrace: stackTrace);
     }
   }
 
   void stopAudio() async {
-    if(audioPlayer != null && isPlaying == true) {
-      await audioPlayer!.stop();
-      setState(() {
-        hasPlayed = true;
-        isPlaying = false;
-      });
+    try {
+      if(audioPlayer != null && isPlaying == true) {
+        await audioPlayer!.stop();
+        setState(() {
+          hasPlayed = true;
+          isPlaying = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      logger.e("playAudioFile crash: ", stackTrace: stackTrace);
+    }
+  }
+
+  void toggleFullScreen() {
+    setState(() {
+      isFullScreen = !isFullScreen;
+    });
+
+    if (isFullScreen) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => FullScreenTextPage(
+            message: widget.message,
+            messageFontSize: 26,
+            messageTextColor: _messageTextColor,
+            messageBackgroundColor: _messageBackgroundColor,
+            borderColor: Colors.grey,
+            isRight: true,
+            onClose: () {
+              setState(() {
+                isFullScreen = false;
+              });
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    _messageFontSize = Provider.of<SettingProvider>(context, listen: false).chatFontSize.toDouble();
     final messageTextGroup = Flexible(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -456,17 +597,20 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
             ),
           ),
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(_messagePaddingAll),
-              decoration: const BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
-                  bottomRight: Radius.circular(18),
+            child: GestureDetector(
+              onTap: toggleFullScreen,
+              child: Container(
+                padding: const EdgeInsets.all(_messagePaddingAll),
+                decoration: const BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(18),
+                    bottomLeft: Radius.circular(18),
+                    bottomRight: Radius.circular(18),
+                  ),
                 ),
+                child: EditableTextWithLinks(message: widget.message, fontSize: _messageFontSize, textColor: _messageTextColor, backgroundColor: _messageBackgroundColor,),
               ),
-              child: EditableTextWithLinks(message: widget.message, fontSize: _messageFontSize, textColor: _messageTextColor, backgroundColor: _messageBackgroundColor,),
             ),
           ),
         ],
@@ -474,7 +618,6 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
     );
 
     List<Widget> extendMessageGroupList = [];
-
     if (widget.extendMessage.containsKey('show_map')) {
       Map<String, dynamic> showMap = widget.extendMessage['show_map'];
       if (showMap['object'] == 'position') {
@@ -579,7 +722,7 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
                     markers: markers,
                     polylines: Set<Polyline>.of(polylines.values),
                     // Ensure that gestures work properly
-                    gestureRecognizers: Set()
+                    gestureRecognizers: {}
                     ..add(Factory<OneSequenceGestureRecognizer>(
                         () => EagerGestureRecognizer())),
                   ),
@@ -646,7 +789,7 @@ class _ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
                     ),
                     markers: markers,
                     // Ensure that gestures work properly
-                    gestureRecognizers: Set()
+                    gestureRecognizers: {}
                     ..add(Factory<OneSequenceGestureRecognizer>(
                         () => EagerGestureRecognizer())),
                   ),

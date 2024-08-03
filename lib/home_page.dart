@@ -15,10 +15,10 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   bool isEye = true;
   String userName = "";
   String password = "";
@@ -41,22 +41,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() async {
     super.didChangeDependencies();
-    authProvider = Provider.of<KerasAuthProvider>(context);
-    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
-    if(authProvider != null && authProvider!.getLoginStatus() == LoginStatus.logout) {
-      final status = await authProvider!.googleSignInSilently();
-      if(status == AuthStatus.success) {
-        await subProvider.updateSubscriptionState();
-        bool firstLogin = authProvider!.isFirstLogin();
-        if(firstLogin) {
-          await showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return WelcomeDialog();
-            },
-          );
+    try {
+      authProvider = Provider.of<KerasAuthProvider>(context);
+      final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+      if(authProvider != null && authProvider!.getLoginStatus() == LoginStatus.logout) {
+        final status = await authProvider!.googleSignInSilently();
+        if(status == AuthStatus.success) {
+          await subProvider.updateSubscriptionState();
+          bool firstLogin = authProvider!.isFirstLogin();
+          if(firstLogin) {
+            await showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return const WelcomeDialog();
+              },
+            );
+          }
         }
       }
+    } catch (e, stackTrace) {
+      logger.e("HomeScreenState didChangeDependencies crash: ", stackTrace: stackTrace);
     }
   }
 
@@ -78,10 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result == 'accept') {
       // Handle the accept action for the privacy policy
-      print('User accepted the privacy policy');
+      logger.i('User accepted the privacy policy');
     } else if (result == 'close') {
       // Handle the close action for the privacy policy
-      print('User closed the privacy policy dialog');
+      logger.i('User closed the privacy policy dialog');
       SystemNavigator.pop();
       return;
     }
@@ -97,10 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result == 'accept') {
       // Handle the accept action for the terms and conditions
-      print('User accepted the terms and conditions');
+      logger.i('User accepted the terms and conditions');
     } else if (result == 'close') {
       // Handle the close action for the terms and conditions
-      print('User closed the terms and conditions dialog');
+      logger.i('User closed the terms and conditions dialog');
       SystemNavigator.pop();
       return;
     }
@@ -118,10 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
         userName = Provider.of<SettingProvider>(context, listen: false).userName;
         password = Provider.of<SettingProvider>(context, listen: false).password;
         final subProvider = Provider.of<KerasSubscriptionProvider>(context);
-        String subScriptionStatus = subProvider.getSubscriptionStatus();
         Color subTextColor = Colors.white;
         Color subBkColor = Colors.green;
-        if(subScriptionStatus == 'Free') {
+        if(subProvider.isFreeSubscriptionStatus()) {
           subBkColor = Colors.redAccent;
         }
         if(authProvider!.getLoginStatus() == LoginStatus.logout) {
@@ -149,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          if(subScriptionStatus == "") ...{
+                          if(subProvider.getSubscriptionStatus() == "") ...{
                             Image.asset(
                               'assets/log-imgs/logo-phone.png',
                               width: screenWidth * 0.5,
@@ -168,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
                                     ),
                                     child: Text(
-                                      subScriptionStatus,
+                                      subProvider.getSubscriptionStatus(),
                                       style: TextStyle(
                                         color: subTextColor,
                                         fontSize: 16, // Adjust font size as needed
@@ -202,80 +205,80 @@ class _HomeScreenState extends State<HomeScreen> {
                           key: _formKey,
                           autovalidateMode: AutovalidateMode.always,
                           child: Column(
-                              children: [
-                                SizedBox(
-                                  width: screenWidth * 0.9,
-                                  child: TextFormField( //user name
-                                    controller: usernameController,
-                                    //focusNode: focusNode1,
-                                    keyboardType: TextInputType.text,
-                                    maxLength: 60,
-                                    textInputAction: TextInputAction.next,
-                                    decoration: InputDecoration(
-                                        hintText: DemoLocalizations.of(context).hintTextAccount,
-                                        labelText: DemoLocalizations.of(context).labelTextAccount,
-                                        contentPadding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-                                        prefixIcon: const Icon(Icons.perm_identity),
-                                        border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(40.0)
-                                        ),
-                                        suffixIcon: usernameController.text.isNotEmpty?IconButton(
-                                            icon: const Icon(
-                                                Icons.clear,
-                                                size: 21,
-                                                color: Color(0xff666666),
-                                            ),
-                                            onPressed: (){
-                                                setState(() {
-                                                    usernameController.text = '';
-                                                }
-                                              );
-                                            },
-                                        ):null
-                                    ),
-                                    validator: (v) {
-                                        return !emailRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextAccount:null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(height: 10.0),
-                                SizedBox(
-                                  width: screenWidth * 0.9,
-                                  child: TextFormField( //password
-                                    controller: passwordController,
-                                    //focusNode: focusNode2,
-                                    obscureText: isEye,
-                                    maxLength: 12,
-                                    textInputAction: TextInputAction.done,
-                                    decoration: InputDecoration(
-                                      hintText: DemoLocalizations.of(context).hintTextPassword,
-                                      labelText: DemoLocalizations.of(context).labelTextPassword,
+                            children: [
+                              SizedBox(
+                                width: screenWidth * 0.9,
+                                child: TextFormField( //user name
+                                  controller: usernameController,
+                                  //focusNode: focusNode1,
+                                  keyboardType: TextInputType.text,
+                                  maxLength: 60,
+                                  textInputAction: TextInputAction.next,
+                                  decoration: InputDecoration(
+                                      hintText: DemoLocalizations.of(context).hintTextAccount,
+                                      labelText: DemoLocalizations.of(context).labelTextAccount,
                                       contentPadding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-                                      prefixIcon:const Icon(Icons.lock),
+                                      prefixIcon: const Icon(Icons.perm_identity),
                                       border: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(40.0)
                                       ),
-                                      suffixIcon: IconButton(
+                                      suffixIcon: usernameController.text.isNotEmpty?IconButton(
                                           icon: const Icon(
-                                              Icons.remove_red_eye,
+                                              Icons.clear,
                                               size: 21,
                                               color: Color(0xff666666),
                                           ),
                                           onPressed: (){
-                                            setState(() {
-                                                isEye = !isEye;
-                                            });
+                                              setState(() {
+                                                  usernameController.text = '';
+                                              }
+                                            );
                                           },
-                                      )
-                                    ),
-                                    validator:(v){
-                                        return !pwdRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextPassword:null;
-                                    },
+                                      ):null
                                   ),
+                                  validator: (v) {
+                                      return !emailRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextAccount:null;
+                                  },
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 10.0),
+                              SizedBox(
+                                width: screenWidth * 0.9,
+                                child: TextFormField( //password
+                                  controller: passwordController,
+                                  //focusNode: focusNode2,
+                                  obscureText: isEye,
+                                  maxLength: 12,
+                                  textInputAction: TextInputAction.done,
+                                  decoration: InputDecoration(
+                                    hintText: DemoLocalizations.of(context).hintTextPassword,
+                                    labelText: DemoLocalizations.of(context).labelTextPassword,
+                                    contentPadding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+                                    prefixIcon:const Icon(Icons.lock),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(40.0)
+                                    ),
+                                    suffixIcon: IconButton(
+                                        icon: const Icon(
+                                            Icons.remove_red_eye,
+                                            size: 21,
+                                            color: Color(0xff666666),
+                                        ),
+                                        onPressed: (){
+                                          setState(() {
+                                              isEye = !isEye;
+                                          });
+                                        },
+                                    )
+                                  ),
+                                  validator:(v){
+                                      return !pwdRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextPassword:null;
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: ElevatedButton(
@@ -330,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     await showDialog(
                                       context: context,
                                       builder: (BuildContext context) {
-                                        return WelcomeDialog();
+                                        return const WelcomeDialog();
                                       },
                                     );
                                   }
@@ -412,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 await showDialog(
                                   context: context,
                                   builder: (BuildContext context) {
-                                    return WelcomeDialog();
+                                    return const WelcomeDialog();
                                   },
                                 );
                               }
@@ -560,7 +563,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               textAlign: TextAlign.center,
                               text: TextSpan(
                                 text: 'By creating an account, you are agreeing to our ',
-                                style: const TextStyle(color: Colors.black),
+                                style: TextStyle(color: Theme.of(context).colorScheme.primary),
                                 children: <TextSpan>[
                                   TextSpan(
                                     text: 'Terms & Conditions',
@@ -573,8 +576,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md', justShow: true,));
                                       },
                                   ),
-                                  const TextSpan(
+                                  TextSpan(
                                     text: ' and ',
+                                    style: TextStyle(color: Theme.of(context).colorScheme.primary),
                                   ),
                                   TextSpan(
                                     text: 'Privacy Policy',
@@ -587,8 +591,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md', justShow: true,));
                                       },
                                   ),
-                                  const TextSpan(
+                                  TextSpan(
                                     text: '!',
+                                    style: TextStyle(color: Theme.of(context).colorScheme.primary),
                                   ),
                                 ],
                               ),

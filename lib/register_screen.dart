@@ -12,10 +12,10 @@ class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  _RegisterScreenState createState() => _RegisterScreenState();
+  RegisterScreenState createState() => RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class RegisterScreenState extends State<RegisterScreen> {
   bool isEye = true;
   final _formKey = GlobalKey<FormState>();
   final firebaseAuth = FirebaseAuth.instance;
@@ -97,21 +97,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         borderRadius: BorderRadius.circular(40.0)
                                     ),
                                     suffixIcon: usernameController.text.isNotEmpty?IconButton(
-                                        icon: const Icon(
-                                            Icons.clear,
-                                            size: 21,
-                                            color: Color(0xff666666),
-                                        ),
-                                        onPressed: (){
-                                            setState(() {
-                                                usernameController.text = '';
-                                            }
-                                          );
-                                        },
-                                    ):null
+                                      icon: const Icon(
+                                          Icons.clear,
+                                          size: 21,
+                                          color: Color(0xff666666),
+                                      ),
+                                      onPressed: (){
+                                        setState(() {
+                                            usernameController.text = '';
+                                        }
+                                      );
+                                    },
+                                  ):null
                                 ),
                                 validator: (v) {
-                                    return !emailRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextAccount:null;
+                                  return !emailRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextAccount:null;
                                 },
                               ),
                             ),
@@ -133,20 +133,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       borderRadius: BorderRadius.circular(40.0)
                                   ),
                                   suffixIcon: IconButton(
-                                      icon: const Icon(
-                                          Icons.remove_red_eye,
-                                          size: 21,
-                                          color: Color(0xff666666),
-                                      ),
-                                      onPressed: (){
-                                        setState(() {
-                                            isEye = !isEye;
-                                        });
-                                      },
+                                    icon: const Icon(
+                                        Icons.remove_red_eye,
+                                        size: 21,
+                                        color: Color(0xff666666),
+                                    ),
+                                    onPressed: (){
+                                      setState(() {
+                                          isEye = !isEye;
+                                      });
+                                    },
                                   )
                                 ),
                                 validator:(v){
-                                    return !pwdRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextPassword:null;
+                                  return !pwdRegex.hasMatch(v!)?DemoLocalizations.of(context).errTextPassword:null;
                                 },
                               ),
                             ),
@@ -205,7 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 await showDialog(
                                   context: context,
                                   builder: (BuildContext context) {
-                                    return WelcomeDialog();
+                                    return const WelcomeDialog();
                                   },
                                 );
                                 Future.delayed(const Duration(seconds: 2), () {
@@ -251,47 +251,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: RichText(
-                            textAlign: TextAlign.center,
-                            text: TextSpan(
-                              text: 'By creating an account, you are agreeing to our ',
-                              style: const TextStyle(color: Colors.black),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: 'Terms & Conditions',
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md', justShow: true,));
-                                    },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            text: 'By creating an account, you are agreeing to our ',
+                            style: const TextStyle(color: Colors.black),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: 'Terms & Conditions',
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const TextSpan(
-                                  text: ' and ',
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'terms_conditions.md', justShow: true,));
+                                  },
+                              ),
+                              const TextSpan(
+                                text: ' and ',
+                              ),
+                              TextSpan(
+                                text: 'Privacy Policy',
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                TextSpan(
-                                  text: 'Privacy Policy',
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md', justShow: true,));
-                                    },
-                                ),
-                                const TextSpan(
-                                  text: '!',
-                                ),
-                              ],
-                            ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    showDialog(context: context, builder: (context) => PolicyDialog(mdFileName: 'privacy_policy.md', justShow: true,));
+                                  },
+                              ),
+                              const TextSpan(
+                                text: '!',
+                              ),
+                            ],
                           ),
-                        )
-                      ),
+                        ),
+                      )
+                    ),
                   ],
                 ),
               ),

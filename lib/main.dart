@@ -1,7 +1,7 @@
 // Copyright 2024 the Dart project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license
 // that can be found in the LICENSE file.
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
@@ -12,30 +12,34 @@ import 'firebase_options.dart';
 import 'l10n/localization_intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 main() async {
-  dotenv.load(fileName: ".env");
-  WidgetsFlutterBinding.ensureInitialized();
-  initCameras();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug,
-  );
-  final settingProvider = SettingProvider();
-  await settingProvider.initialize();
-  await FirebaseRemoteConfigService().initialize();
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => settingProvider),
-        ChangeNotifierProvider(create: (context) => KerasAuthProvider()),
-        ChangeNotifierProvider(create: (context) => KerasSubscriptionProvider()),
-      ],
-      child: const KerasMobileChatbotMainUI(),
-    ),
-  );
+  runZonedGuarded<Future<void>>(() async { 
+    dotenv.load(fileName: ".env");
+    WidgetsFlutterBinding.ensureInitialized();
+    initApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.debug,
+    );
+    final settingProvider = SettingProvider();
+    await settingProvider.initialize();
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => settingProvider),
+          ChangeNotifierProvider(create: (context) => KerasAuthProvider()),
+          ChangeNotifierProvider(create: (context) => KerasSubscriptionProvider()),
+        ],
+        child: const KerasMobileChatbotMainUI(),
+      ),
+    );
+    FirebaseRemoteConfigService().initialize();
+  }, (error, stack) => 
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true)); 
 }
 
 class KerasMobileChatbotMainUI extends StatelessWidget {
@@ -71,6 +75,8 @@ class KerasMobileChatbotMainUI extends StatelessWidget {
       localesInApp = [const Locale('vi', 'VN')];
     } else if (language == "auto") {
       localesInApp = supportedLocalesInApp;
+    } else {
+      localesInApp = [const Locale('en', 'US')];
     }
     if(localesInApp.length == 1) {
       return MaterialApp(

@@ -18,10 +18,10 @@ class DetailPage extends StatefulWidget {
   });
 
   @override
-  _DetailPageState createState() => _DetailPageState();
+  DetailPageState createState() => DetailPageState();
 }
 
-class _DetailPageState extends State<DetailPage> with SingleTickerProviderStateMixin {
+class DetailPageState extends State<DetailPage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool checkMark = false;
 
@@ -130,10 +130,10 @@ class CharactersListPage extends StatefulWidget {
   const CharactersListPage({super.key, required this.charactersList, required this.characterIconPath, required this.characterCallback});
 
   @override
-  _CharactersListState createState() => _CharactersListState();
+  CharactersListState createState() => CharactersListState();
 }
 
-class _CharactersListState extends State<CharactersListPage> {
+class CharactersListState extends State<CharactersListPage> {
   PageController? _controller;
   List<Character> curCharactersList = [];
   String selectedCharacterPath = "";

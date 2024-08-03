@@ -21,10 +21,9 @@ import 'package:keras_mobile_chatbot/setting_page.dart';
 import 'package:keras_mobile_chatbot/takepicture_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:cloud_text_to_speech/cloud_text_to_speech.dart';
 
 class GradientText extends StatelessWidget {
-  GradientText(this.text, {required this.gradient, this.style});
+  const GradientText(this.text, {super.key, required this.gradient, this.style});
 
   final String text;
   final TextStyle? style;
@@ -45,12 +44,16 @@ class GradientText extends StatelessWidget {
 }
 
 class ChatHome extends StatefulWidget {
+  const ChatHome({super.key});
+
   @override
-  _ChatHomeState createState() => _ChatHomeState();
+  ChatHomeState createState() => ChatHomeState();
 }
 
-class _ChatHomeState  extends State<ChatHome>  {
+class ChatHomeState  extends State<ChatHome>  {
   final String paywallCode = dotenv.get('qonversion_paywall');
+  List<Character> assistantCharacters = [];
+  List<Character> playerCharacters = [];
 
   @override
   void initState() {
@@ -60,191 +63,21 @@ class _ChatHomeState  extends State<ChatHome>  {
   @override
   void didChangeDependencies() async {
     super.didChangeDependencies();
+    initAssistantCharacters();
+    initPlayerCharacters();
   }
 
   Future<void> subscriptionScreen() async {
     try {
-      var config = new QScreenPresentationConfig(QScreenPresentationStyle.push, true);
+      var config = QScreenPresentationConfig(QScreenPresentationStyle.push, true);
       // Set configuration for all screens.
       Automations.getSharedInstance().setScreenPresentationConfig(config);
       // Set configuration for the concrete screen.
       Automations.getSharedInstance().setScreenPresentationConfig(config, paywallCode);
       await Automations.getSharedInstance().showScreen(paywallCode);
-    } catch (e) {
-      // handle error here
+    } catch (e, stackTrace) {
+      logger.e("subscriptionScreen crash: ", stackTrace: stackTrace);
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    String name = DemoLocalizations.of(context).subscriptionBtn;
-    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
-    String subScriptionStatus = subProvider.getSubscriptionStatus();
-    Color subTextColor = Colors.white;
-    Color subBkColor = Colors.green;
-    if(subScriptionStatus == 'Free') {
-      subBkColor = Colors.redAccent;
-    }
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.all(8), // Adjust padding as needed
-                  decoration: BoxDecoration(
-                    color: subBkColor,
-                    borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
-                  ),
-                  child: Text(
-                    subScriptionStatus,
-                    style: TextStyle(
-                      color: subTextColor,
-                      fontSize: 16, // Adjust font size as needed
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16), // Add spacing between "Play" and other widgets
-              ],
-            ),
-            const Spacer(),
-            InkWell(
-              onTap: () async {
-                await subscriptionScreen();
-                setState(() {
-                });
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    name,
-                    style: const TextStyle(fontSize: 20),
-                    textAlign: TextAlign.center,
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.subscriptions,
-                      semanticLabel: 'subscriptions',
-                    ),
-                    onPressed: () async {
-                      await subscriptionScreen();
-                      setState(() {
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.settings,
-                semanticLabel: 'settings',
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingScreen()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: ChatUI(),
-    );
-  }
-}
-
-class ChatUI extends StatefulWidget {
-  @override
-  _ChatUIState createState() => _ChatUIState();
-}
-
-class _ChatUIState extends State<ChatUI> {
-  late LlmModel? llmModel;
-  KerasAuthProvider? authProvider;
-  final FocusNode _textFieldFocus = FocusNode();
-  final TextEditingController _textController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  bool _loading = false;
-  bool toolBoxEnable = false;
-  String loadModelName = "";
-  String wallpaperPath = "";
-  List<String> fileUploadList = [];
-  Map<int, dynamic> internalMessageList = {};
-  Map<int, dynamic> extendMessageList = {};
-  Map<int, Map<String, dynamic>> speechMessageList = {};
-  String roleIconPath = '';
-  String playerIconPath = '';
-  bool speechEnable = false;
-  bool freeTrialExpired = false;
-  SubscriptionStatus subStatus = SubscriptionStatus.free;
-  final record = AudioRecorder();
-  String recordPath = "";
-  bool isRecording = false;
-  Timer? timer;
-  int silenceDuration = 0;
-  double bubbleSize = 200.0;
-  List<Character> assistantCharacters = [];
-  List<Character> playerCharacters = [];
-
-  String getSystemInstruction(String role) {
-
-    Character character = findCharacterByTitle(role);
-    String description = character.description ?? "";
-    String dot = ".";
-    String printLog = DemoLocalizations.of(context).promptSysInstruction2;
-    print("promptSysInstruction2: $printLog");
-    return DemoLocalizations.of(context).promptSysInstruction1 + role + dot + DemoLocalizations.of(context).promptSysInstruction2 + description;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() async {
-    super.didChangeDependencies();
-    authProvider = Provider.of<KerasAuthProvider>(context);
-    initModel();
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
-  }
-
-  void initModel() {
-    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
-    bool permissionCheck = subProvider.toolboxPermission();
-    SubscriptionStatus status = subProvider.getSubscriptionStatusCode();
-    loadModelName = Provider.of<SettingProvider>(context, listen: false).modelName;
-    String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
-    toolBoxEnable = permissionCheck == true ? Provider.of<SettingProvider>(context, listen: false).toolBoxEnable : permissionCheck;
-    Locale locale = Localizations.localeOf(context);
-    String language = Provider.of<SettingProvider>(context, listen: false).language;
-    if(toolBoxEnable) {
-      toolBoxEnable = restrictionInformation.isToolboxRestriction() ? false : toolBoxEnable;
-    }
-    initAssistantCharacters();
-    initPlayerCharacters();
-    if(status == SubscriptionStatus.basic) {
-      ttsProviderInstance!.switchProvider(VoiceProvider.google, null);
-    }
-    else if(status == SubscriptionStatus.free ||
-            status == SubscriptionStatus.professional ||
-            status == SubscriptionStatus.premium ||
-            status == SubscriptionStatus.ultimate) {
-      ttsProviderInstance!.switchProvider(VoiceProvider.microsoft, null);
-    }
-    ttsProviderInstance!.initCurrentSpeech(locale, language);
-    String systemInstruction = getSystemInstruction(role);
-    llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
   }
 
   void initAssistantCharacters() {
@@ -497,10 +330,184 @@ class _ChatUIState extends State<ChatUI> {
     ];
   }
 
+  @override
+  Widget build(BuildContext context) {
+    String name = DemoLocalizations.of(context).subscriptionBtn;
+    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+    Color subTextColor = Colors.white;
+    Color subBkColor = Colors.green;
+    if(subProvider.isFreeSubscriptionStatus()) {
+      subBkColor = Colors.redAccent;
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(8), // Adjust padding as needed
+                  decoration: BoxDecoration(
+                    color: subBkColor,
+                    borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
+                  ),
+                  child: Text(
+                    subProvider.getSubscriptionStatus(),
+                    style: TextStyle(
+                      color: subTextColor,
+                      fontSize: 16, // Adjust font size as needed
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16), // Add spacing between "Play" and other widgets
+              ],
+            ),
+            const Spacer(),
+            InkWell(
+              onTap: () async {
+                await subscriptionScreen();
+                setState(() {
+                });
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    name,
+                    style: const TextStyle(fontSize: 20),
+                    textAlign: TextAlign.center,
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.subscriptions,
+                      semanticLabel: 'subscriptions',
+                    ),
+                    onPressed: () async {
+                      await subscriptionScreen();
+                      setState(() {
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.settings,
+                semanticLabel: 'settings',
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SettingScreen(assistantCharacters: assistantCharacters, playerCharacters: playerCharacters,)),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      body: ChatUI(assistantCharacters: assistantCharacters, playerCharacters: playerCharacters,),
+    );
+  }
+}
+
+class ChatUI extends StatefulWidget {
+  List<Character> assistantCharacters = [];
+  List<Character> playerCharacters = [];
+
+  ChatUI({super.key, required this.assistantCharacters, required this.playerCharacters});
+
+  @override
+  ChatUIState createState() => ChatUIState();
+}
+
+class ChatUIState extends State<ChatUI> {
+  late LlmModel? llmModel;
+  KerasAuthProvider? authProvider;
+  final FocusNode _textFieldFocus = FocusNode();
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _loading = false;
+  bool toolBoxEnable = false;
+  String loadModelName = "";
+  String wallpaperPath = "";
+  List<String> fileUploadList = [];
+  Map<int, dynamic> internalMessageList = {};
+  Map<int, dynamic> extendMessageList = {};
+  Map<int, Map<String, dynamic>> speechMessageList = {};
+  String roleIconPath = '';
+  String playerIconPath = '';
+  bool speechEnable = false;
+  bool freeTrialExpired = false;
+  SubscriptionStatus subStatus = SubscriptionStatus.free;
+  final record = AudioRecorder();
+  String recordPath = "";
+  bool isRecording = false;
+  Timer? timer;
+  int silenceDuration = 0;
+  double bubbleSize = 200.0;
+
+  String getSystemInstruction(String role) {
+
+    Character character = findCharacterByTitle(role);
+    String description = character.description ?? "";
+    String dot = ".";
+    String printLog = DemoLocalizations.of(context).promptSysInstruction2;
+    logger.i("promptSysInstruction2: $printLog");
+    return DemoLocalizations.of(context).promptSysInstruction1 + role + dot + DemoLocalizations.of(context).promptSysInstruction2 + description;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() async {
+    super.didChangeDependencies();
+    authProvider = Provider.of<KerasAuthProvider>(context);
+    initModel();
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  void initModel() {
+    final subProvider = Provider.of<KerasSubscriptionProvider>(context);
+    bool permissionCheck = subProvider.toolboxPermission();
+    bool normalSpeechCheck = subProvider.normalSpeechPermission();
+    bool advancedSpeechCheck = subProvider.advancedSpeechPermission();
+    bool baseModelCheck = subProvider.baseModelPermission();
+    bool advancedModelCheck = subProvider.powerModelPermission();
+    loadModelName = Provider.of<SettingProvider>(context, listen: false).modelName;
+    String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
+    toolBoxEnable = permissionCheck == true ? Provider.of<SettingProvider>(context, listen: false).toolBoxEnable : permissionCheck;
+    Locale locale = Localizations.localeOf(context);
+    String language = Provider.of<SettingProvider>(context, listen: false).language;
+    if(toolBoxEnable) {
+      toolBoxEnable = restrictionInformation.isToolboxRestriction() ? false : toolBoxEnable;
+    }
+    if(normalSpeechCheck) {
+      ttsProviderInstance!.switchProvider(VoiceProvider.google, null);
+    }
+    else if(advancedSpeechCheck) {
+      ttsProviderInstance!.switchProvider(VoiceProvider.microsoft, null);
+    }
+    ttsProviderInstance!.initCurrentSpeech(locale, language);
+    String systemInstruction = getSystemInstruction(role);
+    if(baseModelCheck || advancedModelCheck) {
+      llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
+    }
+  }
+
   Character findCharacterByTitle(String title) {
     Character character = Character();
 
-    for (var char in assistantCharacters) {
+    for (var char in widget.assistantCharacters) {
       if (char.title == title) {
         character = char;
         break;
@@ -513,7 +520,7 @@ class _ChatUIState extends State<ChatUI> {
   Character findCharacterByAvatar(String avatar) {
     Character character = Character();
 
-    for (var char in assistantCharacters) {
+    for (var char in widget.assistantCharacters) {
       if (char.avatar == avatar) {
         character = char;
         break;
@@ -523,12 +530,12 @@ class _ChatUIState extends State<ChatUI> {
     return character;
   }
 
-  double calculateBubbleSize(dynamic data) {
-    dynamic newData = 200.0 + data * 10.0;
+  double calculateBubbleSize(double data) {
+    double newData = 200.0 + data * 10.0;
     if(newData < 30.0) {
       newData = 30.0;
     } else if(newData > 250.0) {
-      newData = 250;
+      newData = 250.0;
     }
     return newData;
   }
@@ -537,75 +544,83 @@ class _ChatUIState extends State<ChatUI> {
     if(recordPath.isNotEmpty) {
       return;
     }
-    if (await record.hasPermission()) {
-      final directory = await getTemporaryDirectory();
-      // Create a unique file name.
-      recordPath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.wav';
-      await record.start(
-        const RecordConfig(),
-        path: recordPath,
-      );
-      setState(() {
-        isRecording = true;
-      });
-      startMonitoring();
+    try {
+      if (await record.hasPermission()) {
+        final directory = await getTemporaryDirectory();
+        // Create a unique file name.
+        recordPath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.wav';
+        await record.start(
+          const RecordConfig(),
+          path: recordPath,
+        );
+        setState(() {
+          isRecording = true;
+        });
+        startMonitoring();
+      }
+    } catch (e, stackTrace) {
+      logger.e("startRecording crash: ", stackTrace: stackTrace);
     }
   }
 
   Future<void> stopRecording() async {
     if(timer != null) {
-      timer?.cancel();
-      final path = await record.stop();
-      setState(() {
-        _loading = true;
-        isRecording = false;
-        silenceDuration = 0;
-      });
-      print('Recorded file path: $path');
-      io.File audioFile = io.File(recordPath);
-      DeepgramSttResult res = await deepgram!.transcribeFromFile(audioFile); // or transcribeFromPath() if you prefer
-      String message = res.transcript;
-      print("message: $message");
-      recordPath = '';
-      if(message.isNotEmpty) {
-        _textController.text = message;
-        _sendChatMessage(_textController.text);
-      }
-      else {
+      try {
+        timer!.cancel();
+        final path = await record.stop();
         setState(() {
-          _loading = false;
+          _loading = true;
+          isRecording = false;
+          silenceDuration = 0;
         });
+        logger.i('Recorded file path: $path');
+        io.File audioFile = io.File(recordPath);
+        DeepgramSttResult res = await deepgram!.transcribeFromFile(audioFile); // or transcribeFromPath() if you prefer
+        String message = res.transcript;
+        logger.i("message: $message");
+        recordPath = '';
+        if(message.isNotEmpty) {
+          _textController.text = message;
+          _sendChatMessage(_textController.text);
+        }
+        else {
+          setState(() {
+            _loading = false;
+          });
+        }
+      } catch (e, stackTrace) {
+        logger.e("stopRecording crash: ", stackTrace: stackTrace);
       }
     }
   }
 
   void startMonitoring() {
-    timer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
-      Amplitude amplitude = await record.getAmplitude();
-      if (amplitude.current > -30.0) {
-        silenceDuration = 0;
-        double current = amplitude.current;
-        print("current1: $current");
-      } else {
-        silenceDuration += 1;
-        double current = amplitude.current;
-        print("current2: $current");
-      }
+    try {
+      timer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+        Amplitude amplitude = await record.getAmplitude();
+        if (amplitude.current > -30.0) {
+          silenceDuration = 0;
+        } else {
+          silenceDuration += 1;
+        }
 
-      double newBubbleSize = calculateBubbleSize(amplitude.current + 40.0);
-      setState(() {
-        bubbleSize = newBubbleSize;
+        double newBubbleSize = calculateBubbleSize(amplitude.current + 40.0);
+        setState(() {
+          bubbleSize = newBubbleSize;
+        });
+
+        if (silenceDuration >= 20) {
+          await stopRecording();
+        }
       });
-
-      if (silenceDuration >= 20) {
-        await stopRecording();
-      }
-    });
+    } catch (e, stackTrace) {
+      logger.e("startMonitoring crash: ", stackTrace: stackTrace);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final history = llmModel!.getHistory();
+    final history = llmModel?.getHistory() ?? [];
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
@@ -615,8 +630,7 @@ class _ChatUIState extends State<ChatUI> {
         String playerIconPath = settingProvider.playerIconPath;
         String wallpaperPath = settingProvider.chatpageWallpaperPath;
         final subProvider = Provider.of<KerasSubscriptionProvider>(context);
-        subStatus = subProvider.getSubscriptionStatusCode();
-        if(subStatus == SubscriptionStatus.free && authProvider != null && !checkFreeTrial(authProvider!.getFirstCreateDate())) {
+        if(authProvider != null && !subProvider.checkFreeTrial(authProvider!.getFirstCreateDate())) {
           freeTrialExpired = true;
         } else {
           freeTrialExpired = false;
@@ -669,6 +683,7 @@ class _ChatUIState extends State<ChatUI> {
                                   message: text,
                                   extendMessage: curExtendMessage,
                                   iconPath: playerIconPath,
+                                  onAddFile: addFile,
                                 );
                               } else {
                                 Map<String, dynamic> audioDict = {};
@@ -768,9 +783,7 @@ class _ChatUIState extends State<ChatUI> {
                                         statisticsInformation.updateVoiceStatistics();
                                         await startRecording();
                                         if(isRecording == false) {
-                                          print(recordPath);
                                           if(recordPath.isNotEmpty) {
-                                            
                                           }
                                         }
                                       },
@@ -827,7 +840,9 @@ class _ChatUIState extends State<ChatUI> {
         for(PlatformFile file in files) {
           String path = file.path ?? "";
           if(path.isNotEmpty) {
-            fileUploadList.add(path);
+            if(!fileUploadList.contains(path)) {
+              fileUploadList.add(path);
+            }
           }
         }
       });
@@ -840,6 +855,14 @@ class _ChatUIState extends State<ChatUI> {
     setState(() {
       fileUploadList.remove(filePath);
     });
+  }
+
+  void addFile(String filePath) {
+    if(!fileUploadList.contains(filePath)) {
+      setState(() {
+        fileUploadList.add(filePath);
+      });
+    }
   }
 
   InputDecoration textFieldDecoration() {
@@ -884,8 +907,8 @@ class _ChatUIState extends State<ChatUI> {
                   fileUploadList.addAll(result);
                 });
               }
-            } catch (e) {
-              print(e);
+            } catch (e, stackTrace) {
+              logger.e("TakePictureScreen crash: ", stackTrace: stackTrace);
             }
           }
         },
@@ -897,7 +920,7 @@ class _ChatUIState extends State<ChatUI> {
     if(freeTrialExpired || restrictionInformation.isConversationRestriction()) {
       String title = freeTrialExpired ? DemoLocalizations.of(context).expiredTitle : 'Restriction!';
       String warning = freeTrialExpired ? DemoLocalizations.of(context).freeTrialWarning: 'Reached the conversation restriction!';
-      print('Free trial has expired!');
+      logger.w('Free trial has expired!');
       await showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -1049,7 +1072,6 @@ class _ChatUIState extends State<ChatUI> {
                   img.Image resizedImage = img.copyResize(image, width: 400, height: 500);
                   List<int> compressedBytes = img.encodeJpg(resizedImage);
                   String base64Data = base64Encode(compressedBytes);
-                  //print("length: ${base64Data.length}");
                   Map<String, dynamic> imageUrlMap = {
                     "type": "image_url",
                     "image_url": {
@@ -1077,13 +1099,13 @@ class _ChatUIState extends State<ChatUI> {
             }
             List<Map<String, dynamic>> newHistory = history.cast<Map<String, dynamic>>().toList();
             Map<String, dynamic> query = openai.Messages(role: openai.Role.user, content: message).toJson();
-            Map<String, dynamic> new_query = {};
+            Map<String, dynamic> newQuery = {};
             if(imageList.isEmpty) {
-              new_query = query;
+              newQuery = query;
             }
             else {
               if(llmModel!.name == openai.kChatGptTurboModel) {
-                new_query = query;
+                newQuery = query;
                 GFToast.showToast(
                   DemoLocalizations.of(context).nonSupportVision,
                   context,
@@ -1097,13 +1119,13 @@ class _ChatUIState extends State<ChatUI> {
                 );
               } else {
                 imageList.insert(0, {"type": "text", "text": message});
-                new_query = {
+                newQuery = {
                   "role": "user",
                   "content": imageList,
                 };
               }
             }
-            newHistory.add(new_query);
+            newHistory.add(newQuery);
             if(toolBoxEnable) {
               var request = openai.ChatCompleteText(
                 model: llmModel!.model,
@@ -1223,6 +1245,7 @@ class _ChatUIState extends State<ChatUI> {
                 };
                 int index = history.length - 2;
                 internalMessageList[index] = curInternalMessage;
+                fileUploadList = [];
               }
             }
             if (curExtendMessage.isNotEmpty && history.isNotEmpty) {

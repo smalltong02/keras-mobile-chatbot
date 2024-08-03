@@ -459,7 +459,7 @@ class DemoLocalizations {
 
   String get titleChinese {
     return Intl.message(
-      'simplified Chinese',
+      'Simplified Chinese',
       name: 'titleChinese',
       desc: 'title of Chinese',
     );
@@ -467,7 +467,7 @@ class DemoLocalizations {
 
   String get titletraditional {
     return Intl.message(
-      'traditional Chinese',
+      'Traditional Chinese',
       name: 'titletraditional',
       desc: 'title of traditional Chinese',
     );
@@ -494,6 +494,14 @@ class DemoLocalizations {
       'Vietnamese',
       name: 'titleVietnam',
       desc: 'title of Vietnam',
+    );
+  }
+
+  String get chatFontSize {
+    return Intl.message(
+      'FontSize',
+      name: 'chatFontSize',
+      desc: 'size of chat font.',
     );
   }
 
@@ -683,7 +691,7 @@ class DemoLocalizations {
 
   String get welcomeParagraph2 {
     return Intl.message(
-      '3-day trial',
+      '-day trial',
       name: 'welcomeParagraph2',
       desc: 'welcome paragraph 2',
     );
@@ -699,7 +707,7 @@ class DemoLocalizations {
 
   String get welcomeParagraph4 {
     return Intl.message(
-      'Professional Subscription',
+      'Premium Subscription',
       name: 'welcomeParagraph4',
       desc: 'welcome paragraph 4',
     );

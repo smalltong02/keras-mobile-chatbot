@@ -54,7 +54,7 @@ android {
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
-        versionCode = 6
+        versionCode = 9
         versionName = "1.0"
     }
     signingConfigs {
@@ -76,6 +76,8 @@ android {
         }
     }
 }
+
+apply plugin: 'com.google.firebase.crashlytics'
 
 flutter {
     source = "../.."

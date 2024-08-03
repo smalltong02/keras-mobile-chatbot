@@ -2,6 +2,7 @@ import 'dart:io' as io;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'l10n/localization_intl.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
 
 class TakePictureScreen extends StatefulWidget {
   const TakePictureScreen({
@@ -193,8 +194,8 @@ class TakePictureScreenState extends State<TakePictureScreen> {
               if (result == true) {
                 addImage(image.path);
               }
-            } catch (e) {
-              print(e);
+            } catch (e, stackTrace) {
+              logger.e("subscriptionScreen crash: ", stackTrace: stackTrace);
             }
           },
           child: const Icon(Icons.camera_alt),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'l10n/localization_intl.dart';
+import 'package:keras_mobile_chatbot/utils.dart';
 
 class WelcomeDialog extends StatelessWidget {
   final double radius;
@@ -8,6 +9,8 @@ class WelcomeDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final remoteConfig = FirebaseRemoteConfigService();
+    String freeTrialDays = remoteConfig.getInt(FirebaseRemoteConfigKeys.freeTrialDaysKey).toString();
     return Dialog(
       backgroundColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -68,7 +71,7 @@ class WelcomeDialog extends StatelessWidget {
                             text: DemoLocalizations.of(context).welcomeParagraph1,
                           ),
                           TextSpan(
-                            text: DemoLocalizations.of(context).welcomeParagraph2,
+                            text: freeTrialDays + DemoLocalizations.of(context).welcomeParagraph2,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.lightBlue,
@@ -108,7 +111,7 @@ class WelcomeDialog extends StatelessWidget {
                             text: DemoLocalizations.of(context).welcomeParagraph6,
                           ),
                           TextSpan(
-                            text: DemoLocalizations.of(context).welcomeParagraph2,
+                            text: freeTrialDays + DemoLocalizations.of(context).welcomeParagraph2,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.lightBlue,

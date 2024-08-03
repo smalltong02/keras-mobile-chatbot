@@ -40,7 +40,7 @@ Future<Tuple2<double, double>> getGeocode(String address) async {
     double lng = coordinates.longitude ?? 0.0;
     return Tuple2(lat, lng);
   } catch (e) {
-    return Tuple2(0.0, 0.0);
+    return const Tuple2(0.0, 0.0);
   }
 }
 
@@ -67,7 +67,7 @@ Future<Map<String, dynamic>> getCurrentTime() async {
 
 Future<Tuple2<double, double>> getLocation(String? address) async {
   if (address == null) {
-    locationpkg.Location location = new locationpkg.Location();
+    locationpkg.Location location = locationpkg.Location();
     bool serviceEnabled;
     locationpkg.PermissionStatus permissionGranted;
     locationpkg.LocationData locationData;
@@ -76,7 +76,7 @@ Future<Tuple2<double, double>> getLocation(String? address) async {
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
       if (!serviceEnabled) {
-        return Tuple2(0.0, 0.0);
+        return const Tuple2(0.0, 0.0);
       }
     }
 
@@ -84,7 +84,7 @@ Future<Tuple2<double, double>> getLocation(String? address) async {
     if (permissionGranted == locationpkg.PermissionStatus.denied) {
       permissionGranted = await location.requestPermission();
       if (permissionGranted != locationpkg.PermissionStatus.granted) {
-        return Tuple2(0.0, 0.0);
+        return const Tuple2(0.0, 0.0);
       }
     }
 
@@ -173,15 +173,16 @@ Future<Map<String, dynamic>> getDirections(Map<String, Object?> arguments, ) asy
     return {
       'result': "Unknown Directions!"
     };
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to get directions. Error: $e";
+    logger.e(resultStr, stackTrace: stackTrace);
   }
   return {
     'result': resultStr,
   };
 }
 
-String GetPrice(PriceLevel level) {
+String getPrice(PriceLevel level) {
   switch (level) {
     case PriceLevel.free:
       return "Free";
@@ -232,11 +233,11 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
         String name = result.name;
         num rating = result.rating ?? 0.0;
         PriceLevel level = result.priceLevel ?? PriceLevel.free;
-        String levelStr = GetPrice(level);
+        String levelStr = getPrice(level);
         String address = result.formattedAddress ?? "";
         String placeId = result.placeId;
         String icon = result.icon ?? "";
-        Location location_l = result.geometry?.location ?? Location(lat: 0, lng: 0);
+        Location locationL = result.geometry?.location ?? Location(lat: 0, lng: 0);
         placesList.add(
           {
             'name': name,
@@ -244,7 +245,7 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
             'address': address,
             'place_id': placeId,
             'icon': icon,
-            'location': location_l,
+            'location': locationL,
           }
         );
         resultStr += "name: $name \naddress: $address \nrating: $rating \nprice: $level\n\n";
@@ -262,8 +263,9 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
     return {
       'result': "Unknown Places!",
     };
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to get places. Error: $e";
+    logger.e(resultStr, stackTrace: stackTrace);
   }
   return {
     'result': resultStr,
@@ -298,8 +300,9 @@ Future<Map<String, dynamic>> searchVideos(Map<String, Object?> arguments, ) asyn
         'videos': videoList,
       }
     };
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to search videos. Error: $e";
+    logger.e(resultStr, stackTrace: stackTrace);
   }
   return {
     'result': resultStr,
@@ -339,9 +342,9 @@ Future<Map<String, dynamic>> searchInternet(Map<String, Object?> arguments, ) as
       resultStr += "title #$titleCount: $title \nurl: $url \nsnippet: $snippet\n\n";
       titleCount += 1;
     }
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to search from internet. Error: $e";
-    print(resultStr);
+    logger.e(resultStr, stackTrace: stackTrace);
   }
   if(resultStr.isEmpty) {
     resultStr = "No search results found.";
@@ -381,8 +384,9 @@ Future<Map<String, dynamic>> searchEmails(Map<String, Object?> arguments, ) asyn
     if (resultStr.isEmpty) {
       resultStr = "No emails found.";
     }
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to search email. Error: $e";
+    logger.e(resultStr, stackTrace: stackTrace);
   }
 
   return {
@@ -466,8 +470,9 @@ Future<Map<String, dynamic>> sendEmails(Map<String, Object?> arguments, ) async 
     message = await gmailApi.users.messages.send(message, "me").then((value) => value);
     String id = message.id!;
     resultStr = "Email sent successfully. id=$id";
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to send email. Error: $e";
+    logger.e(resultStr, stackTrace: stackTrace);
   }
 
   return {
@@ -489,32 +494,33 @@ Future<Map<String, dynamic>> searchDrives(Map<String, Object?> arguments, ) asyn
                         $fields: "nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType, parents)",
                         ).then((value) => value.files!);
 
-      int fileCounts = 1;
-      for (var file in fileList) {
-        String prefix = "This is file #$fileCounts: \n";
-        String name = file.name ?? "";
-        String fileName = "File Name: $name \n";
-        String id = file.id ?? "";
-        String fileId = "File Id: $id \n";
-        String size = file.size ?? "0";
-        String fileSize = "File Size: $size bytes\n";
-        DateTime createTime = file.createdTime ?? DateTime(0);
-        String fileCreatedTime = "Created Time: $createTime \n";
-        DateTime modifiedTime = file.modifiedTime ?? DateTime(0);
-        String fileModifiedTime = "Modified Time: $modifiedTime \n";
-        String mimeType = file.mimeType ?? "";
-        String fileMimeType = "Mime Type: $mimeType \n";
-        if (resultStr.isNotEmpty) {
-            resultStr += "\n\n";
-        }
-        resultStr += "$prefix$fileName$fileId$fileSize$fileCreatedTime$fileModifiedTime$fileMimeType";
-        if (fileCounts >= maxResults) {
-            break;
-        }
-        fileCounts += 1;
+    int fileCounts = 1;
+    for (var file in fileList) {
+      String prefix = "This is file #$fileCounts: \n";
+      String name = file.name ?? "";
+      String fileName = "File Name: $name \n";
+      String id = file.id ?? "";
+      String fileId = "File Id: $id \n";
+      String size = file.size ?? "0";
+      String fileSize = "File Size: $size bytes\n";
+      DateTime createTime = file.createdTime ?? DateTime(0);
+      String fileCreatedTime = "Created Time: $createTime \n";
+      DateTime modifiedTime = file.modifiedTime ?? DateTime(0);
+      String fileModifiedTime = "Modified Time: $modifiedTime \n";
+      String mimeType = file.mimeType ?? "";
+      String fileMimeType = "Mime Type: $mimeType \n";
+      if (resultStr.isNotEmpty) {
+          resultStr += "\n\n";
       }
-  } catch (e) {
+      resultStr += "$prefix$fileName$fileId$fileSize$fileCreatedTime$fileModifiedTime$fileMimeType";
+      if (fileCounts >= maxResults) {
+          break;
+      }
+      fileCounts += 1;
+    }
+  } catch (e, stackTrace) {
     resultStr = "Failed to search documents. Error: $e";
+    logger.e(resultStr, stackTrace: stackTrace);
   }
 
   if (resultStr.isEmpty) {
@@ -576,34 +582,34 @@ Future<Map<String, dynamic>> downloadFromDrives(Map<String, Object?> arguments, 
                         $fields: "nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType, parents)",
                         ).then((value) => value.files!);
 
-      for (var file in fileList) {
-        String id = file.id ?? "";
-        String fileName = file.name ?? "";
-        String mimeType = file.mimeType ?? "";
-        String filePath = await getFileTempPath(fileName);
+    for (var file in fileList) {
+      String id = file.id ?? "";
+      String fileName = file.name ?? "";
+      String mimeType = file.mimeType ?? "";
+      String filePath = await getFileTempPath(fileName);
 
-        Map<String, String>? matchedEntry;
-        for (var entry in googleDocsTypes) {
-          if (entry.containsKey(mimeType)) {
-            matchedEntry = entry;
-            break;
-          }
+      Map<String, String>? matchedEntry;
+      for (var entry in googleDocsTypes) {
+        if (entry.containsKey(mimeType)) {
+          matchedEntry = entry;
+          break;
         }
-
-        if (matchedEntry != null) {
-          List<String> values = matchedEntry.values.toList();
-          filePath = await exportMedia(gdriveApi, id, values[0], filePath);
-        } else {
-          filePath = await getMedia(gdriveApi, id, filePath);
-        }
-        if (resultStr.isNotEmpty) {
-          resultStr += "\n\n";
-        }
-        resultStr += "file '$filePath' downloaded successfully.";
       }
-  } catch (e) {
+
+      if (matchedEntry != null) {
+        List<String> values = matchedEntry.values.toList();
+        filePath = await exportMedia(gdriveApi, id, values[0], filePath);
+      } else {
+        filePath = await getMedia(gdriveApi, id, filePath);
+      }
+      if (resultStr.isNotEmpty) {
+        resultStr += "\n\n";
+      }
+      resultStr += "file '$filePath' downloaded successfully.";
+    }
+  } catch (e, stackTrace) {
     resultStr = "Failed to download from drives. Error: $e";
-    print(e);
+    logger.e(resultStr, stackTrace: stackTrace);
   }
 
   if (resultStr.isEmpty) {
@@ -659,10 +665,9 @@ Future<Map<String, dynamic>> getEventCalendar(Map<String, Object?> arguments, ) 
       resultStr += prefix + start + end + summary + description + location + htmlLink;
       eventCounts += 1;
     }
-
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to get event from calendar. Error: $e";
-    print(e);
+    logger.e(resultStr, stackTrace: stackTrace);
   }
 
   if (resultStr.isEmpty) {
@@ -702,9 +707,9 @@ Future<Map<String, dynamic>> createEventCalendar(Map<String, Object?> arguments,
     gcalendar.Event newEvent = await gcalendarApi.events.insert(event, 'primary');
     String htmlLink = newEvent.htmlLink ?? "";
     resultStr = "Event created success, Please refer to the following link: \n\n $htmlLink";
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to create event from calendar. Error: $e";
-    print(e);
+    logger.e(resultStr, stackTrace: stackTrace);
   }
 
   if (resultStr.isEmpty) {
@@ -783,9 +788,9 @@ Future<Map<String, dynamic>> searchPhotos(Map<String, Object?> arguments, ) asyn
         'images': photosList,
       }
     };
-  } catch (e) {
+  } catch (e, stackTrace) {
     resultStr = "Failed to search in google photos. Error: $e";
-    print(e);
+    logger.e(resultStr, stackTrace: stackTrace);
   }
 
   if (resultStr.isEmpty) {

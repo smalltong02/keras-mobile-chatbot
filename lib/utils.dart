@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 //import 'package:googleapis/speech/v1.dart';
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest.dart' as tz;
@@ -33,6 +34,7 @@ const int maxConnectTimeout = 30;
 const int imageQuality = 80;
 const int maxLogginDevices = 3;
 const int maxDialogRounds = 5;
+const String defaultModel = "gemini-1.5-flash";
 const String deleteRequestUrl = "https://github.com/smalltong02/keras-mobile-chatbot/blob/main/assets/docs/delete_request.md";
 
 final List<Map<String, String>> googleDocsTypes = [
@@ -160,8 +162,15 @@ final List<String> openAIModel = [
   openai.kGpt4o,
 ];
 
+final List<int> fontSizeList = [
+  14,
+  18,
+  22,
+  26,
+];
+
 openai.OpenAI? openAIInstance;
-String uniqueId = "";
+String uniqueId = "unknown";
 final List<String> allModel = lowPowerModel + highPowerModel;
 
 final List<Locale> supportedLocalesInApp = [
@@ -185,6 +194,14 @@ Deepgram? deepgram;
 TtsProvider? ttsProviderInstance;
 KerasStatisticsInformation statisticsInformation = KerasStatisticsInformation();
 RestrictionInformation restrictionInformation = RestrictionInformation();
+final logger = Logger(
+  filter: null, // Use the default LogFilter (-> only log in debug mode)
+  printer: PrettyPrinter(
+    lineLength: 120,
+    dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+  ), // Use the PrettyPrinter to format and print log
+  output: null, // Use the default LogOutput (-> send everything to console)
+);
 
 enum VoiceProvider { microsoft, google, openai, amazon }
 
@@ -248,19 +265,15 @@ class TtsProvider {
           roleVoice = foundVoice;
         }
       }
-    } catch (e) {
-      print('unInitialize failed: $e');
+    } catch (e, stackTrace) {
+      logger.e("switchProvider crash: ", stackTrace: stackTrace);
     }
     return;
   }
 
   Future<void> unInitialize() async {
-    try {
-      roleVoice = null;
-      voices = null;
-    } catch (e) {
-      print('unInitialize failed: $e');
-    }
+    roleVoice = null;
+    voices = null;
     return;
   }
 
@@ -273,8 +286,8 @@ class TtsProvider {
         withLogs: true
       );
       await switchProvider(defaultProvider, getDefaultVoice());
-    } catch (e) {
-      print('initialize failed: $e');
+    } catch (e, stackTrace) {
+      logger.e("TtsUniversal init crash: ", stackTrace: stackTrace);
     }
     return;
   }
@@ -412,59 +425,67 @@ class TtsProvider {
 
   Future<String?> generateAudioFile(String message) async {
     if (roleVoice != null) {
-      TtsParamsUniversal params = TtsParamsUniversal(
-        voice: roleVoice!,
-        audioFormatGoogle: AudioOutputFormatGoogle.mp3,
-        audioFormatMicrosoft: AudioOutputFormatMicrosoft.audio48Khz192kBitrateMonoMp3,
-        text: message,
-        rate: 'default', // optional
-        pitch: 'default' // optional
-      );
+      try {
+        TtsParamsUniversal params = TtsParamsUniversal(
+          voice: roleVoice!,
+          audioFormatGoogle: AudioOutputFormatGoogle.mp3,
+          audioFormatMicrosoft: AudioOutputFormatMicrosoft.audio48Khz192kBitrateMonoMp3,
+          text: message,
+          rate: 'default', // optional
+          pitch: 'default' // optional
+        );
 
-      final ttsResponse = await TtsUniversal.convertTts(params);
+        final ttsResponse = await TtsUniversal.convertTts(params);
 
-      // Get the audio bytes.
-      final audioBytes = ttsResponse.audio.buffer.asByteData().buffer.asUint8List();
+        // Get the audio bytes.
+        final audioBytes = ttsResponse.audio.buffer.asByteData().buffer.asUint8List();
 
-      // Get the temporary directory of the app.
-      final directory = await getTemporaryDirectory();
-      
-      // Create a unique file name.
-      final filePath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
+        // Get the temporary directory of the app.
+        final directory = await getTemporaryDirectory();
+        
+        // Create a unique file name.
+        final filePath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
 
-      // Write the audio bytes to the file.
-      final file = File(filePath);
-      await file.writeAsBytes(audioBytes);
+        // Write the audio bytes to the file.
+        final file = File(filePath);
+        await file.writeAsBytes(audioBytes);
 
-      // Return the file path.
-      return filePath;
+        // Return the file path.
+        return filePath;
+      } catch (e, stackTrace) {
+        logger.e("generateAudioFile crash: ", stackTrace: stackTrace);
+      }
     }
     return null;
   }
 }
 
-void initCameras() async {
-  cameras = await availableCameras();
-  uniqueId = await const AndroidId().getId() ?? "unknown";
-  final config = new QonversionConfigBuilder(
-    dotenv.get("qonversion_proj_key"),
-    QLaunchMode.subscriptionManagement
-  )
-  .setEnvironment(QEnvironment.sandbox)
-  .enableKidsMode()
-  .build();
-  Qonversion.initialize(config);
+void initApp() async {
+  try {
+    cameras = await availableCameras();
+    uniqueId = await const AndroidId().getId() ?? "unknown";
+    final config = new QonversionConfigBuilder(
+      dotenv.get("qonversion_proj_key"),
+      QLaunchMode.subscriptionManagement
+    )
+    .setEnvironment(QEnvironment.sandbox)
+    .enableKidsMode()
+    .build();
+    Qonversion.initialize(config);
 
-  openAIInstance = openai.OpenAI.instance.build(token: dotenv.get("openai_key"), baseOption: openai.HttpSetup(receiveTimeout: const Duration(seconds: maxReceiveTimeout), connectTimeout: const Duration(seconds: maxConnectTimeout)),enableLog: true);
-  ttsProviderInstance = TtsProvider();
-  await ttsProviderInstance!.initialize();
-  deepgram = Deepgram(dotenv.get("deepgram_speech_key"), baseQueryParams: {
-    'model': 'nova-2-general',
-    'detect_language': true,
-    'filler_words': false,
-    'punctuation': true,
-      // more options here : https://developers.deepgram.com/reference/listen-file
-  });
+    openAIInstance = openai.OpenAI.instance.build(token: dotenv.get("openai_key"), baseOption: openai.HttpSetup(receiveTimeout: const Duration(seconds: maxReceiveTimeout), connectTimeout: const Duration(seconds: maxConnectTimeout)),enableLog: true);
+    ttsProviderInstance = TtsProvider();
+    await ttsProviderInstance!.initialize();
+    deepgram = Deepgram(dotenv.get("deepgram_speech_key"), baseQueryParams: {
+      'model': 'nova-2-general',
+      'detect_language': true,
+      'filler_words': false,
+      'punctuation': true,
+        // more options here : https://developers.deepgram.com/reference/listen-file
+    });
+  } catch (e, stackTrace) {
+    logger.e("initCameras crash: ", stackTrace: stackTrace);
+  }
 }
 
 class Character {
@@ -491,6 +512,7 @@ class SettingProvider with ChangeNotifier {
   String _homepageWallpaperPath = 'assets/backgrounds/49.jpg';
   String _chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
   String _language = 'auto';
+  int _chatFontSize = 14;
   bool _speechEnable = false;
   bool _toolBoxEnable = false;
   bool _showPolicy = false;
@@ -504,6 +526,7 @@ class SettingProvider with ChangeNotifier {
   String get homepageWallpaperPath => _homepageWallpaperPath;
   String get chatpageWallpaperPath => _chatpageWallpaperPath;
   String get language => _language;
+  int get chatFontSize => _chatFontSize;
   bool get speechEnable => _speechEnable;
   bool get toolBoxEnable => _toolBoxEnable;
   bool get showPolicy => _showPolicy;
@@ -576,6 +599,12 @@ class SettingProvider with ChangeNotifier {
     saveSetting();
   }
 
+  void updateChatFontSize(int fontSize) {
+    _chatFontSize = fontSize;
+    notifyListeners();
+    saveSetting();
+  }
+
   void updateToolBoxEnable(bool enable) {
     _toolBoxEnable = enable;
     notifyListeners();
@@ -594,6 +623,7 @@ class SettingProvider with ChangeNotifier {
      _userName = prefs.getString('userName') ?? '';
      _password = prefs.getString('password') ?? '';
      _language = prefs.getString('language') ?? 'auto';
+     _chatFontSize = prefs.getInt('chatFontSize') ?? 14;
     _currentRole = prefs.getString('currentRole') ?? 'Keras Robot';
     _roleIconPath = prefs.getString('roleIconPath') ?? 'assets/icons/11/11.png';
     _playerIconPath = prefs.getString('playerIconPath') ?? 'assets/icons/14/9.png';
@@ -610,6 +640,7 @@ class SettingProvider with ChangeNotifier {
     prefs.setString('userName', _userName);
     prefs.setString('password', _password);
     prefs.setString('language', _language);
+    prefs.setInt('chatFontSize', _chatFontSize);
     prefs.setString('currentRole', _currentRole);
     prefs.setString('roleIconPath', _roleIconPath);
     prefs.setString('playerIconPath', _playerIconPath);
@@ -653,24 +684,29 @@ class LlmModel {
 
   List<dynamic> getHistory() {
     List<Map<String, String>> history = [];
-    if(type == ModelType.google && chatSession != null) {
-      List<dynamic> listData = chatSession.history.toList();
-      for(final content in listData) {
-        String text = "";
-        if (content != null && content.parts is List) {
-          Iterable<gemini.TextPart> textParts = content.parts.whereType<gemini.TextPart>();
-          Iterable<String> texts = textParts.map((textPart) => textPart.text);
-          text = texts.join('');
-          String role = content.role.toString();
-          history.add({"role": role, "content": text});
+    
+    try {
+      if(type == ModelType.google && chatSession != null) {
+        List<dynamic> listData = chatSession.history.toList();
+        for(final content in listData) {
+          String text = "";
+          if (content != null && content.parts is List) {
+            Iterable<gemini.TextPart> textParts = content.parts.whereType<gemini.TextPart>();
+            Iterable<String> texts = textParts.map((textPart) => textPart.text);
+            text = texts.join('');
+            String role = content.role.toString();
+            history.add({"role": role, "content": text});
+          }
         }
       }
-    }
-    else if(type == ModelType.openai && chatSession != null) {
-      if (openAIInstance == null) {
-        return [];
+      else if(type == ModelType.openai && chatSession != null) {
+        if (openAIInstance == null) {
+          return [];
+        }
+        return chatSession.toList();
       }
-      return chatSession.toList();
+    } catch (e, stackTrace) {
+      logger.e("getHistory crash: ", stackTrace: stackTrace);
     }
     return history;
   }
@@ -680,66 +716,74 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
   if(modelName.isEmpty) {
     return null;
   }
-  for(final name in googleModel) {
-    if(modelName == name) {
-      if(toolEnable) {
-        gemini.ToolConfig toolConfig = gemini.ToolConfig(functionCallingConfig: gemini.FunctionCallingConfig(mode: gemini.FunctionCallingMode.auto));
-        LlmModel llmModel = LlmModel(type: ModelType.google);
-        llmModel.name = modelName;
-        llmModel.systemInstruction = systemInstruction;
-        final model = gemini.GenerativeModel(
-          model: name,
-          apiKey: dotenv.get("api_key"),
-          tools: [
-            gemini.Tool(functionDeclarations: normalFunctionCallTool)
-          ],
-          toolConfig: toolConfig,
-          systemInstruction: gemini.Content.system(systemInstruction),
-        );
-        llmModel.model = model;
-        final chatSession = model.startChat();
-        llmModel.chatSession = chatSession;
-        return llmModel;
-      } else {
-        LlmModel llmModel = LlmModel(type: ModelType.google);
-        llmModel.name = modelName;
-        llmModel.systemInstruction = systemInstruction;
-        final model = gemini.GenerativeModel(
-          model: name,
-          apiKey: dotenv.get("api_key"),
-          systemInstruction: gemini.Content.system(systemInstruction),
-        );
-        llmModel.model = model;
-        final chatSession = model.startChat();
-        llmModel.chatSession = chatSession;
-        return llmModel;
+  try {
+    for(final name in googleModel) {
+      if(modelName == name) {
+        if(toolEnable) {
+          gemini.ToolConfig toolConfig = gemini.ToolConfig(functionCallingConfig: gemini.FunctionCallingConfig(mode: gemini.FunctionCallingMode.auto));
+          LlmModel llmModel = LlmModel(type: ModelType.google);
+          llmModel.name = modelName;
+          llmModel.systemInstruction = systemInstruction;
+          final model = gemini.GenerativeModel(
+            model: name,
+            apiKey: dotenv.get("api_key"),
+            tools: [
+              gemini.Tool(functionDeclarations: normalFunctionCallTool)
+            ],
+            toolConfig: toolConfig,
+            systemInstruction: gemini.Content.system(systemInstruction),
+          );
+          llmModel.model = model;
+          final chatSession = model.startChat();
+          llmModel.chatSession = chatSession;
+          logger.i("model change to $modelName");
+          return llmModel;
+        } else {
+          LlmModel llmModel = LlmModel(type: ModelType.google);
+          llmModel.name = modelName;
+          llmModel.systemInstruction = systemInstruction;
+          final model = gemini.GenerativeModel(
+            model: name,
+            apiKey: dotenv.get("api_key"),
+            systemInstruction: gemini.Content.system(systemInstruction),
+          );
+          llmModel.model = model;
+          final chatSession = model.startChat();
+          llmModel.chatSession = chatSession;
+          logger.i("model change to $modelName");
+          return llmModel;
+        }
       }
     }
-  }
-  
-  if(openAIInstance != null) {
-    for(final name in openAIModel) {
-      if(modelName == name && name == 'gpt-4o-mini') {
-        LlmModel llmModel = LlmModel(type: ModelType.openai);
-        llmModel.name = modelName;
-        llmModel.systemInstruction = systemInstruction;
-        final model = openai.ChatModelFromValue(model: name);
-        llmModel.model = model;
-        final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
-        llmModel.chatSession = chatSession;
-        return llmModel;
-      }
-      else if (modelName == name && name == openai.kGpt4o) {
-        LlmModel llmModel = LlmModel(type: ModelType.openai);
-        llmModel.name = modelName;
-        llmModel.systemInstruction = systemInstruction;
-        final model = openai.Gpt4OChatModel();
-        llmModel.model = model;
-        final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
-        llmModel.chatSession = chatSession;
-        return llmModel;
+    
+    if(openAIInstance != null) {
+      for(final name in openAIModel) {
+        if(modelName == name && name == 'gpt-4o-mini') {
+          LlmModel llmModel = LlmModel(type: ModelType.openai);
+          llmModel.name = modelName;
+          llmModel.systemInstruction = systemInstruction;
+          final model = openai.ChatModelFromValue(model: name);
+          llmModel.model = model;
+          final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
+          llmModel.chatSession = chatSession;
+          logger.i("model change to $modelName");
+          return llmModel;
+        }
+        else if (modelName == name && name == openai.kGpt4o) {
+          LlmModel llmModel = LlmModel(type: ModelType.openai);
+          llmModel.name = modelName;
+          llmModel.systemInstruction = systemInstruction;
+          final model = openai.Gpt4OChatModel();
+          llmModel.model = model;
+          final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
+          llmModel.chatSession = chatSession;
+          logger.i("model change to $modelName");
+          return llmModel;
+        }
       }
     }
+  } catch (e, stackTrace) {
+    logger.e("initLlmModel crash: ", stackTrace: stackTrace);
   }
   return null;
 }
@@ -766,6 +810,7 @@ void launchURL(String url) async {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
+      logger.e("Could not launch $url");
       throw 'Could not launch $url';
     }
   }
@@ -796,7 +841,8 @@ Future<bool> writeTempFile(String tmpFile, String content) async {
     File file = File("$tmpFolder/$tmpFile");
     await file.writeAsString(content);
     bSuccess = true;
-  } catch (e) {
+  } catch (e, stackTrace) {
+    logger.e("writeTempFile crash: ", stackTrace: stackTrace);
     bSuccess = false;
   }
   return bSuccess;
@@ -808,23 +854,33 @@ Future<String> readTempFile(String tmpFile) async {
     File file = File("$tmpFolder/$tmpFile");
     String contents = await file.readAsString();
     return contents;
-  } catch (e) {
+  } catch (e, stackTrace) {
+    logger.e("readTempFile crash: ", stackTrace: stackTrace);
     return "";
   }
 }
 
 Future<String> getFileTempPath(String tmpFile) async {
   final folder = await getTempPath();
+  if(tmpFile.isEmpty) {
+    return folder;
+  }
   return "$folder/$tmpFile";
 }
 
 Future<String> getFileDocumentsPath(String tmpFile) async {
   final folder = await getDocumentsPath();
+  if(tmpFile.isEmpty) {
+    return folder;
+  }
   return "$folder/$tmpFile";
 }
 
 Future<String> getFileDownloadsPath(String tmpFile) async {
   final folder = await getDownloadsPath();
+  if(tmpFile.isEmpty) {
+    return folder;
+  }
   return "$folder/$tmpFile";
 }
 
@@ -837,22 +893,26 @@ Future<DateTime?> convertTimeToRFC3339Time(String timeStr) async {
   final patternDateTime = RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$');
   final patternDateTimeTz = RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$');
 
-  tz.initializeTimeZones();
-  final localTimezone = tz.local;
+  try {
+    tz.initializeTimeZones();
+    final localTimezone = tz.local;
 
-  if (patternDateTimeTz.hasMatch(timeStr)) {
-    final dt = DateTime.parse(timeStr);
-    return dt.toLocal();
-  } else if (patternDateTime.hasMatch(timeStr)) {
-    final timeFormat = DateFormat("yyyy-MM-ddTHH:mm:ss");
-    final dateTimeObj = timeFormat.parse(timeStr, true);
-    return tz.TZDateTime.from(dateTimeObj, localTimezone);
-  } else if (patternTime.hasMatch(timeStr)) {
-    final timeFormat = DateFormat("HH:mm:ss");
-    final timeObj = timeFormat.parse(timeStr, true);
-    final todayDate = DateTime.now();
-    final combinedDateTime = DateTime(todayDate.year, todayDate.month, todayDate.day, timeObj.hour, timeObj.minute, timeObj.second);
-    return tz.TZDateTime.from(combinedDateTime, localTimezone);
+    if (patternDateTimeTz.hasMatch(timeStr)) {
+      final dt = DateTime.parse(timeStr);
+      return dt.toLocal();
+    } else if (patternDateTime.hasMatch(timeStr)) {
+      final timeFormat = DateFormat("yyyy-MM-ddTHH:mm:ss");
+      final dateTimeObj = timeFormat.parse(timeStr, true);
+      return tz.TZDateTime.from(dateTimeObj, localTimezone);
+    } else if (patternTime.hasMatch(timeStr)) {
+      final timeFormat = DateFormat("HH:mm:ss");
+      final timeObj = timeFormat.parse(timeStr, true);
+      final todayDate = DateTime.now();
+      final combinedDateTime = DateTime(todayDate.year, todayDate.month, todayDate.day, timeObj.hour, timeObj.minute, timeObj.second);
+      return tz.TZDateTime.from(combinedDateTime, localTimezone);
+    }
+  } catch (e, stackTrace) {
+    logger.e("convertTimeToRFC3339Time crash: ", stackTrace: stackTrace);
   }
 
   return null;
@@ -867,15 +927,6 @@ Future<String> downloadAndSaveImage(String url, String filePath) async {
     downloadPath = filePath;
   }
   return downloadPath;
-}
-
-bool checkFreeTrial(DateTime startTime) {
-  DateTime now = DateTime.now();
-  Duration duration = now.difference(startTime);
-  if (duration.inDays >= 1) {
-    return false;
-  }
-  return true;
 }
 
 class UserInfo {
@@ -949,9 +1000,14 @@ class KerasAuthProvider with ChangeNotifier {
     if(userInfo == null) {
       return DateTime(1900, 1, 1, 0, 0, 0);
     }
-    String firstCreate = userInfo!.firstCreate;
-    DateTime time = DateTime.parse(firstCreate);
-    return time;
+    try {
+      String firstCreate = userInfo!.firstCreate;
+      DateTime time = DateTime.parse(firstCreate);
+      return time;
+    } catch (e, stackTrace) {
+      logger.e("getFirstCreateDate crash: ", stackTrace: stackTrace);
+    }
+    return DateTime(1900, 1, 1, 0, 0, 0);
   }
 
   String getLoginEmail() {
@@ -961,8 +1017,8 @@ class KerasAuthProvider with ChangeNotifier {
     try {
       String email = userCredential!.user!.email ?? "";
       return email;
-    } catch (e) {
-      print('getLoginEmail failed: $e');
+    } catch (e, stackTrace) {
+      logger.e("getLoginEmail crash: ", stackTrace: stackTrace);
     }
     return "";
   }
@@ -974,8 +1030,8 @@ class KerasAuthProvider with ChangeNotifier {
     try {
       String email = userCredential!.user!.displayName ?? "";
       return email;
-    } catch (e) {
-      print('getLoginName failed: $e');
+    } catch (e, stackTrace) {
+      logger.e("getLoginName crash: ", stackTrace: stackTrace);
     }
     return "";
   }
@@ -1046,7 +1102,8 @@ class KerasAuthProvider with ChangeNotifier {
           loggedStatus = LoginStatus.logout;
         }
         return status;
-      } on FirebaseAuthException catch (_) {
+      } on FirebaseAuthException catch (e, stackTrace) {
+        logger.e("getLoginName crash: ", stackTrace: stackTrace);
         return AuthStatus.exceptionError;
       }
     }
@@ -1060,32 +1117,36 @@ class KerasAuthProvider with ChangeNotifier {
     if(bsignInSilently == true) {
       return AuthStatus.failed;
     }
-    bsignInSilently = true;
-    GoogleSignInAccount? account = await googleSignIn.signInSilently();
-    if(account != null) {
-      if(googleCredential == null) {
-        final GoogleSignInAuthentication googleAuth = await account.authentication;
-        googleCredential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-      }
-      if(googleCredential != null) {
-        UserCredential user = userCredential ?? await firebaseAuth.signInWithCredential(googleCredential!);
-        AuthStatus status = await isSignInAllowed(user);
-        if(status == AuthStatus.success) {
-          String uid = user.user!.uid;
-          Qonversion.getSharedInstance().identify(uid);
-          statisticsInformation.initialize();
-          loggedStatus = LoginStatus.googleLogin;
-          userCredential = user;
-          notifyListeners();
-        } else {
-          await signOut();
-          loggedStatus = LoginStatus.logout;
+    try {
+      bsignInSilently = true;
+      GoogleSignInAccount? account = await googleSignIn.signInSilently();
+      if(account != null) {
+        if(googleCredential == null) {
+          final GoogleSignInAuthentication googleAuth = await account.authentication;
+          googleCredential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          );
         }
-        return status;
+        if(googleCredential != null) {
+          UserCredential user = userCredential ?? await firebaseAuth.signInWithCredential(googleCredential!);
+          AuthStatus status = await isSignInAllowed(user);
+          if(status == AuthStatus.success) {
+            String uid = user.user!.uid;
+            Qonversion.getSharedInstance().identify(uid);
+            statisticsInformation.initialize();
+            loggedStatus = LoginStatus.googleLogin;
+            userCredential = user;
+            notifyListeners();
+          } else {
+            await signOut();
+            loggedStatus = LoginStatus.logout;
+          }
+          return status;
+        }
       }
+    } catch (e, stackTrace) {
+      logger.e("googleSignInSilently crash: ", stackTrace: stackTrace);
     }
     return AuthStatus.failed;
   }
@@ -1122,8 +1183,8 @@ class KerasAuthProvider with ChangeNotifier {
           return status;
         }
       }
-    } catch (error) {
-      print(error);
+    } catch (e, stackTrace) {
+      logger.e("handleGoogleSignIn crash: ", stackTrace: stackTrace);
     }
     return AuthStatus.failed;
   }
@@ -1155,8 +1216,8 @@ class KerasAuthProvider with ChangeNotifier {
       googleCredential = null;
       loggedStatus = LoginStatus.logout;
       notifyListeners();
-    } catch (error) {
-      print(error);
+    } catch (e, stackTrace) {
+      logger.e("signOut crash: ", stackTrace: stackTrace);
     }
   }
 }
@@ -1188,6 +1249,10 @@ class KerasSubscriptionProvider with ChangeNotifier {
     return curSubscriptionStatus;
   }
 
+  bool isFreeSubscriptionStatus() {
+    return curSubscriptionStatus == SubscriptionStatus.free;
+  }
+
   String getSubscriptionStatus() {
     String statusStr = "";
     switch (curSubscriptionStatus) {
@@ -1204,59 +1269,125 @@ class KerasSubscriptionProvider with ChangeNotifier {
       default:
         statusStr = 'Unknown';
     }
-    print("getSubscriptionStatus: $statusStr");
+    logger.i("getSubscriptionStatus: $statusStr");
     return statusStr;
   }
 
-  bool speechPermission() {
+  bool checkFreeTrial(DateTime startTime) {
+    if(curSubscriptionStatus != SubscriptionStatus.free) {
+      return true;
+    }
+    try {
+      final remoteConfig = FirebaseRemoteConfigService();
+      int freeTrialDays = remoteConfig.getInt(FirebaseRemoteConfigKeys.freeTrialDaysKey);
+      DateTime now = DateTime.now();
+      Duration duration = now.difference(startTime);
+      if (duration.inDays >= freeTrialDays) {
+        return false;
+      }
+    } catch (e, stackTrace) {
+      logger.e("checkFreeTrial crash: ", stackTrace: stackTrace);
+    }
+    return true;
+  }
+
+  bool normalSpeechPermission() {
+    List<FeatureRights> rights = [];
+    SubscriptionRights curSubscriptionRights = SubscriptionRights();
     switch (curSubscriptionStatus) {
       case SubscriptionStatus.free:
-        return true;
+        rights = curSubscriptionRights.getFreeTrialRights();
       case SubscriptionStatus.basic:
-        return true;
+        rights = curSubscriptionRights.getBaseSubRights();
       case SubscriptionStatus.professional:
-        return true;
+        rights = curSubscriptionRights.getProSubRights();
       case SubscriptionStatus.premium:
-        return true;
+        rights = curSubscriptionRights.getPremiumSubRights();
       case SubscriptionStatus.ultimate:
-        return true;
+        rights = curSubscriptionRights.getUltimateSubRights();
       default:
-        return false;
     }
+    return curSubscriptionRights.havingNormalSpeechRight(rights);
+  }
+
+  bool advancedSpeechPermission() {
+    List<FeatureRights> rights = [];
+    SubscriptionRights curSubscriptionRights = SubscriptionRights();
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        rights = curSubscriptionRights.getFreeTrialRights();
+      case SubscriptionStatus.basic:
+        rights = curSubscriptionRights.getBaseSubRights();
+      case SubscriptionStatus.professional:
+        rights = curSubscriptionRights.getProSubRights();
+      case SubscriptionStatus.premium:
+        rights = curSubscriptionRights.getPremiumSubRights();
+      case SubscriptionStatus.ultimate:
+        rights = curSubscriptionRights.getUltimateSubRights();
+      default:
+    }
+    return curSubscriptionRights.havingAdvancedSpeechRight(rights);
+  }
+
+  bool speechPermission() {
+    return (normalSpeechPermission() || advancedSpeechPermission());
+  }
+
+  bool baseModelPermission() {
+    List<FeatureRights> rights = [];
+    SubscriptionRights curSubscriptionRights = SubscriptionRights();
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        rights = curSubscriptionRights.getFreeTrialRights();
+      case SubscriptionStatus.basic:
+        rights = curSubscriptionRights.getBaseSubRights();
+      case SubscriptionStatus.professional:
+        rights = curSubscriptionRights.getProSubRights();
+      case SubscriptionStatus.premium:
+        rights = curSubscriptionRights.getPremiumSubRights();
+      case SubscriptionStatus.ultimate:
+        rights = curSubscriptionRights.getUltimateSubRights();
+      default:
+    }
+    return curSubscriptionRights.havingBaseModelRight(rights);
   }
 
   bool powerModelPermission() {
+    List<FeatureRights> rights = [];
+    SubscriptionRights curSubscriptionRights = SubscriptionRights();
     switch (curSubscriptionStatus) {
       case SubscriptionStatus.free:
-        return false;
+        rights = curSubscriptionRights.getFreeTrialRights();
       case SubscriptionStatus.basic:
-        return false;
+        rights = curSubscriptionRights.getBaseSubRights();
       case SubscriptionStatus.professional:
-        return false;
+        rights = curSubscriptionRights.getProSubRights();
       case SubscriptionStatus.premium:
-        return true;
+        rights = curSubscriptionRights.getPremiumSubRights();
       case SubscriptionStatus.ultimate:
-        return true;
+        rights = curSubscriptionRights.getUltimateSubRights();
       default:
-        return false;
     }
+    return curSubscriptionRights.havingAdvancedModelRight(rights);
   }
 
   bool toolboxPermission() {
+    List<FeatureRights> rights = [];
+    SubscriptionRights curSubscriptionRights = SubscriptionRights();
     switch (curSubscriptionStatus) {
       case SubscriptionStatus.free:
-        return false;
+        rights = curSubscriptionRights.getFreeTrialRights();
       case SubscriptionStatus.basic:
-        return false;
+        rights = curSubscriptionRights.getBaseSubRights();
       case SubscriptionStatus.professional:
-        return false;
+        rights = curSubscriptionRights.getProSubRights();
       case SubscriptionStatus.premium:
-        return false;
+        rights = curSubscriptionRights.getPremiumSubRights();
       case SubscriptionStatus.ultimate:
-        return true;
+        rights = curSubscriptionRights.getUltimateSubRights();
       default:
-        return false;
     }
+    return curSubscriptionRights.havingToolboxRight(rights);
   }
 
   Future<void> updateSubscriptionState() async {
@@ -1270,33 +1401,33 @@ class KerasSubscriptionProvider with ChangeNotifier {
       SubscriptionStatus newStatus;
       if (ultimate != null && ultimate.isActive) {
         newStatus = SubscriptionStatus.ultimate;
-        print("updateSubscriptionState: ultimate");
+        logger.i("updateSubscriptionState: ultimate");
         curEntitlement = ultimate;
       } else if (premium != null && premium.isActive) {
         newStatus = SubscriptionStatus.premium;
-        print("updateSubscriptionState: premium");
+        logger.i("updateSubscriptionState: premium");
         curEntitlement = premium;
       } else if (professional != null && professional.isActive) {
         newStatus = SubscriptionStatus.professional;
-        print("updateSubscriptionState: professional");
+        logger.i("updateSubscriptionState: professional");
         curEntitlement = professional;
       } else if (basic != null && basic.isActive) {
         newStatus = SubscriptionStatus.basic;
-        print("updateSubscriptionState: basic");
+        logger.i("updateSubscriptionState: basic");
         curEntitlement = basic;
       } else {
-        print("updateSubscriptionState: free");
+        logger.i("updateSubscriptionState: free");
         newStatus = SubscriptionStatus.free;
         curEntitlement = null;
       }
 
       if (curSubscriptionStatus != newStatus) {
-        print("change status: $curSubscriptionStatus to $newStatus");
+        logger.i("change status: $curSubscriptionStatus to $newStatus");
         curSubscriptionStatus = newStatus;
         notifyListeners();
       }
-    } catch (e) {
-      print("updateSubscriptionState: $e");
+    } catch (e, stackTrace) {
+      logger.e("updateSubscriptionState crash: ", stackTrace: stackTrace);
     }
   }
 }
@@ -1409,8 +1540,8 @@ class KerasStatisticsInformation {
       loginUserId = "";
       statisticsInfo = null;
       totalstatisticsInfo = null;
-    } catch (e) {
-      print('unInitialize failed: $e');
+    } catch (e, stackTrace) {
+      logger.e("unInitialize crash: ", stackTrace: stackTrace);
     }
     return;
   }
@@ -1432,8 +1563,8 @@ class KerasStatisticsInformation {
       );
       totalstatisticsInfo = info;
 
-    } catch (e) {
-      print('Error fetching statistics info: $e');
+    } catch (e, stackTrace) {
+      logger.e('Error fetching statistics info:', stackTrace: stackTrace);
       statisticsInfo = StatisticsInfo(
           userId: loginUserId, 
           chatStatistics: 0, 
@@ -1472,12 +1603,12 @@ class KerasStatisticsInformation {
         if (docSnapshot.exists) {
           Map<String, dynamic> data = docSnapshot.data() as Map<String, dynamic>;
           StatisticsInfo info = StatisticsInfo.fromMap(data);
-          print('success get statistics information for userId $loginUserId');
+          logger.i('success get statistics information for userId $loginUserId');
           return info;
         }
       }
-    } catch (e) {
-      print('Error update statistics: $e');
+    } catch (e, stackTrace) {
+      logger.e("getInfoFromCloud crash: ", stackTrace: stackTrace);
     }
     return StatisticsInfo(
       userId: loginUserId, 
@@ -1491,22 +1622,26 @@ class KerasStatisticsInformation {
 
   Future<void> uploadStatistics() async {
     if(loginUserId != "" && statisticsInfo != null) {
-      StatisticsInfo info = await getInfoFromCloud();
-      info.chatStatistics += statisticsInfo!.chatStatistics;
-      info.imageStatistics += statisticsInfo!.imageStatistics;
-      info.voiceStatistics += statisticsInfo!.voiceStatistics;
-      info.speechStatistics += statisticsInfo!.speechStatistics;
-      info.toolBoxStatistics += statisticsInfo!.toolBoxStatistics;
-      if(totalstatisticsInfo != null) {
-        totalstatisticsInfo = info;
+      try {
+        StatisticsInfo info = await getInfoFromCloud();
+        info.chatStatistics += statisticsInfo!.chatStatistics;
+        info.imageStatistics += statisticsInfo!.imageStatistics;
+        info.voiceStatistics += statisticsInfo!.voiceStatistics;
+        info.speechStatistics += statisticsInfo!.speechStatistics;
+        info.toolBoxStatistics += statisticsInfo!.toolBoxStatistics;
+        if(totalstatisticsInfo != null) {
+          totalstatisticsInfo = info;
+        }
+        statisticsInfo!.chatStatistics = 0;
+        statisticsInfo!.imageStatistics = 0;
+        statisticsInfo!.voiceStatistics = 0;
+        statisticsInfo!.speechStatistics = 0;
+        statisticsInfo!.toolBoxStatistics = 0;
+        Map<String, dynamic> stats = info.toMap();
+        await firestore.collection('user_statistics').doc(loginUserId).set(stats);
+      } catch (e, stackTrace) {
+        logger.e("uploadStatistics crash: ", stackTrace: stackTrace);
       }
-      statisticsInfo!.chatStatistics = 0;
-      statisticsInfo!.imageStatistics = 0;
-      statisticsInfo!.voiceStatistics = 0;
-      statisticsInfo!.speechStatistics = 0;
-      statisticsInfo!.toolBoxStatistics = 0;
-      Map<String, dynamic> stats = info.toMap();
-      await firestore.collection('user_statistics').doc(loginUserId).set(stats);
     }
   }
 
@@ -1554,33 +1689,43 @@ class Mailer {
   String defaultBCC = "";
 
   Future<bool> sendDeleteDataRequest(String accountID, String accountName) async {
-    String body = defaultBody1 + accountID + defaultBody2 + accountName;
-    final Email email = Email(
-      body: body,
-      subject: defaultSubject,
-      recipients: [defaultRecipients],
-      isHTML: defaultIsHTML,
-    );
+    try {
+      String body = defaultBody1 + accountID + defaultBody2 + accountName;
+      final Email email = Email(
+        body: body,
+        subject: defaultSubject,
+        recipients: [defaultRecipients],
+        isHTML: defaultIsHTML,
+      );
 
-    await FlutterEmailSender.send(email);
-    return true;
+      await FlutterEmailSender.send(email);
+      return true;
+    } catch (e, stackTrace) {
+      logger.e("sendDeleteDataRequest crash: ", stackTrace: stackTrace);
+    }
+    return false;
   }
   
   Future<bool> sendEmail(String subject, String recipients, String body, String? cc, String? bcc, String? attachment, bool isHTML) async {
     List<String> ccList = cc != null ? [cc] : [];
     List<String> bccList = bcc != null ? [bcc] : [];
     List<String> attachmentList = attachment != null ? [attachment] : [];
-    final Email email = Email(
-      body: body,
-      subject: subject,
-      recipients: [recipients],
-      cc: ccList,
-      bcc: bccList,
-      attachmentPaths: attachmentList,
-      isHTML: isHTML,
-    );
-    await FlutterEmailSender.send(email);
-    return true;
+    try {
+      final Email email = Email(
+        body: body,
+        subject: subject,
+        recipients: [recipients],
+        cc: ccList,
+        bcc: bccList,
+        attachmentPaths: attachmentList,
+        isHTML: isHTML,
+      );
+      await FlutterEmailSender.send(email);
+      return true;
+    } catch (e, stackTrace) {
+      logger.e("sendEmail crash: ", stackTrace: stackTrace);
+    }
+    return false;
   }
 }
 
@@ -1588,15 +1733,20 @@ class RestrictionInformation {
   final remoteConfig = FirebaseRemoteConfigService();
 
   bool restrictionsEnable() {
-    bool enable = remoteConfig.getBool(FirebaseRemoteConfigKeys.restrictionsEnableKey);
-    //print("RestrictionInformation: restrictionsEnable: $enable");
-    return enable;
+    try {
+      if(remoteConfig.binitialize) {
+        bool enable = remoteConfig.getBool(FirebaseRemoteConfigKeys.restrictionsEnableKey);
+        return enable;
+      }
+    } catch (e, stackTrace) {
+      logger.e("restrictionsEnable crash: ", stackTrace: stackTrace);
+    }
+    return false;
   }
 
   int getConversationRestriction() {
     if(restrictionsEnable()) {
       int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.conversationRestKey);
-      print("RestrictionInformation: getConversationRestriction: $counts");
       return counts;
     }
     return 30000;
@@ -1605,7 +1755,6 @@ class RestrictionInformation {
   int getImageRestriction() {
     if(restrictionsEnable()) {
       int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.imageRestKey);
-      print("RestrictionInformation: getImageRestriction: $counts");
       return counts;
     }
     return 30000;
@@ -1614,7 +1763,6 @@ class RestrictionInformation {
   int getVoiceRestriction() {
     if(restrictionsEnable()) {
       int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.voiceRestKey);
-      print("RestrictionInformation: getVoiceRestriction: $counts");
       return counts;
     }
     return 30000;
@@ -1623,7 +1771,6 @@ class RestrictionInformation {
   int getToolboxRestriction() {
     if(restrictionsEnable()) {
       int counts = remoteConfig.getInt(FirebaseRemoteConfigKeys.toolboxRestKey);
-      print("RestrictionInformation: getToolboxRestriction: $counts");
       return counts;
     }
     return 30000;
@@ -1660,18 +1807,167 @@ class RestrictionInformation {
   }
 }
 
+enum FeatureRights { basemodel, advancedmodel, normalspeech, advancedspeech, toolbox }
+
+class SubscriptionRights {
+  final remoteConfig = FirebaseRemoteConfigService();
+
+  bool remoteConfigInitSuccess() {
+    try {
+      return remoteConfig.binitialize;
+    } catch (e, stackTrace) {
+      logger.e("remoteConfigInitSuccess crash: ", stackTrace: stackTrace);
+    }
+    return false;
+  }
+
+  List<FeatureRights> getRights(String rightsString) {
+    List<FeatureRights> rights = [];
+    if(rightsString.isEmpty) {
+      return rights;
+    }
+    List<String> substrings = rightsString.split(',');
+    if(substrings.isEmpty) {
+      return rights;
+    }
+    for(String substring in substrings) {
+      switch(substring) {
+        case "base_model":
+          rights.add(FeatureRights.basemodel);
+          break;
+        case "advanced_model":
+          rights.add(FeatureRights.advancedmodel);
+          break;
+        case "normal_speech":
+          rights.add(FeatureRights.normalspeech);
+          break;
+        case "advanced_speech":
+          rights.add(FeatureRights.advancedspeech);
+          break;
+        case "toolbox":
+          rights.add(FeatureRights.toolbox);
+          break;
+        default:
+          break;
+      }
+    }
+    return rights;
+  }
+
+  bool havingBaseModelRight(List<FeatureRights> rights) {
+    return rights.contains(FeatureRights.basemodel);
+  }
+
+  bool havingAdvancedModelRight(List<FeatureRights> rights) {
+    return rights.contains(FeatureRights.advancedmodel);
+  }
+
+  bool havingNormalSpeechRight(List<FeatureRights> rights) {
+    return rights.contains(FeatureRights.normalspeech);
+  }
+
+  bool havingAdvancedSpeechRight(List<FeatureRights> rights) {
+    return rights.contains(FeatureRights.advancedspeech);
+  }
+
+  bool havingToolboxRight(List<FeatureRights> rights) {
+    return rights.contains(FeatureRights.toolbox);
+  }
+
+  List<FeatureRights> getFreeTrialRights() {
+    List<FeatureRights> rights = [];
+    if(!remoteConfigInitSuccess()) {
+      return rights;
+    }
+    try {
+      String rightsString = remoteConfig.getString(FirebaseRemoteConfigKeys.freeTrialRightsKey);
+      if(rightsString.isNotEmpty) {
+        rights = getRights(rightsString);
+      }
+    } catch (e, stackTrace) {
+      logger.e("getFreeTrialRights crash: ", stackTrace: stackTrace);
+    }
+    return rights;
+  }
+
+  List<FeatureRights> getBaseSubRights() {
+    List<FeatureRights> rights = [];
+    if(!remoteConfigInitSuccess()) {
+      return rights;
+    }
+    try {
+      String rightsString = remoteConfig.getString(FirebaseRemoteConfigKeys.baseSubRightsKey);
+      if(rightsString.isNotEmpty) {
+        rights = getRights(rightsString);
+      }
+    } catch (e, stackTrace) {
+      logger.e("getBaseSubRights crash: ", stackTrace: stackTrace);
+    }
+    return rights;
+  }
+
+  List<FeatureRights> getProSubRights() {
+    List<FeatureRights> rights = [];
+    if(!remoteConfigInitSuccess()) {
+      return rights;
+    }
+    try {
+      String rightsString = remoteConfig.getString(FirebaseRemoteConfigKeys.proSubRightsKey);
+      if(rightsString.isNotEmpty) {
+        rights = getRights(rightsString);
+      }
+    } catch (e, stackTrace) {
+      logger.e("getProSubRights crash: ", stackTrace: stackTrace);
+    }
+    return rights;
+  }
+
+  List<FeatureRights> getPremiumSubRights() {
+    List<FeatureRights> rights = [];
+    if(!remoteConfigInitSuccess()) {
+      return rights;
+    }
+    try {
+      String rightsString = remoteConfig.getString(FirebaseRemoteConfigKeys.premiumSubRightsKey);
+      if(rightsString.isNotEmpty) {
+        rights = getRights(rightsString);
+      }
+    } catch (e, stackTrace) {
+      logger.e("getPremiumSubRights crash: ", stackTrace: stackTrace);
+    }
+    return rights;
+  }
+
+  List<FeatureRights> getUltimateSubRights() {
+    List<FeatureRights> rights = [];
+    if(!remoteConfigInitSuccess()) {
+      return rights;
+    }
+    try {
+      String rightsString = remoteConfig.getString(FirebaseRemoteConfigKeys.ultimateSubRightsKey);
+      if(rightsString.isNotEmpty) {
+        rights = getRights(rightsString);
+      }
+    } catch (e, stackTrace) {
+      logger.e("getUltimateSubRights crash: ", stackTrace: stackTrace);
+    }
+    return rights;
+  }
+}
+
 class FirebaseRemoteConfigService {
   FirebaseRemoteConfigService._() : _remoteConfig = FirebaseRemoteConfig.instance;
 
   static FirebaseRemoteConfigService? _instance;
   factory FirebaseRemoteConfigService() => _instance ??= FirebaseRemoteConfigService._();
-
+  bool binitialize = false;
   final FirebaseRemoteConfig _remoteConfig;
 
   Future<void> initialize() async {
     await setConfigSettings();
     await setDefaults();
     await fetchAndActivate();
+    binitialize = true;
 }
 
   String getString(String key) => _remoteConfig.getString(key);
@@ -1693,6 +1989,14 @@ class FirebaseRemoteConfigService {
       FirebaseRemoteConfigKeys.imageRestKey: 3000,
       FirebaseRemoteConfigKeys.voiceRestKey: 30000,
       FirebaseRemoteConfigKeys.toolboxRestKey: 30000,
+
+      FirebaseRemoteConfigKeys.freeTrialRightsKey: 'advanced_speech,base_model',
+      FirebaseRemoteConfigKeys.baseSubRightsKey: 'base_model',
+      FirebaseRemoteConfigKeys.proSubRightsKey: 'normal_speech,base_model',
+      FirebaseRemoteConfigKeys.premiumSubRightsKey: 'advanced_speech,base_model',
+      FirebaseRemoteConfigKeys.ultimateSubRightsKey: 'advanced_speech,advanced_model,toolbox',
+
+      FirebaseRemoteConfigKeys.freeTrialDaysKey: 3,
     },
   );
 
@@ -1700,9 +2004,9 @@ class FirebaseRemoteConfigService {
     bool updated = await _remoteConfig.fetchAndActivate();
 
     if (updated) {
-      debugPrint('The config has been updated.');
+      logger.d('The config has been updated.');
     } else {
-      debugPrint('The config is not updated..');
+      logger.d('The config is not updated..');
     }
   }
 }
@@ -1713,4 +2017,22 @@ class FirebaseRemoteConfigKeys {
   static const String imageRestKey = 'image_restriction_counts';
   static const String voiceRestKey = 'voice_restriction_counts';
   static const String toolboxRestKey = 'toolbox_restriction_counts';
+
+  static const String freeTrialRightsKey = 'free_trial_rights';
+  static const String baseSubRightsKey = 'base_subscription_rights';
+  static const String proSubRightsKey = 'pro_subscription_rights';
+  static const String premiumSubRightsKey = 'premium_subscription_rights';
+  static const String ultimateSubRightsKey = 'ultimate_subscription_rights';
+
+  static const String freeTrialDaysKey = 'free_trial_days';
+}
+
+class StringStackTrace implements StackTrace {
+
+ final String _stackTrace;
+
+ const StringStackTrace(this._stackTrace);
+
+ String toString() => _stackTrace;
+
 }

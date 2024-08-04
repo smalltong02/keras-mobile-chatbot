@@ -441,7 +441,7 @@ class TtsProvider {
         final audioBytes = ttsResponse.audio.buffer.asByteData().buffer.asUint8List();
 
         // Get the temporary directory of the app.
-        final directory = await getTemporaryDirectory();
+        final directory = await getTempPath();
         
         // Create a unique file name.
         final filePath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
@@ -815,9 +815,14 @@ void launchURL(String url) async {
     }
   }
 
-Future<String> getTempPath() async {
+Future<Directory> getTempPath() async {
   final directory = await getTemporaryDirectory();
-  return directory.path;
+  final appTempPath = '${directory.path}/temp';
+  final tempDir = Directory(appTempPath);
+  if (!await tempDir.exists()) {
+    await tempDir.create(recursive: true);
+  }
+  return tempDir;
 }
 
 Future<String> getDocumentsPath() async {
@@ -837,8 +842,8 @@ Future<String> getDownloadsPath() async {
 Future<bool> writeTempFile(String tmpFile, String content) async {
   bool bSuccess = false;
   try {
-    String tmpFolder = await getTempPath();
-    File file = File("$tmpFolder/$tmpFile");
+    final tmpFolder = await getTempPath();
+  File file = File("${tmpFolder.path}/$tmpFile");
     await file.writeAsString(content);
     bSuccess = true;
   } catch (e, stackTrace) {
@@ -850,8 +855,8 @@ Future<bool> writeTempFile(String tmpFile, String content) async {
 
 Future<String> readTempFile(String tmpFile) async {
   try {
-    String tmpFolder = await getTempPath();
-    File file = File("$tmpFolder/$tmpFile");
+    final tmpFolder = await getTempPath();
+    File file = File("${tmpFolder.path}/$tmpFile");
     String contents = await file.readAsString();
     return contents;
   } catch (e, stackTrace) {
@@ -863,7 +868,7 @@ Future<String> readTempFile(String tmpFile) async {
 Future<String> getFileTempPath(String tmpFile) async {
   final folder = await getTempPath();
   if(tmpFile.isEmpty) {
-    return folder;
+    return folder.path;
   }
   return "$folder/$tmpFile";
 }

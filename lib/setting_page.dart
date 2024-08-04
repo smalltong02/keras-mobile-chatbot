@@ -91,7 +91,7 @@ class SettingScreenState extends State<SettingScreen> {
   }
 
   Future<void> clearCache() async {
-    io.Directory cacheDir = await getTemporaryDirectory();
+    io.Directory cacheDir = await getTempPath();
     if (cacheDir.existsSync()) {
       cacheDir.deleteSync(recursive: true);
       setState(() {
@@ -489,7 +489,7 @@ class SettingScreenState extends State<SettingScreen> {
                     leading: const Icon(Icons.cached_sharp),
                     title: Text(DemoLocalizations.of(context).titleCacheSize),
                     trailing: FutureBuilder<io.Directory>(
-                      future: getTemporaryDirectory(),
+                      future: getTempPath(),
                       builder: (BuildContext context, AsyncSnapshot<io.Directory> snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return Text(DemoLocalizations.of(context).promptCalculating);

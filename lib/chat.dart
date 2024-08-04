@@ -546,9 +546,9 @@ class ChatUIState extends State<ChatUI> {
     }
     try {
       if (await record.hasPermission()) {
-        final directory = await getTemporaryDirectory();
+        final directory = await getTempPath();
         // Create a unique file name.
-        recordPath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.wav';
+        recordPath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
         await record.start(
           const RecordConfig(),
           path: recordPath,
@@ -589,7 +589,7 @@ class ChatUIState extends State<ChatUI> {
           });
         }
       } catch (e, stackTrace) {
-        logger.e("stopRecording crash: ", stackTrace: stackTrace);
+        logger.e("stopRecording crash: $e", stackTrace: stackTrace);
       }
     }
   }

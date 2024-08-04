@@ -84,6 +84,7 @@ class KerasMobileChatbotMainUI extends StatelessWidget {
         localizationsDelegates: const [  
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
           DemoLocalizationsDelegate(),
         ],
         locale: localesInApp.first,
@@ -104,6 +105,7 @@ class KerasMobileChatbotMainUI extends StatelessWidget {
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
           DemoLocalizationsDelegate(),
         ],
         supportedLocales: localesInApp,

@@ -579,7 +579,20 @@ class SettingScreenState extends State<SettingScreen> {
                     title: Text(DemoLocalizations.of(context).otherRequestTitle),
                     onPressed: (context) async {
                       final mailer = Mailer();
-                      await mailer.sendEmail("",mailer.defaultRecipients, "", null, null, null, false);
+                      bool bsuccess = await mailer.sendEmail("",mailer.defaultRecipients, "", null, null, null, false);
+                      if(!bsuccess) {
+                        GFToast.showToast(
+                          'Failed to send the email through the mail client.',
+                          context,
+                          toastPosition: GFToastPosition.TOP,
+                          textStyle: const TextStyle(fontSize: 12, color: GFColors.DARK),
+                          backgroundColor: GFColors.WARNING,
+                          trailing: const Icon(
+                            Icons.error,
+                            color: GFColors.DANGER,
+                          )
+                        );
+                      }
                     },
                   ),
                 ],

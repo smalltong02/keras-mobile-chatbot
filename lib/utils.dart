@@ -1705,8 +1705,14 @@ class Mailer {
 
       await FlutterEmailSender.send(email);
       return true;
-    } catch (e, stackTrace) {
-      logger.e("sendDeleteDataRequest crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("sendDeleteDataRequest crash: $e");
+    };
+
+    try {
+      launchURL(deleteRequestUrl);
+    } catch (e) {
+      logger.e("sendDeleteDataRequest crash: $e");
     }
     return false;
   }
@@ -1727,9 +1733,9 @@ class Mailer {
       );
       await FlutterEmailSender.send(email);
       return true;
-    } catch (e, stackTrace) {
-      logger.e("sendEmail crash: ", stackTrace: stackTrace);
-    }
+    } catch (e) {
+      logger.e("sendEmail crash: $e");
+    }   
     return false;
   }
 }

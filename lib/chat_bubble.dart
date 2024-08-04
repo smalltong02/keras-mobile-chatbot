@@ -500,11 +500,13 @@ class ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
     super.initState();
     hasPlayed = !widget.autoPlay;
     audioPlayer = audio.AudioPlayer();
-    audioPlayer!.onPlayerStateChanged.listen((state) {
-    if (state == audio.PlayerState.stopped || state == audio.PlayerState.completed) {
-      setState(() {
-        isPlaying = false;
-      });
+    audioPlayer?.onPlayerStateChanged.listen((state) {
+      if (state == audio.PlayerState.stopped || state == audio.PlayerState.completed) {
+        if (mounted) {
+          setState(() {
+            isPlaying = false;
+          });
+        }
       }
     });
   }

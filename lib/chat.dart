@@ -423,7 +423,7 @@ class ChatUI extends StatefulWidget {
 }
 
 class ChatUIState extends State<ChatUI> {
-  late LlmModel? llmModel;
+  LlmModel? llmModel;
   KerasAuthProvider? authProvider;
   final FocusNode _textFieldFocus = FocusNode();
   final TextEditingController _textController = TextEditingController();
@@ -486,6 +486,7 @@ class ChatUIState extends State<ChatUI> {
     loadModelName = Provider.of<SettingProvider>(context, listen: false).modelName;
     String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
     toolBoxEnable = permissionCheck == true ? Provider.of<SettingProvider>(context, listen: false).toolBoxEnable : permissionCheck;
+    toolBoxEnable = osType != OsType.android ? false : toolBoxEnable;
     Locale locale = Localizations.localeOf(context);
     String language = Provider.of<SettingProvider>(context, listen: false).language;
     if(toolBoxEnable) {
@@ -500,7 +501,15 @@ class ChatUIState extends State<ChatUI> {
     ttsProviderInstance!.initCurrentSpeech(locale, language);
     String systemInstruction = getSystemInstruction(role);
     if(baseModelCheck || advancedModelCheck) {
-      llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
+      if(llmModel != null) {
+        if(llmModel!.name != loadModelName ||
+          llmModel!.systemInstruction != systemInstruction ||
+          llmModel!.toolEnable != toolBoxEnable) {
+          llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
+        }
+      } else {
+        llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
+      }
     }
   }
 
@@ -581,7 +590,7 @@ class ChatUIState extends State<ChatUI> {
         recordPath = '';
         if(message.isNotEmpty) {
           _textController.text = message;
-          _sendChatMessage(_textController.text);
+          await _sendChatMessage(_textController.text);
         }
         else {
           setState(() {
@@ -593,7 +602,6 @@ class ChatUIState extends State<ChatUI> {
       }
     }
   }
-
   void startMonitoring() {
     try {
       timer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
@@ -1227,6 +1235,7 @@ class ChatUIState extends State<ChatUI> {
             final answer = openai.Messages(role: openai.Role.assistant, content: text).toJson();
             llmModel!.chatSession.history.add(query);
             llmModel!.chatSession.history.add(answer);
+            history = llmModel!.getHistory();
           }
           // When the model responds with non-null text content, print it.
           if (response.text case final text?) {

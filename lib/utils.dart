@@ -27,6 +27,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 const int maxTokenLength = 4096;
 const int maxReceiveTimeout = 50; // 50 seconds
@@ -141,6 +142,7 @@ final List<String> wallpaperSettingPaths = [
   ];
 
 enum ModelType { unknown, google, openai }
+enum OsType { unknown, android, ios, macos, windows, web }
 
 final List<String> lowPowerModel = [
   "gemini-1.5-flash",
@@ -202,11 +204,13 @@ final logger = Logger(
   ), // Use the PrettyPrinter to format and print log
   output: null, // Use the default LogOutput (-> send everything to console)
 );
+OsType osType = OsType.android;
 
 enum VoiceProvider { microsoft, google, openai, amazon }
 
 class TtsProvider {
   VoiceProvider defaultProvider = VoiceProvider.google;
+  String currentSpeech = 'en-US-AnaNeural';
   VoiceUniversal? roleVoice;
   List<VoiceUniversal>? voices;
 
@@ -250,8 +254,8 @@ class TtsProvider {
         defaultProvider = provider;
         TtsUniversal.setProvider(provider: getProviderName());
       }
-      if(roleSpeech != null) {
-        String speech = roleSpeech!;
+      if(roleSpeech != null && currentSpeech != roleSpeech) {
+        String speech = roleSpeech;
         final voicesResponse = await TtsUniversal.getVoices();
         voices = voicesResponse.voices; 
         if(voices!.isNotEmpty) {
@@ -262,11 +266,12 @@ class TtsProvider {
               break;
             }
           }
+          currentSpeech = speech;
           roleVoice = foundVoice;
         }
       }
-    } catch (e, stackTrace) {
-      logger.e("switchProvider crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("switchProvider crash: $e");
     }
     return;
   }
@@ -460,15 +465,34 @@ class TtsProvider {
   }
 }
 
+OsType getOsType() {
+  if (Platform.isAndroid) {
+    return OsType.android;
+  } else if (Platform.isIOS) {
+    return OsType.ios;
+  } else if (Platform.isWindows) {
+    return OsType.windows;
+  } else if (Platform.isMacOS) {
+    return OsType.macos;
+  }
+  return OsType.unknown;
+}
+
 void initApp() async {
   try {
     cameras = await availableCameras();
-    uniqueId = await const AndroidId().getId() ?? "unknown";
+    osType = getOsType();
+    if(osType == OsType.ios) {
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      uniqueId = iosInfo.identifierForVendor ?? "unknown";
+    } else if(osType == OsType.android) {
+      uniqueId = await const AndroidId().getId() ?? "unknown";
+    }
     final config = new QonversionConfigBuilder(
       dotenv.get("qonversion_proj_key"),
       QLaunchMode.subscriptionManagement
     )
-    .setEnvironment(QEnvironment.sandbox)
     .enableKidsMode()
     .build();
     Qonversion.initialize(config);
@@ -673,12 +697,14 @@ class LlmModel {
   String? systemInstruction;
   dynamic model;
   dynamic chatSession;
+  bool? toolEnable;
 
   LlmModel({
     this.type = ModelType.unknown,
     this.model,
     this.systemInstruction,
     this.name,
+    this.toolEnable,
     this.chatSession,
   });
 
@@ -723,6 +749,7 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
           gemini.ToolConfig toolConfig = gemini.ToolConfig(functionCallingConfig: gemini.FunctionCallingConfig(mode: gemini.FunctionCallingMode.auto));
           LlmModel llmModel = LlmModel(type: ModelType.google);
           llmModel.name = modelName;
+          llmModel.toolEnable = toolEnable;
           llmModel.systemInstruction = systemInstruction;
           final model = gemini.GenerativeModel(
             model: name,
@@ -741,6 +768,7 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
         } else {
           LlmModel llmModel = LlmModel(type: ModelType.google);
           llmModel.name = modelName;
+          llmModel.toolEnable = toolEnable;
           llmModel.systemInstruction = systemInstruction;
           final model = gemini.GenerativeModel(
             model: name,
@@ -761,6 +789,7 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
         if(modelName == name && name == 'gpt-4o-mini') {
           LlmModel llmModel = LlmModel(type: ModelType.openai);
           llmModel.name = modelName;
+          llmModel.toolEnable = toolEnable;
           llmModel.systemInstruction = systemInstruction;
           final model = openai.ChatModelFromValue(model: name);
           llmModel.model = model;
@@ -772,6 +801,7 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
         else if (modelName == name && name == openai.kGpt4o) {
           LlmModel llmModel = LlmModel(type: ModelType.openai);
           llmModel.name = modelName;
+          llmModel.toolEnable = toolEnable;
           llmModel.systemInstruction = systemInstruction;
           final model = openai.Gpt4OChatModel();
           llmModel.model = model;

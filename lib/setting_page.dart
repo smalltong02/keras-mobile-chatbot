@@ -210,6 +210,7 @@ class SettingScreenState extends State<SettingScreen> {
     bool baseModelPremission = subProvider.baseModelPermission();
     bool powerModelPermission = subProvider.powerModelPermission();
     bool toolboxPermission = subProvider.toolboxPermission();
+    toolboxPermission = osType != OsType.android ? false : toolboxPermission;
     List<String> modelList = [];
     if(baseModelPremission) {
       modelList = lowPowerModel;

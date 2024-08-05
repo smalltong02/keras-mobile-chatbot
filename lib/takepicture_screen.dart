@@ -4,16 +4,13 @@ import 'package:camera/camera.dart';
 import 'l10n/localization_intl.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 
-typedef TakePictureCallback = void Function(List<String> imagePathList);
 class TakePictureScreen extends StatefulWidget {
   const TakePictureScreen({
     super.key,
     required this.camera,
-    required this.takePictureCallback,
   });
 
   final CameraDescription camera;
-  final TakePictureCallback takePictureCallback;
 
   @override
   TakePictureScreenState createState() => TakePictureScreenState();
@@ -92,9 +89,6 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   @override
   void dispose() {
     _controller.dispose();
-    if(imagePathList.isNotEmpty) {
-      widget.takePictureCallback(imagePathList);
-    }
     super.dispose();
   }
 
@@ -111,7 +105,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   }
 
   Future<bool> onWillPop() {
-    //widget.takePictureCallback(imagePathList);
+    Navigator.of(context).pop(imagePathList);
     return Future.value(true);
   }
 

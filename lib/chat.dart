@@ -865,20 +865,6 @@ class ChatUIState extends State<ChatUI> {
     }
   }
 
-  void takePictureCallback(List<String> imagePathList) {
-    try {
-      if(imagePathList.isNotEmpty) {
-        fileUploadList.addAll(imagePathList);
-      }
-      if(mounted) {
-        setState(() {
-        });
-      }
-    } catch (e) {
-      logger.e("takePictureCallback crash: $e");
-    }
-  }
-
   InputDecoration textFieldDecoration() {
     return InputDecoration(
       contentPadding: const EdgeInsets.all(15),
@@ -905,18 +891,22 @@ class ChatUIState extends State<ChatUI> {
       ),
       suffixIcon: IconButton(
         icon: const Icon(Icons.camera_alt),
-        onPressed: () {
+        onPressed: () async {
           if(cameras.isNotEmpty) {
             final CameraDescription firstCamera = cameras.first;
             try {
-              Navigator.of(context).push(
+              final result = await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => TakePictureScreen(
                     camera: firstCamera,
-                    takePictureCallback: takePictureCallback,
                   ),
                 ),
               );
+              if (result != null && result.isNotEmpty) {
+                setState(() {
+                  fileUploadList.addAll(result);
+                });
+              }
             } catch (e, stackTrace) {
               logger.e("TakePictureScreen crash: ", stackTrace: stackTrace);
             }

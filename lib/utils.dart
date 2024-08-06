@@ -139,6 +139,14 @@ final List<String> wallpaperSettingPaths = [
     'assets/backgrounds/76.jpg',
     'assets/backgrounds/77.jpg',
     'assets/backgrounds/78.jpg',
+    'assets/backgrounds/79.jpg',
+    'assets/backgrounds/80.jpg',
+    'assets/backgrounds/81.jpg',
+    'assets/backgrounds/82.jpg',
+    'assets/backgrounds/83.jpg',
+    'assets/backgrounds/84.jpg',
+    'assets/backgrounds/85.jpg',
+    'assets/backgrounds/86.jpg',   
   ];
 
 enum ModelType { unknown, google, openai }
@@ -493,7 +501,6 @@ void initApp() async {
       dotenv.get("qonversion_proj_key"),
       QLaunchMode.subscriptionManagement
     )
-    .enableKidsMode()
     .build();
     Qonversion.initialize(config);
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 //import 'package:googleapis/speech/v1.dart';
+import 'package:googleapis/youtube/v3.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:camera/camera.dart';
@@ -23,11 +24,13 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:keras_mobile_chatbot/google_sign.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:android_id/android_id.dart';
+import 'package:system_info2/system_info2.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+
 
 const int maxTokenLength = 4096;
 const int maxReceiveTimeout = 50; // 50 seconds
@@ -60,97 +63,98 @@ final List<Map<String, String>> googleDocsTypes = [
   {"application/vnd.google-apps.video": "video/mp4"},
 ];
 
-final List<String> wallpaperSettingPaths = [
-    'assets/backgrounds/1.jpg',
-    'assets/backgrounds/2.jpg',
-    'assets/backgrounds/3.jpg',
-    'assets/backgrounds/4.jpg',
-    'assets/backgrounds/5.jpg',
-    'assets/backgrounds/6.jpg',
-    'assets/backgrounds/7.jpg',
-    'assets/backgrounds/8.jpg',
-    'assets/backgrounds/9.jpg',
-    'assets/backgrounds/10.jpg',
-    'assets/backgrounds/11.jpg',
-    'assets/backgrounds/12.jpg',
-    'assets/backgrounds/13.jpg',
-    'assets/backgrounds/14.jpg',
-    'assets/backgrounds/15.jpg',
-    'assets/backgrounds/16.jpg',
-    'assets/backgrounds/17.jpg',
-    'assets/backgrounds/18.jpg',
-    'assets/backgrounds/19.jpg',
-    'assets/backgrounds/20.jpg',
-    'assets/backgrounds/21.jpg',
-    'assets/backgrounds/22.jpg',
-    'assets/backgrounds/23.jpg',
-    'assets/backgrounds/24.jpg',
-    'assets/backgrounds/25.jpg',
-    'assets/backgrounds/26.jpg',
-    'assets/backgrounds/27.jpg',
-    'assets/backgrounds/28.jpg',
-    'assets/backgrounds/29.jpg',
-    'assets/backgrounds/30.jpg',
-    'assets/backgrounds/31.jpg',
-    'assets/backgrounds/32.jpg',
-    'assets/backgrounds/33.jpg',
-    'assets/backgrounds/34.jpg',
-    'assets/backgrounds/35.jpg',
-    'assets/backgrounds/36.jpg',
-    'assets/backgrounds/37.jpg',
-    'assets/backgrounds/38.jpg',
-    'assets/backgrounds/39.jpg',
-    'assets/backgrounds/40.jpg',
-    'assets/backgrounds/41.jpg',
-    'assets/backgrounds/42.jpg',
-    'assets/backgrounds/43.jpg',
-    'assets/backgrounds/44.jpg',
-    'assets/backgrounds/45.jpg',
-    'assets/backgrounds/46.jpg',
-    'assets/backgrounds/47.jpg',
-    'assets/backgrounds/48.jpg',
-    'assets/backgrounds/49.jpg',
-    'assets/backgrounds/50.jpg',
-    'assets/backgrounds/51.jpg',
-    'assets/backgrounds/52.jpg',
-    'assets/backgrounds/53.jpg',
-    'assets/backgrounds/54.jpg',
-    'assets/backgrounds/55.jpg',
-    'assets/backgrounds/56.jpg',
-    'assets/backgrounds/57.jpg',
-    'assets/backgrounds/58.jpg',
-    'assets/backgrounds/59.jpg',
-    'assets/backgrounds/60.jpg',
-    'assets/backgrounds/61.jpg',
-    'assets/backgrounds/62.jpg',
-    'assets/backgrounds/63.jpg',
-    'assets/backgrounds/64.jpg',
-    'assets/backgrounds/65.jpg',
-    'assets/backgrounds/66.jpg',
-    'assets/backgrounds/67.jpg',
-    'assets/backgrounds/68.jpg',
-    'assets/backgrounds/69.jpg',
-    'assets/backgrounds/70.jpg',
-    'assets/backgrounds/71.jpg',
-    'assets/backgrounds/72.jpg',
-    'assets/backgrounds/73.jpg',
-    'assets/backgrounds/74.jpg',
-    'assets/backgrounds/75.jpg',
-    'assets/backgrounds/76.jpg',
-    'assets/backgrounds/77.jpg',
-    'assets/backgrounds/78.jpg',
-    'assets/backgrounds/79.jpg',
-    'assets/backgrounds/80.jpg',
-    'assets/backgrounds/81.jpg',
-    'assets/backgrounds/82.jpg',
-    'assets/backgrounds/83.jpg',
-    'assets/backgrounds/84.jpg',
-    'assets/backgrounds/85.jpg',
-    'assets/backgrounds/86.jpg',   
+final List<Map<String, dynamic>> wallpaperSettingPaths = [
+    {'bk-1': {'Thumbnail': 'assets/bk-thumbnail/1.jpg', 'background': 'assets/backgrounds/1.jpg'}},
+    {'bk-2': {'Thumbnail': 'assets/bk-thumbnail/2.jpg', 'background': 'assets/backgrounds/2.jpg'}},
+    {'bk-3': {'Thumbnail': 'assets/bk-thumbnail/3.jpg', 'background': 'assets/backgrounds/3.jpg'}},
+    {'bk-4': {'Thumbnail': 'assets/bk-thumbnail/4.jpg', 'background': 'assets/backgrounds/4.jpg'}},
+    {'bk-5': {'Thumbnail': 'assets/bk-thumbnail/5.jpg', 'background': 'assets/backgrounds/5.jpg'}},
+    {'bk-6': {'Thumbnail': 'assets/bk-thumbnail/6.jpg', 'background': 'assets/backgrounds/6.jpg'}},
+    {'bk-7': {'Thumbnail': 'assets/bk-thumbnail/7.jpg', 'background': 'assets/backgrounds/7.jpg'}},
+    {'bk-8': {'Thumbnail': 'assets/bk-thumbnail/8.jpg', 'background': 'assets/backgrounds/8.jpg'}},
+    {'bk-9': {'Thumbnail': 'assets/bk-thumbnail/9.jpg', 'background': 'assets/backgrounds/9.jpg'}},
+    {'bk-10': {'Thumbnail': 'assets/bk-thumbnail/10.jpg', 'background': 'assets/backgrounds/10.jpg'}},
+    {'bk-11': {'Thumbnail': 'assets/bk-thumbnail/11.jpg', 'background': 'assets/backgrounds/11.jpg'}},
+    {'bk-12': {'Thumbnail': 'assets/bk-thumbnail/12.jpg', 'background': 'assets/backgrounds/12.jpg'}},
+    {'bk-13': {'Thumbnail': 'assets/bk-thumbnail/13.jpg', 'background': 'assets/backgrounds/13.jpg'}},
+    {'bk-14': {'Thumbnail': 'assets/bk-thumbnail/14.jpg', 'background': 'assets/backgrounds/14.jpg'}},
+    {'bk-15': {'Thumbnail': 'assets/bk-thumbnail/15.jpg', 'background': 'assets/backgrounds/15.jpg'}},
+    {'bk-16': {'Thumbnail': 'assets/bk-thumbnail/16.jpg', 'background': 'assets/backgrounds/16.jpg'}},
+    {'bk-17': {'Thumbnail': 'assets/bk-thumbnail/17.jpg', 'background': 'assets/backgrounds/17.jpg'}},
+    {'bk-18': {'Thumbnail': 'assets/bk-thumbnail/18.jpg', 'background': 'assets/backgrounds/18.jpg'}},
+    {'bk-19': {'Thumbnail': 'assets/bk-thumbnail/19.jpg', 'background': 'assets/backgrounds/19.jpg'}},
+    {'bk-20': {'Thumbnail': 'assets/bk-thumbnail/20.jpg', 'background': 'assets/backgrounds/20.jpg'}},
+    {'bk-21': {'Thumbnail': 'assets/bk-thumbnail/21.jpg', 'background': 'assets/backgrounds/21.jpg'}},
+    {'bk-22': {'Thumbnail': 'assets/bk-thumbnail/22.jpg', 'background': 'assets/backgrounds/22.jpg'}},
+    {'bk-23': {'Thumbnail': 'assets/bk-thumbnail/23.jpg', 'background': 'assets/backgrounds/23.jpg'}},
+    {'bk-24': {'Thumbnail': 'assets/bk-thumbnail/24.jpg', 'background': 'assets/backgrounds/24.jpg'}},
+    {'bk-25': {'Thumbnail': 'assets/bk-thumbnail/25.jpg', 'background': 'assets/backgrounds/25.jpg'}},
+    {'bk-26': {'Thumbnail': 'assets/bk-thumbnail/26.jpg', 'background': 'assets/backgrounds/26.jpg'}},
+    {'bk-27': {'Thumbnail': 'assets/bk-thumbnail/27.jpg', 'background': 'assets/backgrounds/27.jpg'}},
+    {'bk-28': {'Thumbnail': 'assets/bk-thumbnail/28.jpg', 'background': 'assets/backgrounds/28.jpg'}},
+    {'bk-29': {'Thumbnail': 'assets/bk-thumbnail/29.jpg', 'background': 'assets/backgrounds/29.jpg'}},
+    {'bk-30': {'Thumbnail': 'assets/bk-thumbnail/30.jpg', 'background': 'assets/backgrounds/30.jpg'}},
+    {'bk-31': {'Thumbnail': 'assets/bk-thumbnail/31.jpg', 'background': 'assets/backgrounds/31.jpg'}},
+    {'bk-32': {'Thumbnail': 'assets/bk-thumbnail/32.jpg', 'background': 'assets/backgrounds/32.jpg'}},
+    {'bk-33': {'Thumbnail': 'assets/bk-thumbnail/33.jpg', 'background': 'assets/backgrounds/33.jpg'}},
+    {'bk-34': {'Thumbnail': 'assets/bk-thumbnail/34.jpg', 'background': 'assets/backgrounds/34.jpg'}},
+    {'bk-35': {'Thumbnail': 'assets/bk-thumbnail/35.jpg', 'background': 'assets/backgrounds/35.jpg'}},
+    {'bk-36': {'Thumbnail': 'assets/bk-thumbnail/36.jpg', 'background': 'assets/backgrounds/36.jpg'}},
+    {'bk-37': {'Thumbnail': 'assets/bk-thumbnail/37.jpg', 'background': 'assets/backgrounds/37.jpg'}},
+    {'bk-38': {'Thumbnail': 'assets/bk-thumbnail/38.jpg', 'background': 'assets/backgrounds/38.jpg'}},
+    {'bk-39': {'Thumbnail': 'assets/bk-thumbnail/39.jpg', 'background': 'assets/backgrounds/39.jpg'}},
+    {'bk-40': {'Thumbnail': 'assets/bk-thumbnail/40.jpg', 'background': 'assets/backgrounds/40.jpg'}},
+    {'bk-41': {'Thumbnail': 'assets/bk-thumbnail/41.jpg', 'background': 'assets/backgrounds/41.jpg'}},
+    {'bk-42': {'Thumbnail': 'assets/bk-thumbnail/42.jpg', 'background': 'assets/backgrounds/42.jpg'}},
+    {'bk-43': {'Thumbnail': 'assets/bk-thumbnail/43.jpg', 'background': 'assets/backgrounds/43.jpg'}},
+    {'bk-44': {'Thumbnail': 'assets/bk-thumbnail/44.jpg', 'background': 'assets/backgrounds/44.jpg'}},
+    {'bk-45': {'Thumbnail': 'assets/bk-thumbnail/45.jpg', 'background': 'assets/backgrounds/45.jpg'}},
+    {'bk-46': {'Thumbnail': 'assets/bk-thumbnail/46.jpg', 'background': 'assets/backgrounds/46.jpg'}},
+    {'bk-47': {'Thumbnail': 'assets/bk-thumbnail/47.jpg', 'background': 'assets/backgrounds/47.jpg'}},
+    {'bk-48': {'Thumbnail': 'assets/bk-thumbnail/48.jpg', 'background': 'assets/backgrounds/48.jpg'}},
+    {'bk-49': {'Thumbnail': 'assets/bk-thumbnail/49.jpg', 'background': 'assets/backgrounds/49.jpg'}},
+    {'bk-50': {'Thumbnail': 'assets/bk-thumbnail/50.jpg', 'background': 'assets/backgrounds/50.jpg'}},
+    {'bk-51': {'Thumbnail': 'assets/bk-thumbnail/51.jpg', 'background': 'assets/backgrounds/51.jpg'}},
+    {'bk-52': {'Thumbnail': 'assets/bk-thumbnail/52.jpg', 'background': 'assets/backgrounds/52.jpg'}},
+    {'bk-53': {'Thumbnail': 'assets/bk-thumbnail/53.jpg', 'background': 'assets/backgrounds/53.jpg'}},
+    {'bk-54': {'Thumbnail': 'assets/bk-thumbnail/54.jpg', 'background': 'assets/backgrounds/54.jpg'}},
+    {'bk-55': {'Thumbnail': 'assets/bk-thumbnail/55.jpg', 'background': 'assets/backgrounds/55.jpg'}},
+    {'bk-56': {'Thumbnail': 'assets/bk-thumbnail/56.jpg', 'background': 'assets/backgrounds/56.jpg'}},
+    {'bk-57': {'Thumbnail': 'assets/bk-thumbnail/57.jpg', 'background': 'assets/backgrounds/57.jpg'}},
+    {'bk-58': {'Thumbnail': 'assets/bk-thumbnail/58.jpg', 'background': 'assets/backgrounds/58.jpg'}},
+    {'bk-59': {'Thumbnail': 'assets/bk-thumbnail/59.jpg', 'background': 'assets/backgrounds/59.jpg'}},
+    {'bk-60': {'Thumbnail': 'assets/bk-thumbnail/60.jpg', 'background': 'assets/backgrounds/60.jpg'}},
+    {'bk-61': {'Thumbnail': 'assets/bk-thumbnail/61.jpg', 'background': 'assets/backgrounds/61.jpg'}},
+    {'bk-62': {'Thumbnail': 'assets/bk-thumbnail/62.jpg', 'background': 'assets/backgrounds/62.jpg'}},
+    {'bk-63': {'Thumbnail': 'assets/bk-thumbnail/63.jpg', 'background': 'assets/backgrounds/63.jpg'}},
+    {'bk-64': {'Thumbnail': 'assets/bk-thumbnail/64.jpg', 'background': 'assets/backgrounds/64.jpg'}},
+    {'bk-65': {'Thumbnail': 'assets/bk-thumbnail/65.jpg', 'background': 'assets/backgrounds/65.jpg'}},
+    {'bk-66': {'Thumbnail': 'assets/bk-thumbnail/66.jpg', 'background': 'assets/backgrounds/66.jpg'}},
+    {'bk-67': {'Thumbnail': 'assets/bk-thumbnail/67.jpg', 'background': 'assets/backgrounds/67.jpg'}},
+    {'bk-68': {'Thumbnail': 'assets/bk-thumbnail/68.jpg', 'background': 'assets/backgrounds/68.jpg'}},
+    {'bk-69': {'Thumbnail': 'assets/bk-thumbnail/69.jpg', 'background': 'assets/backgrounds/69.jpg'}},
+    {'bk-70': {'Thumbnail': 'assets/bk-thumbnail/70.jpg', 'background': 'assets/backgrounds/70.jpg'}},
+    {'bk-71': {'Thumbnail': 'assets/bk-thumbnail/71.jpg', 'background': 'assets/backgrounds/71.jpg'}},
+    {'bk-72': {'Thumbnail': 'assets/bk-thumbnail/72.jpg', 'background': 'assets/backgrounds/72.jpg'}},
+    {'bk-73': {'Thumbnail': 'assets/bk-thumbnail/73.jpg', 'background': 'assets/backgrounds/73.jpg'}},
+    {'bk-74': {'Thumbnail': 'assets/bk-thumbnail/74.jpg', 'background': 'assets/backgrounds/74.jpg'}},
+    {'bk-75': {'Thumbnail': 'assets/bk-thumbnail/75.jpg', 'background': 'assets/backgrounds/75.jpg'}},
+    {'bk-76': {'Thumbnail': 'assets/bk-thumbnail/76.jpg', 'background': 'assets/backgrounds/76.jpg'}},
+    {'bk-77': {'Thumbnail': 'assets/bk-thumbnail/77.jpg', 'background': 'assets/backgrounds/77.jpg'}},
+    {'bk-78': {'Thumbnail': 'assets/bk-thumbnail/78.jpg', 'background': 'assets/backgrounds/78.jpg'}},
+    {'bk-79': {'Thumbnail': 'assets/bk-thumbnail/79.jpg', 'background': 'assets/backgrounds/79.jpg'}},
+    {'bk-80': {'Thumbnail': 'assets/bk-thumbnail/80.jpg', 'background': 'assets/backgrounds/80.jpg'}},
+    {'bk-81': {'Thumbnail': 'assets/bk-thumbnail/81.jpg', 'background': 'assets/backgrounds/81.jpg'}},
+    {'bk-82': {'Thumbnail': 'assets/bk-thumbnail/82.jpg', 'background': 'assets/backgrounds/82.jpg'}},
+    {'bk-83': {'Thumbnail': 'assets/bk-thumbnail/83.jpg', 'background': 'assets/backgrounds/83.jpg'}},
+    {'bk-84': {'Thumbnail': 'assets/bk-thumbnail/84.jpg', 'background': 'assets/backgrounds/84.jpg'}},
+    {'bk-85': {'Thumbnail': 'assets/bk-thumbnail/85.jpg', 'background': 'assets/backgrounds/85.jpg'}},
+    {'bk-86': {'Thumbnail': 'assets/bk-thumbnail/86.jpg', 'background': 'assets/backgrounds/86.jpg'}},
   ];
 
 enum ModelType { unknown, google, openai }
 enum OsType { unknown, android, ios, macos, windows, web }
+enum SystemResource { low, medium, high, ultra }
 
 final List<String> lowPowerModel = [
   "gemini-1.5-flash",
@@ -213,6 +217,7 @@ final logger = Logger(
   output: null, // Use the default LogOutput (-> send everything to console)
 );
 OsType osType = OsType.android;
+SystemResource systemResource = SystemResource.low;
 
 enum VoiceProvider { microsoft, google, openai, amazon }
 
@@ -473,6 +478,44 @@ class TtsProvider {
   }
 }
 
+String getWallpaperTbPath(String wallpaperKey) {
+    if(wallpaperKey.isEmpty) {
+      wallpaperKey = 'bk-49';
+    }
+
+    for(final wallpaper in wallpaperSettingPaths) {
+      for (final key in wallpaper.keys) {
+        if (key == wallpaperKey) {
+          return wallpaper[key]['Thumbnail'];
+        }
+      }
+    }
+    return 'assets/bk-thumbnail/49.jpg';
+  }
+
+  String getWallpaperBkPath(String wallpaperKey) {
+    if(wallpaperKey.isEmpty) {
+      wallpaperKey = 'bk-49';
+    }
+    for(final wallpaper in wallpaperSettingPaths) {
+      for (final key in wallpaper.keys) {
+        if (key == wallpaperKey) {
+          if(systemResource == SystemResource.low ||
+            systemResource == SystemResource.medium) {
+            return wallpaper[key]['Thumbnail'];
+          } else {
+            return wallpaper[key]['background'];
+          }
+        }
+      }
+    }
+    if(systemResource == SystemResource.ultra) {
+      return 'assets/backgrounds/49.jpg';
+    } else {
+      return 'assets/bk-thumbnail/49.jpg';
+    }
+  }
+
 OsType getOsType() {
   if (Platform.isAndroid) {
     return OsType.android;
@@ -486,6 +529,40 @@ OsType getOsType() {
   return OsType.unknown;
 }
 
+SystemResource initSystemResource() {
+  int totalMemory = SysInfo.getTotalPhysicalMemory();
+    logger.i("Total Physical Memory: $totalMemory");
+
+    if(totalMemory < 2123585024) {  // <= 2G
+      return SystemResource.low;
+    } else if(totalMemory < 4294967296) {  // <= 4G
+      return SystemResource.medium;
+    } else if(totalMemory < 8589934592) {  // <= 8G
+      return SystemResource.high;
+    } else {
+      return SystemResource.ultra;
+    }
+}
+
+String getSystemResource() {
+  String strResource = "low";
+  switch (systemResource) {
+    case SystemResource.low:
+      strResource = "low";
+      break;
+    case SystemResource.medium:
+      strResource = "medium";
+      break;
+    case SystemResource.high:
+      strResource = "high";
+      break;
+    case SystemResource.ultra:
+      strResource = "ultra";
+      break;
+  }
+  return strResource;
+}
+
 void initApp() async {
   try {
     cameras = await availableCameras();
@@ -497,7 +574,8 @@ void initApp() async {
     } else if(osType == OsType.android) {
       uniqueId = await const AndroidId().getId() ?? "unknown";
     }
-    final config = new QonversionConfigBuilder(
+    systemResource = initSystemResource();
+    final config = QonversionConfigBuilder(
       dotenv.get("qonversion_proj_key"),
       QLaunchMode.subscriptionManagement
     )
@@ -540,8 +618,8 @@ class SettingProvider with ChangeNotifier {
   String _currentRole = 'Keras Robot';
   String _roleIconPath = 'assets/icons/11/11.png';
   String _playerIconPath = 'assets/icons/14/9.png';
-  String _homepageWallpaperPath = 'assets/backgrounds/49.jpg';
-  String _chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
+  String _homepageWallpaperKey = 'bk-49';
+  String _chatpageWallpaperKey = 'bk-64';
   String _language = 'auto';
   int _chatFontSize = 14;
   bool _speechEnable = false;
@@ -554,8 +632,8 @@ class SettingProvider with ChangeNotifier {
   String get currentRole => _currentRole;
   String get roleIconPath => _roleIconPath;
   String get playerIconPath => _playerIconPath;
-  String get homepageWallpaperPath => _homepageWallpaperPath;
-  String get chatpageWallpaperPath => _chatpageWallpaperPath;
+  String get homepageWallpaperKey => _homepageWallpaperKey;
+  String get chatpageWallpaperKey => _chatpageWallpaperKey;
   String get language => _language;
   int get chatFontSize => _chatFontSize;
   bool get speechEnable => _speechEnable;
@@ -612,8 +690,8 @@ class SettingProvider with ChangeNotifier {
     }
   }
   void updateWallpaper(String homepageWallpaper, String chatpageWallpaper) {
-    _homepageWallpaperPath = homepageWallpaper;
-    _chatpageWallpaperPath = chatpageWallpaper;
+    _homepageWallpaperKey = homepageWallpaper;
+    _chatpageWallpaperKey = chatpageWallpaper;
     notifyListeners();
     saveSetting();
   }
@@ -658,8 +736,8 @@ class SettingProvider with ChangeNotifier {
     _currentRole = prefs.getString('currentRole') ?? 'Keras Robot';
     _roleIconPath = prefs.getString('roleIconPath') ?? 'assets/icons/11/11.png';
     _playerIconPath = prefs.getString('playerIconPath') ?? 'assets/icons/14/9.png';
-    _homepageWallpaperPath = prefs.getString('homepageWallpaperPath') ?? 'assets/backgrounds/49.jpg';
-    _chatpageWallpaperPath = prefs.getString('chatpageWallpaperPath') ?? 'assets/backgrounds/64.jpg';
+    _homepageWallpaperKey = prefs.getString('homepageWallpaperKey') ?? 'bk-49';
+    _chatpageWallpaperKey = prefs.getString('chatpageWallpaperKey') ?? 'bk-64';
     _speechEnable = prefs.getBool('speechEnable') ?? true;
     _showPolicy = prefs.getBool('showPolicy') ?? true;
     notifyListeners();
@@ -675,8 +753,8 @@ class SettingProvider with ChangeNotifier {
     prefs.setString('currentRole', _currentRole);
     prefs.setString('roleIconPath', _roleIconPath);
     prefs.setString('playerIconPath', _playerIconPath);
-    prefs.setString('homepageWallpaperPath', _homepageWallpaperPath);
-    prefs.setString('chatpageWallpaperPath', _chatpageWallpaperPath);
+    prefs.setString('homepageWallpaperKey', _homepageWallpaperKey);
+    prefs.setString('chatpageWallpaperKey', _chatpageWallpaperKey);
     prefs.setBool('speechEnable', _speechEnable);
     prefs.setBool('showPolicy', _showPolicy);
   }
@@ -976,6 +1054,7 @@ class UserInfo {
   String firstCreate;
   String lastLogin;
   String email;
+  String systemResource;
   List<String> loginDevices;
 
   UserInfo({
@@ -983,6 +1062,7 @@ class UserInfo {
     required this.firstCreate,
     required this.lastLogin,
     required this.email,
+    required this.systemResource,
     required this.loginDevices,
   });
 
@@ -992,6 +1072,7 @@ class UserInfo {
       firstCreate: map['firstCreate'] ?? '',
       lastLogin: map['lastLogin'] ?? '',
       email: map['email'] ?? '',
+      systemResource: map['systemResource'] ?? '',
       loginDevices: List<String>.from(map['loginDevices'] ?? []),
     );
   }
@@ -1007,6 +1088,7 @@ class UserInfo {
       'firstCreate': firstCreate,
       'lastLogin': lastLogin,
       'email': email,
+      'systemResource': systemResource,
       'loginDevices': loginDevices,
     };
   }
@@ -1017,7 +1099,7 @@ class UserInfo {
 
   @override
   String toString() {
-    return 'UserInfo(userId: $userId, firstCreate: $firstCreate, lastLogin: $lastLogin, email: $email, loginDevices: $loginDevices)';
+    return 'UserInfo(userId: $userId, firstCreate: $firstCreate, lastLogin: $lastLogin, email: $email, systemResource: $systemResource, loginDevices: $loginDevices)';
   }
 }
 
@@ -1093,6 +1175,7 @@ class KerasAuthProvider with ChangeNotifier {
         firstCreate: currentTime,
         lastLogin: currentTime,
         email: email,
+        systemResource: getSystemResource(),
         loginDevices: [uniqueId],
       );
       await userRef.set(newUserInfo.toMap());
@@ -1106,6 +1189,7 @@ class KerasAuthProvider with ChangeNotifier {
       UserInfo existingUserInfo = UserInfo.fromMap(userData);
       if(existingUserInfo.loginDevices.contains(uniqueId)) {
         existingUserInfo.lastLogin = currentTime;
+        existingUserInfo.systemResource = getSystemResource();
         await userRef.set(existingUserInfo.toMap());
         userInfo = existingUserInfo;
         return AuthStatus.success;
@@ -1114,6 +1198,7 @@ class KerasAuthProvider with ChangeNotifier {
         return AuthStatus.maxLoggin;
       }
       existingUserInfo.lastLogin = currentTime;
+      existingUserInfo.systemResource = getSystemResource();
       existingUserInfo.loginDevices.add(uniqueId);
       await userRef.set(existingUserInfo.toMap());
       userInfo = existingUserInfo;

@@ -36,7 +36,7 @@ class RegisterScreenState extends State<RegisterScreen> {
 
     return Consumer<SettingProvider>(
       builder: (context, settingProvider, _) {
-        String wallpaperPath = settingProvider.homepageWallpaperPath;
+        String wallpaperKey = settingProvider.homepageWallpaperKey;
         return Scaffold(
           appBar: AppBar(
             title: Text(DemoLocalizations.of(context).titleRegisterPage),
@@ -46,10 +46,10 @@ class RegisterScreenState extends State<RegisterScreen> {
               child: Container(
                 width: screenWidth,
                 height: screenHeight,
-                decoration: wallpaperPath.isNotEmpty
+                decoration: wallpaperKey.isNotEmpty
                     ? BoxDecoration(
                         image: DecorationImage(
-                          image: AssetImage(wallpaperPath),
+                          image: AssetImage(getWallpaperBkPath(wallpaperKey)),
                           fit: BoxFit.cover,
                         ),
                       )

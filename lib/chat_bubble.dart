@@ -140,7 +140,7 @@ class FullScreenTextPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String wallpaperPath = Provider.of<SettingProvider>(context).chatpageWallpaperPath;
+    String wallpaperKey = Provider.of<SettingProvider>(context).chatpageWallpaperKey;
     return Scaffold(
       body: Center(
         child: GestureDetector(
@@ -148,7 +148,7 @@ class FullScreenTextPage extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(wallpaperPath), // Use wallpaper path here
+                image: AssetImage(getWallpaperBkPath(wallpaperKey)), // Use wallpaper path here
                 fit: BoxFit.cover,
               ),
             ),

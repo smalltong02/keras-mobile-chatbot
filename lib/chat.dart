@@ -20,7 +20,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keras_mobile_chatbot/setting_page.dart';
 import 'package:keras_mobile_chatbot/takepicture_screen.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 class GradientText extends StatelessWidget {
   const GradientText(this.text, {super.key, required this.gradient, this.style});
@@ -431,7 +430,7 @@ class ChatUIState extends State<ChatUI> {
   bool _loading = false;
   bool toolBoxEnable = false;
   String loadModelName = "";
-  String wallpaperPath = "";
+  String wallpaperKey = "";
   List<String> fileUploadList = [];
   Map<int, dynamic> internalMessageList = {};
   Map<int, dynamic> extendMessageList = {};
@@ -636,7 +635,7 @@ class ChatUIState extends State<ChatUI> {
       builder: (context, settingProvider, _) {
         String roleIconPath = settingProvider.roleIconPath;
         String playerIconPath = settingProvider.playerIconPath;
-        String wallpaperPath = settingProvider.chatpageWallpaperPath;
+        wallpaperKey = settingProvider.chatpageWallpaperKey;
         final subProvider = Provider.of<KerasSubscriptionProvider>(context);
         if(authProvider != null && !subProvider.checkFreeTrial(authProvider!.getFirstCreateDate())) {
           freeTrialExpired = true;
@@ -658,10 +657,10 @@ class ChatUIState extends State<ChatUI> {
               Container(
                 width: screenWidth,
                 height: screenHeight,
-                decoration: wallpaperPath.isNotEmpty
+                decoration: wallpaperKey.isNotEmpty
                     ? BoxDecoration(
                         image: DecorationImage(
-                          image: AssetImage(wallpaperPath),
+                          image: AssetImage(getWallpaperBkPath(wallpaperKey)),
                           fit: BoxFit.cover,
                         ),
                       )

@@ -22,7 +22,7 @@ class HomeScreenState extends State<HomeScreen> {
   bool isEye = true;
   String userName = "";
   String password = "";
-  String wallpaperPath = "";
+  String wallpaperKey = "";
   KerasAuthProvider? authProvider;
   final _formKey = GlobalKey<FormState>();
   final usernameController =  TextEditingController();
@@ -118,7 +118,7 @@ class HomeScreenState extends State<HomeScreen> {
 
     return Consumer<SettingProvider>(
       builder: (context, settingProvider, _) {
-        String wallpaperPath = settingProvider.homepageWallpaperPath;
+        wallpaperKey = settingProvider.homepageWallpaperKey;
         userName = Provider.of<SettingProvider>(context, listen: false).userName;
         password = Provider.of<SettingProvider>(context, listen: false).password;
         final subProvider = Provider.of<KerasSubscriptionProvider>(context);
@@ -137,10 +137,10 @@ class HomeScreenState extends State<HomeScreen> {
               child: Container(
                 width: screenWidth,
                 height: screenHeight,
-                decoration: wallpaperPath.isNotEmpty
+                decoration: wallpaperKey.isNotEmpty
                     ? BoxDecoration(
                         image: DecorationImage(
-                          image: AssetImage(wallpaperPath),
+                          image: AssetImage(getWallpaperBkPath(wallpaperKey)),
                           fit: BoxFit.cover,
                         ),
                       )

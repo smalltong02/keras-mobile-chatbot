@@ -199,9 +199,9 @@ class CharactersListState extends State<CharactersListPage> {
       body: Container(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/backgrounds/4.jpg'),
+            image: AssetImage(getWallpaperTbPath('bk-4')),
             fit: BoxFit.cover,
           ),
         ),

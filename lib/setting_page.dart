@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:keras_mobile_chatbot/wheel_character.dart';
 import 'package:keras_mobile_chatbot/wallpaper_page.dart';
 
@@ -22,8 +21,8 @@ class SettingScreenState extends State<SettingScreen> {
   String modelName = defaultModel;
   String assistantIconPath = 'assets/icons/11/11.png';
   String yourIconPath = 'assets/icons/14/9.png';
-  String homepageWallpaperPath = 'assets/backgrounds/49.jpg';
-  String chatpageWallpaperPath = 'assets/backgrounds/64.jpg';
+  String homepageWallpaperKey = 'bk-49';
+  String chatpageWallpaperKey = 'bk-64';
   String currentLanguage = '';
   int chatFontSize = 14;
   bool speechEnable = false;
@@ -65,11 +64,11 @@ class SettingScreenState extends State<SettingScreen> {
     return character;
   }
 
-  void wallpaperCallback(String homepageWallpaperPath, String chatpageWallpaperPath) {
+  void wallpaperCallback(String homeKey, String chatKey) {
     setState(() {
-      homepageWallpaperPath = homepageWallpaperPath;
-      chatpageWallpaperPath = chatpageWallpaperPath;
-      Provider.of<SettingProvider>(context, listen: false).updateWallpaper(homepageWallpaperPath, chatpageWallpaperPath);
+      homepageWallpaperKey = homeKey;
+      chatpageWallpaperKey = chatKey;
+      Provider.of<SettingProvider>(context, listen: false).updateWallpaper(homepageWallpaperKey, chatpageWallpaperKey);
     });
   }
 
@@ -200,8 +199,8 @@ class SettingScreenState extends State<SettingScreen> {
     modelName = Provider.of<SettingProvider>(context, listen: false).modelName;
     assistantIconPath = Provider.of<SettingProvider>(context, listen: false).roleIconPath;
     yourIconPath = Provider.of<SettingProvider>(context, listen: false).playerIconPath;
-    homepageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).homepageWallpaperPath;
-    chatpageWallpaperPath = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperPath;
+    homepageWallpaperKey = Provider.of<SettingProvider>(context, listen: false).homepageWallpaperKey;
+    chatpageWallpaperKey = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperKey;
     speechEnable = Provider.of<SettingProvider>(context, listen: false).speechEnable;
     toolBoxEnable = Provider.of<SettingProvider>(context, listen: false).toolBoxEnable;
     final subProvider = Provider.of<KerasSubscriptionProvider>(context);
@@ -386,17 +385,17 @@ class SettingScreenState extends State<SettingScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (homepageWallpaperPath.isNotEmpty) ...{
+                        if (homepageWallpaperKey.isNotEmpty) ...{
                           Image.asset(
-                            homepageWallpaperPath,
+                            getWallpaperTbPath(homepageWallpaperKey),
                             width: 40,
                             height: 40,
                           )
                         },
                         const SizedBox(width: 8),
-                        if (chatpageWallpaperPath.isNotEmpty) ...{
+                        if (chatpageWallpaperKey.isNotEmpty) ...{
                           Image.asset(
-                            chatpageWallpaperPath,
+                            getWallpaperTbPath(chatpageWallpaperKey),
                             width: 40,
                             height: 40,
                           ),
@@ -409,8 +408,8 @@ class SettingScreenState extends State<SettingScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => WallpaperPage(
-                            homepageWallpaperPath: homepageWallpaperPath,
-                            chatpageWallpaperPath: chatpageWallpaperPath,
+                            homepageWallpaperKey: homepageWallpaperKey,
+                            chatpageWallpaperKey: chatpageWallpaperKey,
                             wallpaperCallback: (String homepagePath, String chatpagePath) {
                               wallpaperCallback(homepagePath, chatpagePath);
                             },

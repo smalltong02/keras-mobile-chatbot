@@ -5,36 +5,36 @@ import 'package:keras_mobile_chatbot/utils.dart';
 typedef WallpaperCallback = void Function(String homepageWallpaperPath, String chatpageWallpaperPath);
 
 class WallpaperPage extends StatefulWidget {
-  final String homepageWallpaperPath;
-  final String chatpageWallpaperPath;
+  final String homepageWallpaperKey;
+  final String chatpageWallpaperKey;
   final WallpaperCallback wallpaperCallback;
-  const WallpaperPage({super.key, required this.homepageWallpaperPath, required this.chatpageWallpaperPath, required this.wallpaperCallback,});
+  const WallpaperPage({super.key, required this.homepageWallpaperKey, required this.chatpageWallpaperKey, required this.wallpaperCallback,});
 
   @override
   WallpaperPageState createState() => WallpaperPageState();
 }
 
 class WallpaperPageState extends State<WallpaperPage> {
-  final List<String> wallpaperPaths = wallpaperSettingPaths;
-  String curHomepageWallpaperPath = "";
-  String curChatpageWallpaperPath = "";
+  final wallpaperPaths = wallpaperSettingPaths;
+  String curHomepageWallpaperKey = "";
+  String curChatpageWallpaperKey = "";
   bool isHomeWallpaper = true;
 
   @override
   void initState() {
     super.initState();
-    curHomepageWallpaperPath = widget.homepageWallpaperPath;
-    curChatpageWallpaperPath = widget.chatpageWallpaperPath;
+    curHomepageWallpaperKey = widget.homepageWallpaperKey;
+    curChatpageWallpaperKey = widget.chatpageWallpaperKey;
   }
 
-  void _onImageTap(String imagePath) {
+  void _onImageTap(String imageKey) {
     setState(() {
       if (isHomeWallpaper) {
-        curHomepageWallpaperPath = imagePath;
+        curHomepageWallpaperKey = imageKey;
       } else {
-        curChatpageWallpaperPath = imagePath;
+        curChatpageWallpaperKey = imageKey;
       }
-      widget.wallpaperCallback(curHomepageWallpaperPath, curChatpageWallpaperPath);
+      widget.wallpaperCallback(curHomepageWallpaperKey, curChatpageWallpaperKey);
     });
   }
 
@@ -103,17 +103,17 @@ class WallpaperPageState extends State<WallpaperPage> {
                 ),
                 itemCount: wallpaperPaths.length,
                 itemBuilder: (context, index) {
-                  String imagePath = wallpaperPaths[index];
-                  bool isSelected = imagePath == (isHomeWallpaper ? curHomepageWallpaperPath : curChatpageWallpaperPath);
+                  String imageKey = wallpaperPaths[index].keys.first;
+                  bool isSelected = imageKey == (isHomeWallpaper ? curHomepageWallpaperKey : curChatpageWallpaperKey);
                   return SelectableImage(
-                    imagePath: imagePath,
+                    imagePath: getWallpaperTbPath(imageKey),
                     isSelected: isSelected,
                     selectedColor: isHomeWallpaper ? Colors.blueAccent.withOpacity(0.6) : Colors.purpleAccent.withOpacity(0.6),
                     onTap: () {
                       if (isSelected) {
-                        imagePath = "";
+                        imageKey = "";
                       }
-                      _onImageTap(imagePath);
+                      _onImageTap(imageKey);
                     },
                   );
                 },

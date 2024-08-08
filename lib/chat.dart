@@ -334,10 +334,6 @@ class ChatHomeState  extends State<ChatHome>  {
     String name = DemoLocalizations.of(context).subscriptionBtn;
     final subProvider = Provider.of<KerasSubscriptionProvider>(context);
     Color subTextColor = Colors.white;
-    Color subBkColor = Colors.green;
-    if(subProvider.isFreeSubscriptionStatus()) {
-      subBkColor = Colors.redAccent;
-    }
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -348,11 +344,11 @@ class ChatHomeState  extends State<ChatHome>  {
                 Container(
                   padding: const EdgeInsets.all(8), // Adjust padding as needed
                   decoration: BoxDecoration(
-                    color: subBkColor,
+                    color: subProvider.getSubscriptionColor(),
                     borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
                   ),
                   child: Text(
-                    subProvider.getSubscriptionStatus(),
+                    subProvider.getSubscriptionSimplify(),
                     style: TextStyle(
                       color: subTextColor,
                       fontSize: 16, // Adjust font size as needed

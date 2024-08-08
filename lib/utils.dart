@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 //import 'package:googleapis/speech/v1.dart';
-import 'package:googleapis/youtube/v3.dart';
+//import 'package:googleapis/youtube/v3.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:camera/camera.dart';
@@ -1400,6 +1400,44 @@ class KerasSubscriptionProvider with ChangeNotifier {
     return statusStr;
   }
 
+  String getSubscriptionSimplify() {
+    String statusStr = "";
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        statusStr = 'Free';
+      case SubscriptionStatus.basic:
+        statusStr = 'Bas';
+      case SubscriptionStatus.professional:
+        statusStr = 'Pro';
+      case SubscriptionStatus.premium:
+        statusStr = 'Pre';
+      case SubscriptionStatus.ultimate:
+        statusStr = 'Ult';
+      default:
+        statusStr = 'Unk';
+    }
+    logger.i("getSubscriptionSimplify: $statusStr");
+    return statusStr;
+  }
+
+  Color getSubscriptionColor() {
+    Color subColor = Colors.redAccent;
+    switch (curSubscriptionStatus) {
+      case SubscriptionStatus.free:
+        subColor = Colors.redAccent;
+      case SubscriptionStatus.basic:
+        subColor = Colors.green;
+      case SubscriptionStatus.professional:
+        subColor = Colors.orange;
+      case SubscriptionStatus.premium:
+        subColor = Colors.brown.shade300;
+      case SubscriptionStatus.ultimate:
+        subColor = Colors.cyan;
+    }
+    logger.i("getSubscriptionColor: $subColor");
+    return subColor;
+  }
+
   bool checkFreeTrial(DateTime startTime) {
     if(curSubscriptionStatus != SubscriptionStatus.free) {
       return true;
@@ -1524,6 +1562,10 @@ class KerasSubscriptionProvider with ChangeNotifier {
       final professional = ents['professional_subscription'];
       final premium = ents['premium_subscription'];
       final ultimate = ents['ultimate_subscription'];
+      final basicYear = ents['basic_year'];
+      final professionalYear = ents['professional_year'];
+      final premiumYear = ents['premium_year'];
+      final ultimateYear = ents['ultimate_year'];
 
       SubscriptionStatus newStatus;
       if (ultimate != null && ultimate.isActive) {
@@ -1542,6 +1584,22 @@ class KerasSubscriptionProvider with ChangeNotifier {
         newStatus = SubscriptionStatus.basic;
         logger.i("updateSubscriptionState: basic");
         curEntitlement = basic;
+      } if (ultimateYear != null && ultimateYear.isActive) {
+        newStatus = SubscriptionStatus.ultimate;
+        logger.i("updateSubscriptionState: ultimate year");
+        curEntitlement = ultimateYear;
+      } else if (premiumYear != null && premiumYear.isActive) {
+        newStatus = SubscriptionStatus.premium;
+        logger.i("updateSubscriptionState: premium year");
+        curEntitlement = premiumYear;
+      } else if (professionalYear != null && professionalYear.isActive) {
+        newStatus = SubscriptionStatus.professional;
+        logger.i("updateSubscriptionState: professional year");
+        curEntitlement = professionalYear;
+      } else if (basicYear != null && basicYear.isActive) {
+        newStatus = SubscriptionStatus.basic;
+        logger.i("updateSubscriptionState: basic year");
+        curEntitlement = basicYear;
       } else {
         logger.i("updateSubscriptionState: free");
         newStatus = SubscriptionStatus.free;

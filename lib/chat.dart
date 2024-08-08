@@ -832,7 +832,7 @@ class ChatUIState extends State<ChatUI> {
 
   Future<void> pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
+      type: FileType.image,
       allowMultiple: false,
     );
 

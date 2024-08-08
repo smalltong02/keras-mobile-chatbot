@@ -31,7 +31,6 @@ import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
-
 const int maxTokenLength = 4096;
 const int maxReceiveTimeout = 50; // 50 seconds
 const int maxConnectTimeout = 30;
@@ -2225,5 +2224,4 @@ class StringStackTrace implements StackTrace {
  const StringStackTrace(this._stackTrace);
 
  String toString() => _stackTrace;
-
 }

@@ -10,7 +10,7 @@
         android:icon="@mipmap/ic_launcher">
         android:requestLegacyExternalStorage="true"
         <meta-data android:name="com.google.android.geo.API_KEY"
-               android:value="YOUR KEY HERE"/>
+               android:value="AIzaSyBXbFDo_kLL5tjYN2NfF7hNtlRpvUsABrM"/>
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"

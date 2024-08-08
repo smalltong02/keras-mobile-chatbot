@@ -10,6 +10,7 @@ import 'package:keras_mobile_chatbot/policy_dialog.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'l10n/localization_intl.dart';
 import 'package:keras_mobile_chatbot/welcome_dialog.dart';
+import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +30,7 @@ class HomeScreenState extends State<HomeScreen> {
   final passwordController = TextEditingController();
   final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
   final pwdRegex = RegExp(r'^(?=.*[A-Z])(?=.*\d)[A-Za-z\d@#$%&*!_\-]{6,12}$');
+  static FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   @override
   void initState() {
@@ -123,10 +125,7 @@ class HomeScreenState extends State<HomeScreen> {
         password = Provider.of<SettingProvider>(context, listen: false).password;
         final subProvider = Provider.of<KerasSubscriptionProvider>(context);
         Color subTextColor = Colors.white;
-        Color subBkColor = Colors.green;
-        if(subProvider.isFreeSubscriptionStatus()) {
-          subBkColor = Colors.redAccent;
-        }
+        Color subBkColor = subProvider.getSubscriptionColor();
         if(authProvider!.getLoginStatus() == LoginStatus.logout) {
           authProvider!.handleEmailSignIn(userName, password);
           subProvider.updateSubscriptionState();

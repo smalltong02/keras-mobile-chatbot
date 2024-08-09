@@ -203,8 +203,8 @@ class TakePictureScreenState extends State<TakePictureScreen> {
               if (result == true) {
                 addImage(image.path);
               }
-            } catch (e, stackTrace) {
-              logger.e("subscriptionScreen crash: ", stackTrace: stackTrace);
+            } catch (e) {
+              logger.e("subscriptionScreen crash: $e");
             }
           },
           child: const Icon(Icons.camera_alt),

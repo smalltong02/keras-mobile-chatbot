@@ -369,6 +369,86 @@ class DemoLocalizations {
     );
   }
 
+  String get settingToolBox {
+    return Intl.message(
+      'ToolBox Setting',
+      name: 'settingToolBox',
+      desc: 'setting of ToolBox',
+    );
+  }
+
+  String get timeToolBox {
+    return Intl.message(
+      'Time Tools',
+      name: 'timeToolBox',
+      desc: 'time of tools',
+    );
+  }
+
+  String get localToolBox {
+    return Intl.message(
+      'Local Tools',
+      name: 'localToolBox',
+      desc: 'local of tools',
+    );
+  }
+
+  String get searchToolBox {
+    return Intl.message(
+      'Search Tools',
+      name: 'searchToolBox',
+      desc: 'search of tools',
+    );
+  }
+
+  String get mapToolBox {
+    return Intl.message(
+      'Map Tools',
+      name: 'mapToolBox',
+      desc: 'map of tools',
+    );
+  }
+
+  String get videoToolBox {
+    return Intl.message(
+      'Video Tools',
+      name: 'videoToolBox',
+      desc: 'video of tools',
+    );
+  }
+
+  String get emailToolBox {
+    return Intl.message(
+      'Email Tools',
+      name: 'emailToolBox',
+      desc: 'email of tools',
+    );
+  }
+
+  String get cloudToolBox {
+    return Intl.message(
+      'Cloud Storage Tools',
+      name: 'cloudToolBox',
+      desc: 'cloud storage of tools',
+    );
+  }
+
+  String get calendarToolBox {
+    return Intl.message(
+      'Calendar Tools',
+      name: 'calendarToolBox',
+      desc: 'calendar of tools',
+    );
+  }
+
+  String get photoToolBox {
+    return Intl.message(
+      'Photo Tools',
+      name: 'photoToolBox',
+      desc: 'photo of tools',
+    );
+  }
+
   String get titleGeneral {
     return Intl.message(
       'General',

@@ -6,6 +6,7 @@ import 'package:getwidget/getwidget.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:keras_mobile_chatbot/wheel_character.dart';
+import 'package:keras_mobile_chatbot/toolboxes.dart';
 import 'package:keras_mobile_chatbot/wallpaper_page.dart';
 
 class SettingScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class SettingScreenState extends State<SettingScreen> {
   int chatFontSize = 14;
   bool speechEnable = false;
   bool toolBoxEnable = false;
+  ToolBoxesSetting toolBoxesSetting = ToolBoxesSetting();
 
   @override
   void initState() {
@@ -86,6 +88,13 @@ class SettingScreenState extends State<SettingScreen> {
     setState(() {
       yourIconPath = path;
       Provider.of<SettingProvider>(context, listen: false).updatePlayerIcon(yourIconPath);
+    });
+  }
+
+  void toolBoxesCallback(ToolBoxesSetting setting) {
+    setState(() {
+      toolBoxesSetting = setting;
+      Provider.of<SettingProvider>(context, listen: false).updateToolBoxesSetting(setting);
     });
   }
 
@@ -203,6 +212,7 @@ class SettingScreenState extends State<SettingScreen> {
     chatpageWallpaperKey = Provider.of<SettingProvider>(context, listen: false).chatpageWallpaperKey;
     speechEnable = Provider.of<SettingProvider>(context, listen: false).speechEnable;
     toolBoxEnable = Provider.of<SettingProvider>(context, listen: false).toolBoxEnable;
+    toolBoxesSetting = Provider.of<SettingProvider>(context, listen: false).toolBoxesSetting;
     final subProvider = Provider.of<KerasSubscriptionProvider>(context);
     final authProvider = Provider.of<KerasAuthProvider>(context);
     bool speechPermission = subProvider.speechPermission();
@@ -353,20 +363,21 @@ class SettingScreenState extends State<SettingScreen> {
                       },
                     ),
                   if(toolboxPermission)
-                    SettingsTile.switchTile(
-                      initialValue: toolBoxEnable,
-                      title: Text(DemoLocalizations.of(context).titleToolBox),
+                    SettingsTile(
                       leading: const Icon(Icons.all_inbox_rounded),
-                      activeSwitchColor: Theme.of(context).colorScheme.primary,
-                      onToggle: (value) {
-                        setState(() {
-                          toolBoxEnable = value;
-                          Provider.of<SettingProvider>(context, listen: false).updateToolBoxEnable(toolBoxEnable);
-                          Provider.of<SettingProvider>(context, listen: false).updateLanguage(revertLanguage(currentLanguage));
-                          setState(() {});
-                        });
-                      },
-                    ),
+                      title: Text(DemoLocalizations.of(context).titleToolBox),
+                      onPressed: (context) {
+                        Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ToolBoxScreen(
+                            toolBoxesSetting: toolBoxesSetting,
+                            toolBoxesCallback: toolBoxesCallback,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
               SettingsSection(

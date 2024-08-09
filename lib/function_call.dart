@@ -173,9 +173,9 @@ Future<Map<String, dynamic>> getDirections(Map<String, Object?> arguments, ) asy
     return {
       'result': "Unknown Directions!"
     };
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to get directions. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
   return {
     'result': resultStr,
@@ -263,9 +263,9 @@ Future<Map<String, dynamic>> getPlaces(Map<String, Object?> arguments, ) async {
     return {
       'result': "Unknown Places!",
     };
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to get places. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
   return {
     'result': resultStr,
@@ -300,9 +300,9 @@ Future<Map<String, dynamic>> searchVideos(Map<String, Object?> arguments, ) asyn
         'videos': videoList,
       }
     };
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to search videos. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
   return {
     'result': resultStr,
@@ -342,9 +342,9 @@ Future<Map<String, dynamic>> searchInternet(Map<String, Object?> arguments, ) as
       resultStr += "title #$titleCount: $title \nurl: $url \nsnippet: $snippet\n\n";
       titleCount += 1;
     }
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to search from internet. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
   if(resultStr.isEmpty) {
     resultStr = "No search results found.";
@@ -384,9 +384,9 @@ Future<Map<String, dynamic>> searchEmails(Map<String, Object?> arguments, ) asyn
     if (resultStr.isEmpty) {
       resultStr = "No emails found.";
     }
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to search email. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
 
   return {
@@ -470,9 +470,9 @@ Future<Map<String, dynamic>> sendEmails(Map<String, Object?> arguments, ) async 
     message = await gmailApi.users.messages.send(message, "me").then((value) => value);
     String id = message.id!;
     resultStr = "Email sent successfully. id=$id";
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to send email. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
 
   return {
@@ -518,9 +518,9 @@ Future<Map<String, dynamic>> searchDrives(Map<String, Object?> arguments, ) asyn
       }
       fileCounts += 1;
     }
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to search documents. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
 
   if (resultStr.isEmpty) {
@@ -607,9 +607,9 @@ Future<Map<String, dynamic>> downloadFromDrives(Map<String, Object?> arguments, 
       }
       resultStr += "file '$filePath' downloaded successfully.";
     }
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to download from drives. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
 
   if (resultStr.isEmpty) {
@@ -665,9 +665,9 @@ Future<Map<String, dynamic>> getEventCalendar(Map<String, Object?> arguments, ) 
       resultStr += prefix + start + end + summary + description + location + htmlLink;
       eventCounts += 1;
     }
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to get event from calendar. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
 
   if (resultStr.isEmpty) {
@@ -707,9 +707,9 @@ Future<Map<String, dynamic>> createEventCalendar(Map<String, Object?> arguments,
     gcalendar.Event newEvent = await gcalendarApi.events.insert(event, 'primary');
     String htmlLink = newEvent.htmlLink ?? "";
     resultStr = "Event created success, Please refer to the following link: \n\n $htmlLink";
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to create event from calendar. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
 
   if (resultStr.isEmpty) {
@@ -788,9 +788,9 @@ Future<Map<String, dynamic>> searchPhotos(Map<String, Object?> arguments, ) asyn
         'images': photosList,
       }
     };
-  } catch (e, stackTrace) {
+  } catch (e) {
     resultStr = "Failed to search in google photos. Error: $e";
-    logger.e(resultStr, stackTrace: stackTrace);
+    logger.e(resultStr);
   }
 
   if (resultStr.isEmpty) {
@@ -911,6 +911,42 @@ final searchPhotosFunc = FunctionDeclaration(
  
 
 final normalFunctionCallTool = [getCurrentTimeFunc, getCurrentLocationFunc, getDirectionsFunc, getPlacesFunc, searchVideosFunc, searchInternetFunc, searchEmailsFunc, sendEmailsFunc, searchDrivesFunc, downloadFromDrivesFunc, getEventCalendarFunc, createEventCalendarFunc, searchPhotosFunc];
+
+List<FunctionDeclaration> getFunctionCallToolsForGoogle(ToolBoxesSetting toolBoxesSetting) {
+  List<FunctionDeclaration> functionCallTools = [];
+  if(toolBoxesSetting.isCurrentTime()) {
+    functionCallTools.add(getCurrentTimeFunc);
+  }
+  if(toolBoxesSetting.isCurrentLocation()) {
+    functionCallTools.add(getCurrentLocationFunc);
+  }
+  if(toolBoxesSetting.isSearch()) {
+    functionCallTools.add(searchInternetFunc);
+  }
+  if(toolBoxesSetting.isCalendar()) {
+    functionCallTools.add(getEventCalendarFunc);
+    functionCallTools.add(createEventCalendarFunc);
+  }
+  if(toolBoxesSetting.isDrives()) {
+    functionCallTools.add(searchDrivesFunc);
+    functionCallTools.add(downloadFromDrivesFunc);
+  }
+  if(toolBoxesSetting.isEmails()) {
+    functionCallTools.add(searchEmailsFunc);
+    functionCallTools.add(sendEmailsFunc);
+  }
+  if(toolBoxesSetting.isMaps()) {
+    functionCallTools.add(getDirectionsFunc);
+    functionCallTools.add(getPlacesFunc);
+  }
+  if(toolBoxesSetting.isPhotos()) {
+    functionCallTools.add(searchPhotosFunc);
+  }
+  if(toolBoxesSetting.isVideos()) {
+    functionCallTools.add(searchVideosFunc);
+  }
+  return functionCallTools;
+}
 
 final getCurrentTimeOpenai = 
 {
@@ -1136,3 +1172,39 @@ final searchPhotosOpenai =
 };
 
 final functionCallToolOpenai = [getCurrentTimeOpenai, getCurrentLocationOpenai, getDirectionsOpenai, getPlacesOpenai, searchVideosOpenai, searchInternetOpenai, searchEmailsOpenai, sendEmailsOpenai, searchDrivesOpenai, downloadFromDrivesOpenai, getEventCalendarOpenai, createEventCalendarOpenai, searchPhotosOpenai,];
+
+List<Map<String, Object>> getFunctionCallToolsForOpenai(ToolBoxesSetting toolBoxesSetting) {
+  List<Map<String, Object>> functionCallTools = [];
+  if(toolBoxesSetting.isCurrentTime()) {
+    functionCallTools.add(getCurrentTimeOpenai);
+  }
+  if(toolBoxesSetting.isCurrentLocation()) {
+    functionCallTools.add(getCurrentLocationOpenai);
+  }
+  if(toolBoxesSetting.isSearch()) {
+    functionCallTools.add(searchInternetOpenai);
+  }
+  if(toolBoxesSetting.isCalendar()) {
+    functionCallTools.add(getEventCalendarOpenai);
+    functionCallTools.add(createEventCalendarOpenai);
+  }
+  if(toolBoxesSetting.isDrives()) {
+    functionCallTools.add(searchDrivesOpenai);
+    functionCallTools.add(downloadFromDrivesOpenai);
+  }
+  if(toolBoxesSetting.isEmails()) {
+    functionCallTools.add(searchEmailsOpenai);
+    functionCallTools.add(sendEmailsOpenai);
+  }
+  if(toolBoxesSetting.isMaps()) {
+    functionCallTools.add(getDirectionsOpenai);
+    functionCallTools.add(getPlacesOpenai);
+  }
+  if(toolBoxesSetting.isPhotos()) {
+    functionCallTools.add(searchPhotosOpenai);
+  }
+  if(toolBoxesSetting.isVideos()) {
+    functionCallTools.add(searchVideosOpenai);
+  }
+  return functionCallTools;
+}

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' as io;
 import 'dart:math' as math;
+import 'package:path/path.dart' as p;
 import 'l10n/localization_intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -13,7 +14,9 @@ import 'package:keras_mobile_chatbot/utils.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:saver_gallery/saver_gallery.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class CustomShape extends CustomPainter {
   final Color bgColor;
@@ -207,18 +210,46 @@ class SentMessageScreenState extends State<SentMessageScreen> {
   static const Color _messageTextColor = Colors.white;
   bool isFullScreen = false;
   double _messageFontSize = 14.0;
+  bool saveStatuses = false;
+
+  Future<bool> requestPermission() async {
+    bool statuses = saveStatuses;
+    if(statuses) {
+      return statuses;
+    }
+    if (io.Platform.isAndroid) {
+      final deviceInfoPlugin = DeviceInfoPlugin();
+      final deviceInfo = await deviceInfoPlugin.androidInfo;
+      final sdkInt = deviceInfo.version.sdkInt;
+      statuses =
+        sdkInt < 29 ? await Permission.storage.request().isGranted : true;
+    } else {
+      statuses = await Permission.photosAddOnly.request().isGranted;
+    }
+    saveStatuses = statuses;
+    logger.i('requestPermission result: $statuses');
+    return statuses;
+  }
 
   Future<bool> saveImage(String filePath) async {
-    await ImageGallerySaver.saveFile(filePath);
-    return true;
+    try {
+      await requestPermission();
+      final fileName = p.basename(filePath);
+      final result = await SaverGallery.saveFile(file: filePath, androidExistNotSave: true, name: fileName, androidRelativePath: "Pictures/keras");
+      logger.i("saveImage result: $result");
+      return true;
+    } catch (e) {
+      logger.e("saveImage crash: $e");
+    }
+    return false;
   }
 
   bool addImage(String filePath) {
     try {
       widget.onAddFile(filePath);
       return true;
-    } catch (e, stackTrace) {
-      logger.e("addImage crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("addImage crash: $e");
     }
     return false;
   }
@@ -531,8 +562,8 @@ class ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
           hasPlayed = true;
         });
       }
-    } catch (e, stackTrace) {
-      logger.e("playAudioFile crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("playAudioFile crash: $e");
     }
   }
 
@@ -545,8 +576,8 @@ class ReceivedMessageScreenState extends State<ReceivedMessageScreen> {
           isPlaying = false;
         });
       }
-    } catch (e, stackTrace) {
-      logger.e("playAudioFile crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("playAudioFile crash: $e");
     }
   }
 

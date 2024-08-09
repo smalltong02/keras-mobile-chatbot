@@ -61,8 +61,8 @@ class HomeScreenState extends State<HomeScreen> {
           }
         }
       }
-    } catch (e, stackTrace) {
-      logger.e("HomeScreenState didChangeDependencies crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("HomeScreenState didChangeDependencies crash: $e");
     }
   }
 

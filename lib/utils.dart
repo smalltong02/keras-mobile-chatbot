@@ -37,7 +37,7 @@ const int maxConnectTimeout = 30;
 const int imageQuality = 80;
 const int maxLogginDevices = 3;
 const int maxDialogRounds = 5;
-const String defaultModel = "gemini-1.5-flash";
+const String defaultModel = "gpt-4o-mini";
 const String deleteRequestUrl = "https://github.com/smalltong02/keras-mobile-chatbot/blob/main/assets/docs/delete_request.md";
 
 final List<Map<String, String>> googleDocsTypes = [
@@ -303,8 +303,8 @@ class TtsProvider {
         withLogs: true
       );
       await switchProvider(defaultProvider, getDefaultVoice());
-    } catch (e, stackTrace) {
-      logger.e("TtsUniversal init crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("TtsUniversal init crash: $e");
     }
     return;
   }
@@ -469,8 +469,8 @@ class TtsProvider {
 
         // Return the file path.
         return filePath;
-      } catch (e, stackTrace) {
-        logger.e("generateAudioFile crash: ", stackTrace: stackTrace);
+      } catch (e) {
+        logger.e("generateAudioFile crash: $e");
       }
     }
     return null;
@@ -591,8 +591,8 @@ void initApp() async {
       'punctuation': true,
         // more options here : https://developers.deepgram.com/reference/listen-file
     });
-  } catch (e, stackTrace) {
-    logger.e("initCameras crash: ", stackTrace: stackTrace);
+  } catch (e) {
+    logger.e("initCameras crash: $e");
   }
 }
 
@@ -610,8 +610,71 @@ class Character {
   });
 }
 
+class ToolBoxesSetting {
+  bool bCurrentTime;
+  bool bCurrentLocation;
+  bool bSearch;
+  bool bMaps;
+  bool bVideos;
+  bool bEmails;
+  bool bDrives;
+  bool bCalendar;
+  bool bPhotos;
+
+  ToolBoxesSetting({
+    this.bCurrentTime = false,
+    this.bCurrentLocation = false,
+    this.bMaps = false,
+    this.bVideos = false,
+    this.bSearch = false,
+    this.bEmails = false,
+    this.bDrives = false,
+    this.bCalendar = false,
+    this.bPhotos = false,
+  });
+
+  bool isCurrentTime() {
+    return bCurrentTime;
+  }
+  bool isCurrentLocation() {
+    return bCurrentLocation;
+  }
+  bool isSearch() {
+    return bSearch;
+  }
+  bool isMaps() {
+    return bMaps;
+  }
+  bool isVideos() {
+    return bVideos;
+  }
+  bool isEmails() {
+    return bEmails;
+  }
+  bool isDrives() {
+    return bDrives;
+  }
+  bool isCalendar() {
+    return bCalendar;
+  }
+  bool isPhotos() {
+    return bPhotos;
+  }
+  bool isToolBoxEnabled() {
+    return isCurrentTime() ||
+        isCurrentLocation() ||
+        isSearch() ||
+        isMaps() ||
+        isVideos() ||
+        isEmails() ||
+        isDrives() ||
+        isCalendar() ||
+        isPhotos();
+  }
+}
+
 class SettingProvider with ChangeNotifier {
-  String _modelName = 'gemini-1.5-flash';
+  String _modelName = defaultModel;
   String _userName = '';
   String _password = '';
   String _currentRole = 'Keras Robot';
@@ -620,10 +683,11 @@ class SettingProvider with ChangeNotifier {
   String _homepageWallpaperKey = 'bk-49';
   String _chatpageWallpaperKey = 'bk-64';
   String _language = 'auto';
-  int _chatFontSize = 14;
+  int _chatFontSize = 18;
   bool _speechEnable = false;
   bool _toolBoxEnable = false;
   bool _showPolicy = false;
+  ToolBoxesSetting _toolBoxesSetting = ToolBoxesSetting();
 
   String get modelName => _modelName;
   String get userName => _userName;
@@ -638,6 +702,7 @@ class SettingProvider with ChangeNotifier {
   bool get speechEnable => _speechEnable;
   bool get toolBoxEnable => _toolBoxEnable;
   bool get showPolicy => _showPolicy;
+  ToolBoxesSetting get toolBoxesSetting => _toolBoxesSetting;
 
   SettingProvider() {
     return;
@@ -725,9 +790,15 @@ class SettingProvider with ChangeNotifier {
     saveSetting();
   }
 
+  void updateToolBoxesSetting(ToolBoxesSetting setting) {
+    _toolBoxesSetting = setting;
+    notifyListeners();
+    saveSetting();
+  }
+
   Future<void> loadSetting() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-     _modelName = prefs.getString('modelName') ?? 'gemini-1.5-flash';
+     _modelName = prefs.getString('modelName') ?? defaultModel;
      _userName = prefs.getString('userName') ?? '';
      _password = prefs.getString('password') ?? '';
      _language = prefs.getString('language') ?? 'auto';
@@ -781,14 +852,14 @@ class LlmModel {
   String? systemInstruction;
   dynamic model;
   dynamic chatSession;
-  bool? toolEnable;
+  ToolBoxesSetting? toolBoxesSetting;
 
   LlmModel({
     this.type = ModelType.unknown,
     this.model,
     this.systemInstruction,
     this.name,
-    this.toolEnable,
+    this.toolBoxesSetting,
     this.chatSession,
   });
 
@@ -815,31 +886,32 @@ class LlmModel {
         }
         return chatSession.toList();
       }
-    } catch (e, stackTrace) {
-      logger.e("getHistory crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getHistory crash: $e");
     }
     return history;
   }
 }
 
-LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnable) {
+LlmModel? initLlmModel(String modelName, String systemInstruction, ToolBoxesSetting toolBoxesSetting) {
   if(modelName.isEmpty) {
     return null;
   }
   try {
     for(final name in googleModel) {
       if(modelName == name) {
-        if(toolEnable) {
-          gemini.ToolConfig toolConfig = gemini.ToolConfig(functionCallingConfig: gemini.FunctionCallingConfig(mode: gemini.FunctionCallingMode.auto));
-          LlmModel llmModel = LlmModel(type: ModelType.google);
-          llmModel.name = modelName;
-          llmModel.toolEnable = toolEnable;
-          llmModel.systemInstruction = systemInstruction;
+        gemini.ToolConfig toolConfig = gemini.ToolConfig(functionCallingConfig: gemini.FunctionCallingConfig(mode: gemini.FunctionCallingMode.auto));
+        LlmModel llmModel = LlmModel(type: ModelType.google);
+        llmModel.name = modelName;
+        llmModel.toolBoxesSetting = toolBoxesSetting;
+        llmModel.systemInstruction = systemInstruction;
+        final functions = getFunctionCallToolsForGoogle(toolBoxesSetting);
+        if(functions.isNotEmpty) {
           final model = gemini.GenerativeModel(
             model: name,
             apiKey: dotenv.get("api_key"),
             tools: [
-              gemini.Tool(functionDeclarations: normalFunctionCallTool)
+              gemini.Tool(functionDeclarations: functions)
             ],
             toolConfig: toolConfig,
             systemInstruction: gemini.Content.system(systemInstruction),
@@ -847,13 +919,7 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
           llmModel.model = model;
           final chatSession = model.startChat();
           llmModel.chatSession = chatSession;
-          logger.i("model change to $modelName");
-          return llmModel;
         } else {
-          LlmModel llmModel = LlmModel(type: ModelType.google);
-          llmModel.name = modelName;
-          llmModel.toolEnable = toolEnable;
-          llmModel.systemInstruction = systemInstruction;
           final model = gemini.GenerativeModel(
             model: name,
             apiKey: dotenv.get("api_key"),
@@ -862,33 +928,26 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
           llmModel.model = model;
           final chatSession = model.startChat();
           llmModel.chatSession = chatSession;
-          logger.i("model change to $modelName");
-          return llmModel;
         }
+        logger.i("model change to $modelName");
+        return llmModel;
       }
     }
     
     if(openAIInstance != null) {
       for(final name in openAIModel) {
-        if(modelName == name && name == 'gpt-4o-mini') {
+        if(modelName == name) {
           LlmModel llmModel = LlmModel(type: ModelType.openai);
           llmModel.name = modelName;
-          llmModel.toolEnable = toolEnable;
+          llmModel.toolBoxesSetting = toolBoxesSetting;
           llmModel.systemInstruction = systemInstruction;
-          final model = openai.ChatModelFromValue(model: name);
-          llmModel.model = model;
-          final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
-          llmModel.chatSession = chatSession;
-          logger.i("model change to $modelName");
-          return llmModel;
-        }
-        else if (modelName == name && name == openai.kGpt4o) {
-          LlmModel llmModel = LlmModel(type: ModelType.openai);
-          llmModel.name = modelName;
-          llmModel.toolEnable = toolEnable;
-          llmModel.systemInstruction = systemInstruction;
-          final model = openai.Gpt4OChatModel();
-          llmModel.model = model;
+          if(name == 'gpt-4o-mini') {
+            final model = openai.ChatModelFromValue(model: name);
+            llmModel.model = model;
+          } else {
+            final model = openai.Gpt4OChatModel();
+            llmModel.model = model;
+          }
           final chatSession = OpenaiChatHistory(history: [openai.Messages(role: openai.Role.system, content: systemInstruction).toJson()]);
           llmModel.chatSession = chatSession;
           logger.i("model change to $modelName");
@@ -896,8 +955,8 @@ LlmModel? initLlmModel(String modelName, String systemInstruction, bool toolEnab
         }
       }
     }
-  } catch (e, stackTrace) {
-    logger.e("initLlmModel crash: ", stackTrace: stackTrace);
+  } catch (e) {
+    logger.e("initLlmModel crash: $e");
   }
   return null;
 }
@@ -960,8 +1019,8 @@ Future<bool> writeTempFile(String tmpFile, String content) async {
   File file = File("${tmpFolder.path}/$tmpFile");
     await file.writeAsString(content);
     bSuccess = true;
-  } catch (e, stackTrace) {
-    logger.e("writeTempFile crash: ", stackTrace: stackTrace);
+  } catch (e) {
+    logger.e("writeTempFile crash: $e");
     bSuccess = false;
   }
   return bSuccess;
@@ -973,8 +1032,8 @@ Future<String> readTempFile(String tmpFile) async {
     File file = File("${tmpFolder.path}/$tmpFile");
     String contents = await file.readAsString();
     return contents;
-  } catch (e, stackTrace) {
-    logger.e("readTempFile crash: ", stackTrace: stackTrace);
+  } catch (e) {
+    logger.e("readTempFile crash: $e");
     return "";
   }
 }
@@ -1030,8 +1089,8 @@ Future<DateTime?> convertTimeToRFC3339Time(String timeStr) async {
       final combinedDateTime = DateTime(todayDate.year, todayDate.month, todayDate.day, timeObj.hour, timeObj.minute, timeObj.second);
       return tz.TZDateTime.from(combinedDateTime, localTimezone);
     }
-  } catch (e, stackTrace) {
-    logger.e("convertTimeToRFC3339Time crash: ", stackTrace: stackTrace);
+  } catch (e) {
+    logger.e("convertTimeToRFC3339Time crash: $e");
   }
 
   return null;
@@ -1127,8 +1186,8 @@ class KerasAuthProvider with ChangeNotifier {
       String firstCreate = userInfo!.firstCreate;
       DateTime time = DateTime.parse(firstCreate);
       return time;
-    } catch (e, stackTrace) {
-      logger.e("getFirstCreateDate crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getFirstCreateDate crash: $e");
     }
     return DateTime(1900, 1, 1, 0, 0, 0);
   }
@@ -1140,8 +1199,8 @@ class KerasAuthProvider with ChangeNotifier {
     try {
       String email = userCredential!.user!.email ?? "";
       return email;
-    } catch (e, stackTrace) {
-      logger.e("getLoginEmail crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getLoginEmail crash: $e");
     }
     return "";
   }
@@ -1153,8 +1212,8 @@ class KerasAuthProvider with ChangeNotifier {
     try {
       String email = userCredential!.user!.displayName ?? "";
       return email;
-    } catch (e, stackTrace) {
-      logger.e("getLoginName crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getLoginName crash: $e");
     }
     return "";
   }
@@ -1228,8 +1287,8 @@ class KerasAuthProvider with ChangeNotifier {
           loggedStatus = LoginStatus.logout;
         }
         return status;
-      } on FirebaseAuthException catch (e, stackTrace) {
-        logger.e("getLoginName crash: ", stackTrace: stackTrace);
+      } on FirebaseAuthException catch (e) {
+        logger.e("getLoginName crash: $e");
         return AuthStatus.exceptionError;
       }
     }
@@ -1271,8 +1330,8 @@ class KerasAuthProvider with ChangeNotifier {
           return status;
         }
       }
-    } catch (e, stackTrace) {
-      logger.e("googleSignInSilently crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("googleSignInSilently crash: $e");
     }
     return AuthStatus.failed;
   }
@@ -1309,8 +1368,8 @@ class KerasAuthProvider with ChangeNotifier {
           return status;
         }
       }
-    } catch (e, stackTrace) {
-      logger.e("handleGoogleSignIn crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("handleGoogleSignIn crash: $e");
     }
     return AuthStatus.failed;
   }
@@ -1342,8 +1401,8 @@ class KerasAuthProvider with ChangeNotifier {
       googleCredential = null;
       loggedStatus = LoginStatus.logout;
       notifyListeners();
-    } catch (e, stackTrace) {
-      logger.e("signOut crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("signOut crash: $e");
     }
   }
 }
@@ -1449,8 +1508,8 @@ class KerasSubscriptionProvider with ChangeNotifier {
       if (duration.inDays >= freeTrialDays) {
         return false;
       }
-    } catch (e, stackTrace) {
-      logger.e("checkFreeTrial crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("checkFreeTrial crash: $e");
     }
     return true;
   }
@@ -1571,30 +1630,30 @@ class KerasSubscriptionProvider with ChangeNotifier {
         newStatus = SubscriptionStatus.ultimate;
         logger.i("updateSubscriptionState: ultimate");
         curEntitlement = ultimate;
+      } else if (ultimateYear != null && ultimateYear.isActive) {
+        newStatus = SubscriptionStatus.ultimate;
+        logger.i("updateSubscriptionState: ultimate year");
+        curEntitlement = ultimateYear;
       } else if (premium != null && premium.isActive) {
         newStatus = SubscriptionStatus.premium;
         logger.i("updateSubscriptionState: premium");
         curEntitlement = premium;
-      } else if (professional != null && professional.isActive) {
-        newStatus = SubscriptionStatus.professional;
-        logger.i("updateSubscriptionState: professional");
-        curEntitlement = professional;
-      } else if (basic != null && basic.isActive) {
-        newStatus = SubscriptionStatus.basic;
-        logger.i("updateSubscriptionState: basic");
-        curEntitlement = basic;
-      } if (ultimateYear != null && ultimateYear.isActive) {
-        newStatus = SubscriptionStatus.ultimate;
-        logger.i("updateSubscriptionState: ultimate year");
-        curEntitlement = ultimateYear;
       } else if (premiumYear != null && premiumYear.isActive) {
         newStatus = SubscriptionStatus.premium;
         logger.i("updateSubscriptionState: premium year");
         curEntitlement = premiumYear;
+      } else if (professional != null && professional.isActive) {
+        newStatus = SubscriptionStatus.professional;
+        logger.i("updateSubscriptionState: professional");
+        curEntitlement = professional;
       } else if (professionalYear != null && professionalYear.isActive) {
         newStatus = SubscriptionStatus.professional;
         logger.i("updateSubscriptionState: professional year");
         curEntitlement = professionalYear;
+      } else if (basic != null && basic.isActive) {
+        newStatus = SubscriptionStatus.basic;
+        logger.i("updateSubscriptionState: basic");
+        curEntitlement = basic;
       } else if (basicYear != null && basicYear.isActive) {
         newStatus = SubscriptionStatus.basic;
         logger.i("updateSubscriptionState: basic year");
@@ -1610,8 +1669,8 @@ class KerasSubscriptionProvider with ChangeNotifier {
         curSubscriptionStatus = newStatus;
         notifyListeners();
       }
-    } catch (e, stackTrace) {
-      logger.e("updateSubscriptionState crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("updateSubscriptionState crash: $e");
     }
   }
 }
@@ -1724,8 +1783,8 @@ class KerasStatisticsInformation {
       loginUserId = "";
       statisticsInfo = null;
       totalstatisticsInfo = null;
-    } catch (e, stackTrace) {
-      logger.e("unInitialize crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("unInitialize crash: $e");
     }
     return;
   }
@@ -1747,8 +1806,8 @@ class KerasStatisticsInformation {
       );
       totalstatisticsInfo = info;
 
-    } catch (e, stackTrace) {
-      logger.e('Error fetching statistics info:', stackTrace: stackTrace);
+    } catch (e) {
+      logger.e('Error fetching statistics info: $e');
       statisticsInfo = StatisticsInfo(
           userId: loginUserId, 
           chatStatistics: 0, 
@@ -1791,8 +1850,8 @@ class KerasStatisticsInformation {
           return info;
         }
       }
-    } catch (e, stackTrace) {
-      logger.e("getInfoFromCloud crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getInfoFromCloud crash: $e");
     }
     return StatisticsInfo(
       userId: loginUserId, 
@@ -1823,8 +1882,8 @@ class KerasStatisticsInformation {
         statisticsInfo!.toolBoxStatistics = 0;
         Map<String, dynamic> stats = info.toMap();
         await firestore.collection('user_statistics').doc(loginUserId).set(stats);
-      } catch (e, stackTrace) {
-        logger.e("uploadStatistics crash: ", stackTrace: stackTrace);
+      } catch (e) {
+        logger.e("uploadStatistics crash: $e");
       }
     }
   }
@@ -1928,8 +1987,8 @@ class RestrictionInformation {
         bool enable = remoteConfig.getBool(FirebaseRemoteConfigKeys.restrictionsEnableKey);
         return enable;
       }
-    } catch (e, stackTrace) {
-      logger.e("restrictionsEnable crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("restrictionsEnable crash: $e");
     }
     return false;
   }
@@ -2005,8 +2064,8 @@ class SubscriptionRights {
   bool remoteConfigInitSuccess() {
     try {
       return remoteConfig.binitialize;
-    } catch (e, stackTrace) {
-      logger.e("remoteConfigInitSuccess crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("remoteConfigInitSuccess crash: $e");
     }
     return false;
   }
@@ -2074,8 +2133,8 @@ class SubscriptionRights {
       if(rightsString.isNotEmpty) {
         rights = getRights(rightsString);
       }
-    } catch (e, stackTrace) {
-      logger.e("getFreeTrialRights crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getFreeTrialRights crash: $e");
     }
     return rights;
   }
@@ -2090,8 +2149,8 @@ class SubscriptionRights {
       if(rightsString.isNotEmpty) {
         rights = getRights(rightsString);
       }
-    } catch (e, stackTrace) {
-      logger.e("getBaseSubRights crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getBaseSubRights crash: $e");
     }
     return rights;
   }
@@ -2106,8 +2165,8 @@ class SubscriptionRights {
       if(rightsString.isNotEmpty) {
         rights = getRights(rightsString);
       }
-    } catch (e, stackTrace) {
-      logger.e("getProSubRights crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getProSubRights crash: $e");
     }
     return rights;
   }
@@ -2122,8 +2181,8 @@ class SubscriptionRights {
       if(rightsString.isNotEmpty) {
         rights = getRights(rightsString);
       }
-    } catch (e, stackTrace) {
-      logger.e("getPremiumSubRights crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getPremiumSubRights crash: $e");
     }
     return rights;
   }
@@ -2138,8 +2197,8 @@ class SubscriptionRights {
       if(rightsString.isNotEmpty) {
         rights = getRights(rightsString);
       }
-    } catch (e, stackTrace) {
-      logger.e("getUltimateSubRights crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("getUltimateSubRights crash: $e");
     }
     return rights;
   }

@@ -74,8 +74,8 @@ class ChatHomeState  extends State<ChatHome>  {
       // Set configuration for the concrete screen.
       Automations.getSharedInstance().setScreenPresentationConfig(config, paywallCode);
       await Automations.getSharedInstance().showScreen(paywallCode);
-    } catch (e, stackTrace) {
-      logger.e("subscriptionScreen crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("subscriptionScreen crash: $e");
     }
   }
 
@@ -480,12 +480,15 @@ class ChatUIState extends State<ChatUI> {
     bool advancedModelCheck = subProvider.powerModelPermission();
     loadModelName = Provider.of<SettingProvider>(context, listen: false).modelName;
     String role = Provider.of<SettingProvider>(context, listen: false).currentRole;
-    toolBoxEnable = permissionCheck == true ? Provider.of<SettingProvider>(context, listen: false).toolBoxEnable : permissionCheck;
-    toolBoxEnable = osType != OsType.android ? false : toolBoxEnable;
+    ToolBoxesSetting toolBoxesSetting = Provider.of<SettingProvider>(context, listen: false).toolBoxesSetting;
+    toolBoxEnable = osType != OsType.android ? false : permissionCheck;
     Locale locale = Localizations.localeOf(context);
     String language = Provider.of<SettingProvider>(context, listen: false).language;
     if(toolBoxEnable) {
       toolBoxEnable = restrictionInformation.isToolboxRestriction() ? false : toolBoxEnable;
+    }
+    if(!toolBoxEnable) {
+      toolBoxesSetting = ToolBoxesSetting();
     }
     if(normalSpeechCheck) {
       ttsProviderInstance!.switchProvider(VoiceProvider.google, null);
@@ -498,12 +501,11 @@ class ChatUIState extends State<ChatUI> {
     if(baseModelCheck || advancedModelCheck) {
       if(llmModel != null) {
         if(llmModel!.name != loadModelName ||
-          llmModel!.systemInstruction != systemInstruction ||
-          llmModel!.toolEnable != toolBoxEnable) {
-          llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
+          llmModel!.systemInstruction != systemInstruction) {
+          llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxesSetting);
         }
       } else {
-        llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxEnable);
+        llmModel = initLlmModel(loadModelName, systemInstruction, toolBoxesSetting);
       }
     }
   }
@@ -562,8 +564,8 @@ class ChatUIState extends State<ChatUI> {
         });
         startMonitoring();
       }
-    } catch (e, stackTrace) {
-      logger.e("startRecording crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("startRecording crash: $e");
     }
   }
 
@@ -580,7 +582,7 @@ class ChatUIState extends State<ChatUI> {
         logger.i('Recorded file path: $path');
         io.File audioFile = io.File(recordPath);
         DeepgramSttResult res = await deepgram!.transcribeFromFile(audioFile); // or transcribeFromPath() if you prefer
-        String message = res.transcript;
+        String message = res.transcript ?? "";
         logger.i("message: $message");
         recordPath = '';
         if(message.isNotEmpty) {
@@ -592,8 +594,8 @@ class ChatUIState extends State<ChatUI> {
             _loading = false;
           });
         }
-      } catch (e, stackTrace) {
-        logger.e("stopRecording crash: $e", stackTrace: stackTrace);
+      } catch (e) {
+        logger.e("stopRecording crash: $e");
       }
     }
   }
@@ -616,8 +618,8 @@ class ChatUIState extends State<ChatUI> {
           await stopRecording();
         }
       });
-    } catch (e, stackTrace) {
-      logger.e("startMonitoring crash: ", stackTrace: stackTrace);
+    } catch (e) {
+      logger.e("startMonitoring crash: $e");
     }
   }
 
@@ -910,8 +912,8 @@ class ChatUIState extends State<ChatUI> {
                   fileUploadList.addAll(result);
                 });
               }
-            } catch (e, stackTrace) {
-              logger.e("TakePictureScreen crash: ", stackTrace: stackTrace);
+            } catch (e) {
+              logger.e("TakePictureScreen crash: $e");
             }
           }
         },
@@ -1129,12 +1131,13 @@ class ChatUIState extends State<ChatUI> {
               }
             }
             newHistory.add(newQuery);
-            if(toolBoxEnable) {
+            final toolBoxesSetting = llmModel!.toolBoxesSetting ?? ToolBoxesSetting();
+            if(toolBoxesSetting.isToolBoxEnabled()) {
               var request = openai.ChatCompleteText(
                 model: llmModel!.model,
                 messages: newHistory,
                 maxToken: maxTokenLength,
-                tools: functionCallToolOpenai,
+                tools: getFunctionCallToolsForOpenai(toolBoxesSetting),
                 toolChoice: 'auto',
               );
               openai.ChatCTResponse? chatResponse = await openAIInstance!.onChatCompletion(request: request);

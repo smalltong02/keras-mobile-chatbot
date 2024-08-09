@@ -86,7 +86,8 @@ dependencies:
   audioplayers: ^6.0.0
   chat_gpt_sdk: ^3.0.9
   image: ^4.2.0
-  image_gallery_saver: ^2.0.3
+  saver_gallery: ^3.0.5
+  permission_handler: ^11.3.1
   qonversion_flutter: ^9.0.1
   android_id: ^0.4.0
   firebase_app_check: ^0.3.0+3

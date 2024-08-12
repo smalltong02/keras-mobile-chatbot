@@ -63,23 +63,26 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   }
 
   void handleScaleUpdate(ScaleUpdateDetails details) {
-    double scale = details.scale.clamp(_minAvailableZoom, _maxAvailableZoom);
+    double scale = details.scale.clamp(0, _maxAvailableZoom);
     double newZoomLevel = _currentZoomLevel * scale;
-    double zoomIncrement = (newZoomLevel - _currentZoomLevel) / 500.0;
+    double zoomIncrement = (newZoomLevel - _currentZoomLevel) / 200.0;
 
     Future<void> updateZoom() async {
-      while ((_currentZoomLevel - newZoomLevel).abs() > 0.01) {
+    //while ((_currentZoomLevel - newZoomLevel).abs() > 0.01) {
         _currentZoomLevel += zoomIncrement;
+        print("_currentZoomLevel: $_currentZoomLevel");
         _currentZoomLevel = _currentZoomLevel.clamp(_minAvailableZoom, _maxAvailableZoom);
 
-        setState(() {
-          _currentZoomLevel = _currentZoomLevel;
-        });
+        if(mounted) {
+          setState(() {
+            _currentZoomLevel = _currentZoomLevel;
+          });
+        }
 
         await Future.delayed(const Duration(milliseconds: 10));
-      }
+      //}
 
-      _currentZoomLevel = newZoomLevel.clamp(_minAvailableZoom, _maxAvailableZoom);
+      //_currentZoomLevel = newZoomLevel.clamp(_minAvailableZoom, _maxAvailableZoom);
       _controller.setZoomLevel(_currentZoomLevel);
     }
 

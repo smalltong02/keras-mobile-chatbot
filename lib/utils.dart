@@ -1351,7 +1351,9 @@ class KerasAuthProvider with ChangeNotifier {
         AuthStatus status = await isSignInAllowed(user);
         if(status == AuthStatus.success) {
           String uid = user.user!.uid;
-          Qonversion.getSharedInstance().identify(uid);
+          await Qonversion.getSharedInstance().identify(uid);
+          final userInfo = await Qonversion.getSharedInstance().userInfo();
+          print("keras(email) QonUser: ${userInfo.identityId}  ${userInfo.qonversionId}");
           statisticsInformation.initialize();
           loggedStatus = LoginStatus.emailLogin;
           userCredential = user;
@@ -1392,7 +1394,9 @@ class KerasAuthProvider with ChangeNotifier {
           AuthStatus status = await isSignInAllowed(user);
           if(status == AuthStatus.success) {
             String uid = user.user!.uid;
-            Qonversion.getSharedInstance().identify(uid);
+            await Qonversion.getSharedInstance().identify(uid);
+            final userInfo = await Qonversion.getSharedInstance().userInfo();
+            print("keras(google) QonUser: ${userInfo.identityId}  ${userInfo.qonversionId}");
             statisticsInformation.initialize();
             loggedStatus = LoginStatus.googleLogin;
             userCredential = user;
@@ -1430,7 +1434,9 @@ class KerasAuthProvider with ChangeNotifier {
           AuthStatus status = await isSignInAllowed(user);
           if(status == AuthStatus.success) {
             String uid = user.user!.uid;
-            Qonversion.getSharedInstance().identify(uid);
+            await Qonversion.getSharedInstance().identify(uid);
+            final userInfo = await Qonversion.getSharedInstance().userInfo();
+            print("keras(google) QonUser: ${userInfo.identityId}  ${userInfo.qonversionId}");
             statisticsInformation.initialize();
             loggedStatus = LoginStatus.googleLogin;
             userCredential = user;
@@ -1469,7 +1475,7 @@ class KerasAuthProvider with ChangeNotifier {
         }
       }
       await firebaseAuth.signOut();
-      Qonversion.getSharedInstance().logout();
+      await Qonversion.getSharedInstance().logout();
       await statisticsInformation.unInitialize();
       userCredential = null;
       googleCredential = null;

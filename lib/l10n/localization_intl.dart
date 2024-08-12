@@ -283,7 +283,7 @@ class DemoLocalizations {
 
   String get subscriptionBtn {
     return Intl.message(
-      'Subscription',
+      'Sub.',
       name: 'subscriptionBtn',
       desc: 'subscription of button',
     );

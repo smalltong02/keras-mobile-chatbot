@@ -73,6 +73,8 @@ class ChatHomeState  extends State<ChatHome>  {
       Automations.getSharedInstance().setScreenPresentationConfig(config);
       // Set configuration for the concrete screen.
       Automations.getSharedInstance().setScreenPresentationConfig(config, paywallCode);
+      final userInfo = await Qonversion.getSharedInstance().userInfo();
+      print("keras(showScreen) QonUser: ${userInfo.identityId}  ${userInfo.qonversionId}");
       await Automations.getSharedInstance().showScreen(paywallCode);
     } catch (e) {
       logger.e("subscriptionScreen crash: $e");

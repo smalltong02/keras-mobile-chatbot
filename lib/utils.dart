@@ -37,7 +37,7 @@ const int maxConnectTimeout = 30;
 const int imageQuality = 80;
 const int maxLogginDevices = 3;
 const int maxDialogRounds = 5;
-const String defaultModel = "gpt-4o-mini";
+const String defaultModel = "gemini-1.5-flash";
 const String deleteRequestUrl = "https://github.com/smalltong02/keras-mobile-chatbot/blob/main/assets/docs/delete_request.md";
 
 final List<Map<String, String>> googleDocsTypes = [

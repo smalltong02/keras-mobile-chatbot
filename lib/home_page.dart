@@ -163,17 +163,23 @@ class HomeScreenState extends State<HomeScreen> {
                                 Positioned(
                                   top: 10,
                                   left: 10,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8), // Adjust padding as needed
-                                    decoration: BoxDecoration(
-                                      color: subBkColor,
-                                      borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
-                                    ),
-                                    child: Text(
-                                      subProvider.getSubscriptionStatus(),
-                                      style: TextStyle(
-                                        color: subTextColor,
-                                        fontSize: 16, // Adjust font size as needed
+                                  child: InkWell(
+                                    onTap: () async {
+                                      await subscriptionScreen();
+                                      setState(() {});
+                                    },
+                                    child:Container(
+                                      padding: const EdgeInsets.all(8), // Adjust padding as needed
+                                      decoration: BoxDecoration(
+                                        color: subBkColor,
+                                        borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
+                                      ),
+                                      child: Text(
+                                        subProvider.getSubscriptionStatus(),
+                                        style: TextStyle(
+                                          color: subTextColor,
+                                          fontSize: 16, // Adjust font size as needed
+                                        ),
                                       ),
                                     ),
                                   ),

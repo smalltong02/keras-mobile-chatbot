@@ -2364,3 +2364,28 @@ class StringStackTrace implements StackTrace {
 
  String toString() => _stackTrace;
 }
+
+Color invertColor(Color color) {
+  return Color.fromARGB(
+    color.alpha,
+    255 - color.red,
+    255 - color.green,
+    255 - color.blue,
+  );
+}
+
+Future<void> subscriptionScreen() async {
+  try {
+    final String paywallCode = dotenv.get('qonversion_paywall');
+    var config = QScreenPresentationConfig(QScreenPresentationStyle.push, true);
+    // Set configuration for all screens.
+    Automations.getSharedInstance().setScreenPresentationConfig(config);
+    // Set configuration for the concrete screen.
+    Automations.getSharedInstance().setScreenPresentationConfig(config, paywallCode);
+    final userInfo = await Qonversion.getSharedInstance().userInfo();
+    print("keras(showScreen) QonUser: ${userInfo.identityId}  ${userInfo.qonversionId}");
+    await Automations.getSharedInstance().showScreen(paywallCode);
+  } catch (e) {
+    logger.e("subscriptionScreen crash: $e");
+  }
+}

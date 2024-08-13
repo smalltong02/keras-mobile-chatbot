@@ -43,14 +43,13 @@ class DetailPageState extends State<DetailPage> with SingleTickerProviderStateMi
   void _onDoubleTap() {
     setState(() {
       checkMark = true;
-      if(checkMark == true) {
-        widget.characterCallback(widget.character.avatar ?? "");
-      }
+      widget.characterCallback(widget.character.avatar ?? "");
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    Color btnColor = const Color.fromARGB(128, 255, 255, 255);
     return Stack(
       children: [
         RepaintBoundary(
@@ -81,40 +80,63 @@ class DetailPageState extends State<DetailPage> with SingleTickerProviderStateMi
             ],
           ),
           body: GestureDetector(
-            onTap: _onDoubleTap,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Hero(
-                    tag: "image_${widget.character.title}",
-                    child: Image.asset(
-                      widget.character.avatar!,
-                      height: MediaQuery.of(context).size.height / 2,
-                    ),
-                  ),
-                  AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, widget) => Transform.translate(
-                      transformHitTests: false,
-                      offset: Offset.lerp(
-                          const Offset(0.0, 200.0), Offset.zero, _controller.value)!,
-                      child: widget,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Text(
-                        widget.character.description!,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w400,
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Hero(
+                        tag: "image_${widget.character.title}",
+                        child: Image.asset(
+                          widget.character.avatar!,
+                          height: MediaQuery.of(context).size.height / 2,
                         ),
                       ),
+                      AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, widget) => Transform.translate(
+                          transformHitTests: false,
+                          offset: Offset.lerp(
+                              const Offset(0.0, 200.0), Offset.zero, _controller.value)!,
+                          child: widget,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Text(
+                            widget.character.description!,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: ElevatedButton(
+                      onPressed: _onDoubleTap,
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 10,
+                        backgroundColor: btnColor,
+                        minimumSize: const Size(220, 50),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        textStyle: const TextStyle(fontSize: 20),
+                      ),
+                      child: Text(DemoLocalizations.of(context).selectBtn),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         )

@@ -705,6 +705,14 @@ class DemoLocalizations {
     );
   }
 
+  String get selectBtn {
+    return Intl.message(
+      'Select',
+      name: 'selectBtn',
+      desc: 'select button',
+    );
+  }
+
   String get expiredTitle {
     return Intl.message(
       'Expired!',

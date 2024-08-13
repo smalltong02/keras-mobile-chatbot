@@ -50,7 +50,6 @@ class ChatHome extends StatefulWidget {
 }
 
 class ChatHomeState  extends State<ChatHome>  {
-  final String paywallCode = dotenv.get('qonversion_paywall');
   List<Character> assistantCharacters = [];
   List<Character> playerCharacters = [];
 
@@ -64,21 +63,6 @@ class ChatHomeState  extends State<ChatHome>  {
     super.didChangeDependencies();
     initAssistantCharacters();
     initPlayerCharacters();
-  }
-
-  Future<void> subscriptionScreen() async {
-    try {
-      var config = QScreenPresentationConfig(QScreenPresentationStyle.push, true);
-      // Set configuration for all screens.
-      Automations.getSharedInstance().setScreenPresentationConfig(config);
-      // Set configuration for the concrete screen.
-      Automations.getSharedInstance().setScreenPresentationConfig(config, paywallCode);
-      final userInfo = await Qonversion.getSharedInstance().userInfo();
-      print("keras(showScreen) QonUser: ${userInfo.identityId}  ${userInfo.qonversionId}");
-      await Automations.getSharedInstance().showScreen(paywallCode);
-    } catch (e) {
-      logger.e("subscriptionScreen crash: $e");
-    }
   }
 
   void initAssistantCharacters() {
@@ -343,17 +327,23 @@ class ChatHomeState  extends State<ChatHome>  {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.all(8), // Adjust padding as needed
-                  decoration: BoxDecoration(
-                    color: subProvider.getSubscriptionColor(),
-                    borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
-                  ),
-                  child: Text(
-                    subProvider.getSubscriptionSimplify(),
-                    style: TextStyle(
-                      color: subTextColor,
-                      fontSize: 16, // Adjust font size as needed
+                InkWell(
+                  onTap: () async {
+                    await subscriptionScreen();
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8), // Adjust padding as needed
+                    decoration: BoxDecoration(
+                      color: subProvider.getSubscriptionColor(),
+                      borderRadius: BorderRadius.circular(30), // Adjust the radius as needed
+                    ),
+                    child: Text(
+                      subProvider.getSubscriptionSimplify(),
+                      style: TextStyle(
+                        color: subTextColor,
+                        fontSize: 16, // Adjust font size as needed
+                      ),
                     ),
                   ),
                 ),
